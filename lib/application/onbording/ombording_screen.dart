@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'dart:ui';
 import 'dart:async';
 import '../../configuration/themes/app_colors.dart';
@@ -21,21 +23,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingData(
       title: "Gestiona\nPacientes",
       description: "Administra y da seguimiento a todos tus pacientes desde una sola plataforma profesional",
-      svgPath: "assets/nutrition_illustration.png",
+      svgPath: "assets/nina.svg",
       backgroundColor: AppColors.backgroundLigth,
       gradientColors: [AppColors.primary, AppColors.secondary],
     ),
     OnboardingData(
-      title: "Planes\n Inteligentes",
+      title: "Planes Inteligentes",
       description: "Crea planes nutricionales únicos con herramientas avanzadas e IA especializada",
-      svgPath: "assets/nutrition_illustration.png",
+      svgPath: "assets/fut_omb.svg",
       backgroundColor: AppColors.backgroundLigth,
       gradientColors: [AppColors.primary, AppColors.secondary],
     ),
     OnboardingData(
       title: "Red\nProfesional",
       description: "Conecta con otros nutricionistas y accede a recursos especializados de la comunidad",
-      svgPath: "assets/nutrition_illustration.png",
+      svgPath: "assets/3_omb.svg",
       backgroundColor: AppColors.backgroundLigth,
       gradientColors: [AppColors.primary, AppColors.secondary],
     ),
@@ -79,6 +81,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor:Colors.black,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+
     final mediaQuery = MediaQuery.of(context);
     final safePadding = mediaQuery.padding;
 
@@ -99,7 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             if (_currentPage < 2)
               Positioned(
-                top: 20,
+                top: 15,
                 right: 20,
                 child: SafeArea(
                   child: TextButton(
@@ -157,7 +167,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             // Contenido de texto en la parte superior izquierda
             Positioned(
-              top: 141.14,
+              top: 70.14,
               left: 30.67,
               right: 95.08,
               child: SafeArea(
@@ -192,7 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Indicadores de página - se ocultan en la página 3
             if (_currentPage != 2)
               Positioned(
-                bottom: 100 + safePadding.bottom,
+                bottom: 20 + safePadding.bottom,
                 left: 0,
                 right: 0,
                 child: _buildPageIndicator(),
@@ -201,7 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Botón "Comenzar" - aparece solo en la tercera página
             if (_currentPage == 2)
               Positioned(
-                bottom: safePadding.bottom + 24,
+                bottom: safePadding.bottom + 15,
                 left: 24,
                 right: 24,
                 child: _buildBottomButton(),
@@ -219,7 +229,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           // Imagen en la parte inferior
           Positioned(
-            bottom: 110,
+            bottom: 30,
             left: 24,
             right: 24,
             height: MediaQuery.of(context).size.height * 0.35,
@@ -240,11 +250,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
           // Imagen en la parte inferior sobre el degradado
           Positioned(
-            bottom: 110,
+            bottom: 30,
             left: 24,
             right: 24,
-            height: MediaQuery.of(context).size.height * 0.35,
-            child: Image.asset(
+            height: MediaQuery.of(context).size.height * 0.55,
+            child: SvgPicture.asset(
               data.svgPath,
               fit: BoxFit.contain,
             ),
@@ -373,7 +383,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           width: _currentPage == index ? 24 : 8,
           decoration: BoxDecoration(
             color: _currentPage == index
-                ? AppColors.primary
+                ? AppColors.secondary
                 : Colors.black.withOpacity(0.3),
             borderRadius: BorderRadius.circular(4),
             border: _currentPage == index
@@ -398,29 +408,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(25),
             ),
             elevation: 2,
+            padding: EdgeInsets.zero, // elimina padding innecesario
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Comenzar",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Comenzar",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 22,
-              ),
-            ],
+                SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 22,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
 }
+

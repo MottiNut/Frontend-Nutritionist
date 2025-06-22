@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-
 import '../../application/auth/sign_in/code_verification_screen.dart';
 import '../../application/auth/sign_in/recover_password_screen.dart';
 import '../../application/auth/sign_in/sign_in_screen.dart';
 import '../../application/auth/sign_up/sign_up_screen.dart';
 import '../../application/onbording/ombording_screen.dart';
 import '../../application/splash/splash_screen.dart';
-import '../../application/views/home/notificactions/notification_screen.dart';
 import '../providers/app_theme_provider.dart';
 import '../providers/color_dar_light_app.dart';
 import '../providers/fontsize_app_screen.dart';
 import '../providers/speed_test_config.dart';
 import '../themes/app_colors.dart';
 import 'buttons_navigations.dart';
-
 
 class MottiNutNutriotinistApp extends StatelessWidget {
 
@@ -44,6 +42,18 @@ class MottiNutNutriotinistApp extends StatelessWidget {
         return MaterialApp(
           title: 'MottiNut',
           debugShowCheckedModeBanner: false,
+
+          // CONFIGURACIÓN DE LOCALIZACIÓN - AGREGADO
+          locale: const Locale('es', 'ES'), // Español
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('es', 'ES'), // Español
+            Locale('en', 'US'), // Inglés (opcional)
+          ],
 
           // Tema claro
           theme: _buildLightTheme(typography, fontSizeProvider),
@@ -220,7 +230,7 @@ class MottiNutNutriotinistApp extends StatelessWidget {
       '/button_navigation/chats': (context) => const ButtonsNavigations(initialIndex: 3),
       '/button_navigation/perfil': (context) => const ButtonsNavigations(initialIndex: 4),
       //'/search-rapida': (context) =>  SearchScreen(),
-      '/avisos': (context) =>  NotificationScreen(),
+      //'/avisos': (context) =>  NotificationScreen(),
     };
   }
 
@@ -292,5 +302,3 @@ class MottiNutNutriotinistApp extends StatelessWidget {
     );
   }
 }
-
-

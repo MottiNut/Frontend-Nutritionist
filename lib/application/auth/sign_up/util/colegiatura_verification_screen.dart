@@ -9,16 +9,19 @@ import 'package:mottinutnutriotinist/application/auth/sign_up/util/servicesColeg
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../configuration/themes/app_colors.dart';
 import 'dart:async';
 
+import '../../../requestSnacbar/snackBar_manager.dart';
 
 class ColegiaturaVerificationScreen extends StatefulWidget {
   final String nombre;
   final String apellido;
   final String email;
   final String contrasena;
-  final Function(String codeCNP, List<File> photoCNP, bool termsAccepted)? onValidationComplete;
+  final Function(String codeCNP, List<File> photoCNP, bool termsAccepted)?
+      onValidationComplete;
   final VoidCallback? onVerificationStart;
   final VoidCallback? onVerificationSuccess;
 
@@ -74,12 +77,35 @@ class ColegiaturaVerificationScreenState
   late TextRecognizer textRecognizer;
   late ObjectDetector objectDetector;
 
+  bool _showPageIndicator = false;
+  bool _showSwipeInstructions = true;
+  Timer? _pageIndicatorTimer;
+  Timer? _swipeInstructionsTimer;
+
+  // Constantes para SharedPreferences
+  static const String _keyColegiaturaDigits = 'colegiatura_digits';
+  static const String _keyCarneImagePaths = 'carne_image_paths';
+  static const String _keyImageTypes = 'image_types';
+  static const String _keyTermsAccepted = 'terms_accepted';
+  static const String _keyColegiaturaVerified = 'colegiatura_verified';
+
   @override
   void initState() {
     super.initState();
 
     // Inicializar ML Kit
     _initializeMLKit();
+
+    // Cargar datos guardados
+    _loadSavedData();
+
+    _swipeInstructionsTimer = Timer(Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showSwipeInstructions = false;
+        });
+      }
+    });
 
     // Inicializar controllers para colegiatura
     for (int i = 0; i < 4; i++) {
@@ -111,6 +137,111 @@ class ColegiaturaVerificationScreenState
     objectDetector = ObjectDetector(options: options);
   }
 
+  // Método para cargar datos guardados
+  Future<void> _loadSavedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Cargar dígitos de colegiatura
+      final savedDigits = prefs.getStringList(_keyColegiaturaDigits);
+      if (savedDigits != null && savedDigits.length == 4) {
+        setState(() {
+          colegiaturaDigits = savedDigits;
+          // Actualizar controllers
+          for (int i = 0; i < 4; i++) {
+            if (colegiaturaControllers.length > i) {
+              colegiaturaControllers[i].text = colegiaturaDigits[i];
+            }
+          }
+        });
+      }
+
+      // Cargar rutas de imágenes
+      final savedImagePaths = prefs.getStringList(_keyCarneImagePaths);
+      final savedImageTypes = prefs.getStringList(_keyImageTypes);
+
+      if (savedImagePaths != null && savedImageTypes != null) {
+        List<File> validImages = [];
+        List<String> validTypes = [];
+
+        // Verificar que los archivos aún existen
+        for (int i = 0; i < savedImagePaths.length; i++) {
+          final file = File(savedImagePaths[i]);
+          if (await file.exists()) {
+            validImages.add(file);
+            if (i < savedImageTypes.length) {
+              validTypes.add(savedImageTypes[i]);
+            }
+          }
+        }
+
+        if (validImages.isNotEmpty) {
+          setState(() {
+            carneImages = validImages;
+            imageTypes = validTypes;
+          });
+        }
+      }
+
+      // Cargar estado de términos
+      final savedTermsAccepted = prefs.getBool(_keyTermsAccepted) ?? false;
+      setState(() {
+        termsAccepted = savedTermsAccepted;
+      });
+
+      // Cargar estado de verificación
+      final savedColegiaturaVerified = prefs.getBool(_keyColegiaturaVerified) ?? false;
+      setState(() {
+        colegiaturaVerified = savedColegiaturaVerified;
+      });
+
+      // Validar datos después de cargar
+      _validateColegiatura();
+      _checkAutoValidation();
+
+    } catch (e) {
+      print('Error al cargar datos guardados: $e');
+    }
+  }
+
+  //Método para guardar datos
+  Future<void> _saveData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Guardar dígitos de colegiatura
+      await prefs.setStringList(_keyColegiaturaDigits, colegiaturaDigits);
+
+      // Guardar rutas de imágenes
+      final imagePaths = carneImages.map((file) => file.path).toList();
+      await prefs.setStringList(_keyCarneImagePaths, imagePaths);
+      await prefs.setStringList(_keyImageTypes, imageTypes);
+
+      // Guardar estado de términos
+      await prefs.setBool(_keyTermsAccepted, termsAccepted);
+
+      // Guardar estado de verificación
+      await prefs.setBool(_keyColegiaturaVerified, colegiaturaVerified);
+
+    } catch (e) {
+      print('Error al guardar datos: $e');
+    }
+  }
+
+  //Método para limpiar datos guardados
+  Future<void> _clearSavedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyColegiaturaDigits);
+      await prefs.remove(_keyCarneImagePaths);
+      await prefs.remove(_keyImageTypes);
+      await prefs.remove(_keyTermsAccepted);
+      await prefs.remove(_keyColegiaturaVerified);
+    } catch (e) {
+      print('Error al limpiar datos: $e');
+    }
+  }
+
   void _checkAutoValidation() {
     if (_isFormValid() &&
         termsAccepted &&
@@ -121,22 +252,7 @@ class ColegiaturaVerificationScreenState
     }
   }
 
-  @override
-  void dispose() {
-    // Limpiar ML Kit
-    textRecognizer.close();
-    objectDetector.close();
-
-    for (var controller in colegiaturaControllers) {
-      controller.dispose();
-    }
-    for (var node in colegiaturaFocusNodes) {
-      node.dispose();
-    }
-    super.dispose();
-  }
-
-  // NUEVO: Getter público para acceder al estado de términos
+  //  Getter público para acceder al estado de términos
   bool get areTermsAccepted => termsAccepted;
 
   Map<String, dynamic> getValidationData() {
@@ -184,6 +300,9 @@ class ColegiaturaVerificationScreenState
       // Verificar validación automática
       _checkAutoValidation();
     });
+
+    // NUEVO: Guardar datos después de validar
+    _saveData();
   }
 
   // Mostrar imagen ampliada
@@ -218,7 +337,8 @@ class ColegiaturaVerificationScreenState
   // MÉTODO MODIFICADO: Lógica mejorada para selección de imágenes
   Future<void> _pickImage() async {
     if (carneImages.length >= 2) {
-      _showSnackBar('Ya tienes las 2 fotos requeridas del carné');
+      SnackBarManager.showInfo(
+          context, 'Ya tienes las 2 fotos requeridas del carné');
       return;
     }
 
@@ -229,80 +349,84 @@ class ColegiaturaVerificationScreenState
     try {
       // Mostrar opciones disponibles
       final Map<String, dynamic>? selectedOption =
-      await showModalBottomSheet<Map<String, dynamic>>(
+          await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
-        builder: (BuildContext context) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-            ),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 20),
-                      child: Text(
-                        'Foto ${carneImages.length + 1} de 2',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+            builder: (BuildContext context) {
+              return SafeArea(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(left: 20),
+                              child: Text(
+                                'Foto ${carneImages.length + 1} de 2',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
                         ),
-                      ),
+                        Divider(height: 0.3, color: Colors.grey, thickness: 0.5),
+
+                        // Opciones
+                        ListTile(
+                          leading: Icon(Icons.photo_library, color: AppColors.primary),
+                          title: Text(
+                            'Galería',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            'Seleccionar desde galería',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                          onTap: () => Navigator.pop(context, {
+                            'source': ImageSource.gallery,
+                            'type': 'galeria',
+                          }),
+                        ),
+
+                        ListTile(
+                          leading: Icon(Icons.photo_camera, color: AppColors.primary),
+                          title: Text(
+                            'Cámara',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            'Tomar foto nueva',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                          onTap: () => Navigator.pop(context, {
+                            'source': ImageSource.camera,
+                            'type': 'camara',
+                          }),
+                        ),
+
+                        SizedBox(height: 5),
+                      ],
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                  ),
                 ),
-                Divider(height: 0.3, color: Colors.grey, thickness: 0.5),
-
-                // Opciones
-                ListTile(
-                  leading: Icon(Icons.photo_library, color: AppColors.primary),
-                  title: Text(
-                    'Galería',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    'Seleccionar desde galería',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  onTap: () => Navigator.pop(context, {
-                    'source': ImageSource.gallery,
-                    'type': 'galeria',
-                  }),
-                ),
-
-                ListTile(
-                  leading: Icon(Icons.photo_camera, color: AppColors.primary),
-                  title: Text(
-                    'Cámara',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    'Tomar foto nueva',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  onTap: () => Navigator.pop(context, {
-                    'source': ImageSource.camera,
-                    'type': 'camara',
-                  }),
-                ),
-
-                SizedBox(height: 10),
-              ],
-            ),
+              );
+            },
           );
-        },
-      );
 
       if (selectedOption == null) {
         setState(() {
@@ -317,7 +441,8 @@ class ColegiaturaVerificationScreenState
       setState(() {
         isUploading = false;
       });
-      _showSnackBar('Error al acceder a los permisos: $e');
+      SnackBarManager.showError(
+          context, 'Error al acceder a los permisos: $e');
     }
   }
 
@@ -370,7 +495,7 @@ class ColegiaturaVerificationScreenState
           title: Text('Permiso requerido'),
           content: Text(
             'Para usar la $tipo, necesitas otorgar los permisos correspondientes. '
-                '¿Deseas ir a configuración para habilitarlos?',
+            '¿Deseas ir a configuración para habilitarlos?',
           ),
           actions: [
             TextButton(
@@ -413,7 +538,7 @@ class ColegiaturaVerificationScreenState
       setState(() {
         isUploading = false;
       });
-      _showSnackBar('Error al seleccionar imagen: $e');
+      SnackBarManager.showError(context, 'Error al seleccionar imagen: $e');
     }
   }
 
@@ -424,7 +549,8 @@ class ColegiaturaVerificationScreenState
         fullscreenDialog: true, // Hace que se abra como pantalla completa
         builder: (context) => ValidationScreen(
           imageFile: imageFile,
-          onValidationComplete: (bool isValid, Map<String, dynamic>? analysisData) async {
+          onValidationComplete:
+              (bool isValid, Map<String, dynamic>? analysisData) async {
             // Retornar el resultado para procesarlo en la pantalla anterior
             Navigator.of(context).pop({
               'isValid': isValid,
@@ -440,27 +566,39 @@ class ColegiaturaVerificationScreenState
       final bool isValid = result['isValid'] ?? false;
       final Map<String, dynamic>? analysisData = result['analysisData'];
 
-      if (isValid) {
-        // Si es válido, agregarlo a la lista
-        setState(() {
-          carneImages.add(imageFile);
-          imageTypes.add(type);
-          isUploading = false;
-        });
-        _showSnackBar('Carnet válido agregado (${carneImages.length}/2)');
-        _checkAutoValidation();
+      if (result != null) {
+        final bool isValid = result['isValid'] ?? false;
+        final Map<String, dynamic>? analysisData = result['analysisData'];
+
+        if (isValid) {
+          // Si es válido, agregarlo a la lista
+          setState(() {
+            carneImages.add(imageFile);
+            imageTypes.add(type);
+            isUploading = false;
+          });
+
+          // NUEVO: Guardar datos después de agregar imagen
+          await _saveData();
+
+          SnackBarManager.showSuccess(
+              context, 'Carnet válido agregado (${carneImages.length}/2)');
+
+          _checkAutoValidation();
+        } else {
+          // Si no es válido, no agregar y mostrar mensaje
+          setState(() {
+            isUploading = false;
+          });
+          SnackBarManager.showError(context,
+              'La imagen no es un carnet válido. Intenta con otra imagen.');
+        }
       } else {
-        // Si no es válido, no agregar y mostrar mensaje
+        // Si el usuario canceló o no hay resultado
         setState(() {
           isUploading = false;
         });
-        _showSnackBar('La imagen no es un carnet válido. Intenta con otra imagen.');
       }
-    } else {
-      // Si el usuario canceló o no hay resultado
-      setState(() {
-        isUploading = false;
-      });
     }
   }
 
@@ -474,6 +612,9 @@ class ColegiaturaVerificationScreenState
         autoValidationEnabled = false;
       }
     });
+
+    // NUEVO: Guardar datos después de eliminar
+    _saveData();
 
     // Verificar si aún es válido después de eliminar
     _checkAutoValidation();
@@ -531,6 +672,9 @@ class ColegiaturaVerificationScreenState
         colegiaturaVerified = true;
       });
 
+      // NUEVO: Guardar datos después de verificar
+      await _saveData();
+
       await Future.delayed(Duration(seconds: 2));
 
       setState(() {
@@ -541,14 +685,39 @@ class ColegiaturaVerificationScreenState
       // MODIFICADO: Pasar también el estado de términos
       widget.onValidationComplete?.call(fullNumber, carneImages, termsAccepted);
       widget.onVerificationSuccess?.call();
+
+      // NUEVO: Limpiar datos después de completar el proceso
+      await _clearSavedData();
+
     } catch (e) {
       setState(() {
         isVerifying = false;
         colegiaturaVerified = false;
         autoValidationEnabled = false;
       });
-      _showSnackBar('Error en la verificación. Inténtalo nuevamente.');
+      SnackBarManager.showError(
+          context, 'Error en la verificación. Inténtalo nuevamente.');
     }
+  }
+
+  // NUEVO: Método público para limpiar datos (opcional)
+  Future<void> clearAllData() async {
+    setState(() {
+      colegiaturaDigits = ['', '', '', ''];
+      carneImages.clear();
+      imageTypes.clear();
+      termsAccepted = false;
+      colegiaturaVerified = false;
+      autoValidationEnabled = false;
+      colegiaturaErrorMessage = '';
+
+      // Limpiar controllers
+      for (int i = 0; i < colegiaturaControllers.length; i++) {
+        colegiaturaControllers[i].clear();
+      }
+    });
+
+    await _clearSavedData();
   }
 
   Widget _buildTermsCheckbox() {
@@ -561,6 +730,8 @@ class ColegiaturaVerificationScreenState
               termsAccepted = !termsAccepted;
             });
             _checkAutoValidation();
+
+            _saveData();
           },
           child: Container(
             width: 55,
@@ -568,15 +739,15 @@ class ColegiaturaVerificationScreenState
             alignment: Alignment.center,
             child: termsAccepted
                 ? SvgPicture.asset(
-              'assets/images/icon_verificado.svg',
-              width: 50,
-              height: 50,
-            )
+                    'assets/images/icon_verificado.svg',
+                    width: 50,
+                    height: 50,
+                  )
                 : SvgPicture.asset(
-              'assets/images/check_autorization.svg',
-              width: 30,
-              height: 30,
-            ),
+                    'assets/images/check_autorization.svg',
+                    width: 30,
+                    height: 30,
+                  ),
           ),
         ),
         Expanded(
@@ -589,7 +760,7 @@ class ColegiaturaVerificationScreenState
               children: [
                 TextSpan(
                     text:
-                    'Autorizo la verificación de mi colegiatura en el Colegio de Nutricionistas del Perú (CNP), conforme a lo dispuesto en la ',
+                        'Autorizo la verificación de mi colegiatura en el Colegio de Nutricionistas del Perú (CNP), conforme a lo dispuesto en la ',
                     style: TextStyle(height: 1.3)),
                 TextSpan(
                   text: 'Ley N.° 29885',
@@ -722,7 +893,7 @@ class ColegiaturaVerificationScreenState
       );
     } else if (_isFormValid() && !termsAccepted) {
       return Align(
-        alignment: Alignment.center ,
+        alignment: Alignment.center,
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
@@ -814,7 +985,7 @@ class ColegiaturaVerificationScreenState
                       } else if (hasFocus || hasValue) {
                         borderColor = AppColors.primary;
                         backgroundColor =
-                        hasValue ? AppColors.primary : Colors.white;
+                            hasValue ? AppColors.primary : Colors.white;
                       } else {
                         borderColor = Colors.grey[400]!;
                         backgroundColor = Colors.white;
@@ -843,7 +1014,7 @@ class ColegiaturaVerificationScreenState
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           cursorColor:
-                          hasValue ? Colors.white : AppColors.primary,
+                              hasValue ? Colors.white : AppColors.primary,
                           decoration: const InputDecoration(
                             filled: true,
                             fillColor: Colors.transparent,
@@ -855,30 +1026,32 @@ class ColegiaturaVerificationScreenState
                             counterText: '',
                             contentPadding: EdgeInsets.zero,
                           ),
-                          onChanged: (value) {
-                            setState(() {
-                              colegiaturaDigits[index] = value;
-                              colegiaturaControllers[index].text = value;
+                            onChanged: (value) {
+                              setState(() {
+                                colegiaturaDigits[index] = value;
+                                colegiaturaControllers[index].text = value;
 
-                              if (value.isNotEmpty) {
-                                if (index < 3) {
-                                  colegiaturaFocusNodes[index + 1]
-                                      .requestFocus();
-                                } else {
-                                  colegiaturaFocusNodes[index].unfocus();
+                                if (value.isNotEmpty) {
+                                  if (index < 3) {
+                                    colegiaturaFocusNodes[index + 1].requestFocus();
+                                  } else {
+                                    colegiaturaFocusNodes[index].unfocus();
+                                  }
+                                } else if (value.isEmpty && index > 0) {
+                                  colegiaturaFocusNodes[index - 1].requestFocus();
                                 }
-                              } else if (value.isEmpty && index > 0) {
-                                colegiaturaFocusNodes[index - 1].requestFocus();
-                              }
 
-                              if (colegiaturaErrorMessage.isNotEmpty) {
-                                colegiaturaErrorMessage = '';
-                              }
-                            });
+                                if (colegiaturaErrorMessage.isNotEmpty) {
+                                  colegiaturaErrorMessage = '';
+                                }
+                              });
 
-                            // NUEVO: Verificar validación automática
-                            _checkAutoValidation();
-                          },
+                              // Verificar validación automática
+                              _checkAutoValidation();
+
+                              // NUEVO: Guardar datos después de cambiar
+                              _saveData();
+                            }
                         ),
                       );
                     }),
@@ -928,8 +1101,8 @@ class ColegiaturaVerificationScreenState
 
                   // Sección de carné
                   Container(
-                    padding: EdgeInsets.only(
-                        left: 60, top: 4, right: 16, bottom: 1),
+                    padding:
+                        EdgeInsets.only(left: 60, top: 4, right: 16, bottom: 1),
                     child: Column(
                       children: [
                         // Estructura principal con SVG
@@ -938,42 +1111,42 @@ class ColegiaturaVerificationScreenState
                             Container(
                               child: carneImages.isNotEmpty
                                   ? Stack(
-                                children: [
-                                  // SVG con icono de respaldo cuando hay imágenes
-                                  SvgPicture.asset(
-                                    'assets/images/file_correct.svg',
-                                    placeholderBuilder: (context) => Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ],
-                              )
+                                      children: [
+                                        // SVG con icono de respaldo cuando hay imágenes
+                                        SvgPicture.asset(
+                                          'assets/images/file_correct.svg',
+                                          placeholderBuilder: (context) => Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green,
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    )
                                   : (isUploading
-                                  ? Container(
-                                width: 60,
-                                height: 60,
-                                child: Lottie.asset(
-                                  'assets/loading/palta_saltarina.json',
-                                  width: 60,
-                                  height: 60,
-                                ),
-                              )
-                                  : GestureDetector(
-                                onTap: carneImages.length < 2
-                                    ? _pickImage
-                                    : null,
-                                child: SvgPicture.asset(
-                                  'assets/images/gallery_icon.svg',
-                                  placeholderBuilder: (context) =>
-                                      Icon(
-                                        Icons.photo_library,
-                                        color: Colors.grey[600],
-                                        size: 24,
-                                      ),
-                                ),
-                              )),
+                                      ? Container(
+                                          width: 60,
+                                          height: 60,
+                                          child: Lottie.asset(
+                                            'assets/loading/palta_saltarina.json',
+                                            width: 60,
+                                            height: 60,
+                                          ),
+                                        )
+                                      : GestureDetector(
+                                          onTap: carneImages.length < 2
+                                              ? _pickImage
+                                              : null,
+                                          child: SvgPicture.asset(
+                                            'assets/images/gallery_icon.svg',
+                                            placeholderBuilder: (context) =>
+                                                Icon(
+                                              Icons.photo_library,
+                                              color: Colors.grey[600],
+                                              size: 24,
+                                            ),
+                                          ),
+                                        )),
                             ),
                             SizedBox(width: 16),
                             Expanded(
@@ -1012,10 +1185,12 @@ class ColegiaturaVerificationScreenState
                             height: 100,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              itemCount: carneImages.length + (carneImages.length < 2 ? 1 : 0),
+                              itemCount: carneImages.length +
+                                  (carneImages.length < 2 ? 1 : 0),
                               itemBuilder: (context, index) {
                                 // Botón agregar si hay menos de 2 imágenes válidas
-                                if (index == carneImages.length && carneImages.length < 2) {
+                                if (index == carneImages.length &&
+                                    carneImages.length < 2) {
                                   return Container(
                                     margin: EdgeInsets.only(right: 8),
                                     child: GestureDetector(
@@ -1025,24 +1200,29 @@ class ColegiaturaVerificationScreenState
                                         height: 100,
                                         decoration: BoxDecoration(
                                           border: Border.all(
-                                            color: AppColors.primary.withOpacity(0.5),
+                                            color: AppColors.primary
+                                                .withOpacity(0.5),
                                             width: 1,
                                           ),
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                          BorderRadius.circular(8),
                                         ),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                           children: [
                                             Icon(
                                               Icons.add_photo_alternate,
-                                              color: AppColors.primary.withOpacity(0.7),
+                                              color: AppColors.primary
+                                                  .withOpacity(0.7),
                                               size: 20,
                                             ),
                                             SizedBox(height: 4),
                                             Text(
                                               'Agregar',
                                               style: TextStyle(
-                                                color: AppColors.primary.withOpacity(0.7),
+                                                color: AppColors.primary
+                                                    .withOpacity(0.7),
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w500,
                                               ),
@@ -1062,51 +1242,101 @@ class ColegiaturaVerificationScreenState
                                     children: [
                                       GestureDetector(
                                         onTap: () => _showImageViewer(index),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.file(
-                                            carneImages[index],
-                                            width: 80,
-                                            height: 100,
-                                            fit: BoxFit.cover,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: AppColors.primary,
+                                              width: 2,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.primary.withOpacity(0.2),
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: Stack(
+                                              children: [
+                                                Image.file(
+                                                  carneImages[index],
+                                                  width: 80,
+                                                  height: 100,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                                // Overlay sutil para indicar selección
+                                                Container(
+                                                  width: 80,
+                                                  height: 100,
+                                                  decoration: BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      begin: Alignment.topCenter,
+                                                      end: Alignment.bottomCenter,
+                                                      colors: [
+                                                        AppColors.primary.withOpacity(0.1),
+                                                        Colors.transparent,
+                                                      ],
+                                                      stops: [0.0, 0.3],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                      // Indicador de validación exitosa
+                                      // Indicador de estado activo/seleccionado
                                       Positioned(
-                                        top: 4,
+                                        bottom: 4,
                                         left: 4,
                                         child: Container(
-                                          width: 16,
-                                          height: 16,
+                                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: Colors.green,
-                                            shape: BoxShape.circle,
+                                            color: AppColors.primary,
+                                            borderRadius: BorderRadius.circular(10),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.2),
+                                                blurRadius: 2,
+                                                offset: Offset(0, 1),
+                                              ),
+                                            ],
                                           ),
-                                          child: Icon(
-                                            Icons.check,
-                                            color: Colors.white,
-                                            size: 10,
+                                          child: Text(
+                                            'ACTIVO',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.5,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                      // Botón eliminar
+                                      // Botón eliminar con mejor contraste
                                       Positioned(
                                         top: 4,
                                         right: 4,
                                         child: GestureDetector(
                                           onTap: () => _removeImage(index),
                                           child: Container(
-                                            width: 18,
-                                            height: 18,
+                                            width: 20,
+                                            height: 20,
                                             decoration: BoxDecoration(
-                                              color: AppColors.errorText,
+                                              color: Colors.black.withOpacity(0.7),
                                               shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.3),
+                                                width: 1,
+                                              ),
                                             ),
                                             child: Icon(
                                               Icons.close,
                                               color: Colors.white,
-                                              size: 10,
+                                              size: 12,
                                             ),
                                           ),
                                         ),
@@ -1140,210 +1370,360 @@ class ColegiaturaVerificationScreenState
     );
   }
 
-  // Overlay para vista de imagen ampliada
+  void _showPageIndicatorTemporarily() {
+    _pageIndicatorTimer?.cancel();
+    setState(() {
+      _showPageIndicator = true;
+    });
+
+    _pageIndicatorTimer = Timer(Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _showPageIndicator = false;
+        });
+      }
+    });
+  }
+
   Widget _buildImageViewerOverlay() {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.9),
+        color: Colors.black.withOpacity(0.95),
         child: Stack(
           children: [
-            // Imagen centrada
+            // PageView para navegación suave entre imágenes
             Center(
               child: Container(
                 margin: EdgeInsets.symmetric(horizontal: 20),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Image.file(
-                    carneImages[currentImageIndex],
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-
-            // Botón cerrar (X) - esquina superior derecha
-            Positioned(
-              top: 50,
-              right: 20,
-              child: GestureDetector(
-                onTap: _closeImageViewer,
-                child: Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-
-            // Botón eliminar - esquina superior izquierda
-            Positioned(
-              top: 50,
-              left: 20,
-              child: GestureDetector(
-                onTap: () {
-                  // Mostrar confirmación antes de eliminar
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      return AlertDialog(
-                        title: Text('Eliminar imagen'),
-                        content: Text(
-                            '¿Estás seguro de que deseas eliminar esta imagen?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(dialogContext).pop();
-                            },
-                            child: Text(
-                              'Cancelar',
-                              style: TextStyle(color: AppColors.textInput),
+                child: GestureDetector(
+                  onTap: _showPageIndicatorTemporarily, // Mostrar contador al hacer tap
+                  child: PageView.builder(
+                    controller: PageController(initialPage: currentImageIndex),
+                    onPageChanged: (index) {
+                      setState(() {
+                        currentImageIndex = index;
+                      });
+                      // Mostrar contador al cambiar de página
+                      _showPageIndicatorTemporarily();
+                    },
+                    itemCount: carneImages.length,
+                    itemBuilder: (context, index) {
+                      return AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: Hero(
+                            tag: 'image_$index',
+                            child: Image.file(
+                              carneImages[index],
+                              fit: BoxFit.contain,
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(dialogContext).pop();
-                              _removeImageFromViewer();
-                            },
-                            child: Text(
-                              'Eliminar',
-                              style: TextStyle(color: AppColors.secondary),
-                            ),
-                          ),
-                        ],
+                        ),
                       );
                     },
-                  );
-                },
-                child: Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.delete_outline,
-                    color: Colors.white,
-                    size: 22,
                   ),
                 ),
               ),
             ),
 
-            // Indicador de imagen actual (si hay más de una)
-            if (carneImages.length > 1)
+            // Barra superior con botones animados
+            Positioned(
+              top: 20,
+              left: 20,
+              right: 20,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Botón eliminar con animación
+                  TweenAnimationBuilder(
+                    duration: Duration(milliseconds: 200),
+                    tween: Tween<double>(begin: 0, end: 1),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: GestureDetector(
+                          onTapDown: (_) => _animateButtonPress(true),
+                          onTapUp: (_) => _animateButtonPress(false),
+                          onTapCancel: () => _animateButtonPress(false),
+                          onTap: () {
+                            _showDeleteConfirmation();
+                          },
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 150),
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.85),
+                              shape: BoxShape.circle,
+
+                            ),
+                            child: Icon(
+                              Icons.delete_outline,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Botón cerrar con animación
+                  TweenAnimationBuilder(
+                    duration: Duration(milliseconds: 200),
+                    tween: Tween<double>(begin: 0, end: 1),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: GestureDetector(
+                          onTapDown: (_) => _animateButtonPress(true),
+                          onTapUp: (_) => _animateButtonPress(false),
+                          onTapCancel: () => _animateButtonPress(false),
+                          onTap: _closeImageViewer,
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 150),
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade800,
+                              shape: BoxShape.circle,
+
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            // Indicador de página con animación suave (solo se muestra temporalmente)
+            if (carneImages.length > 1 && _showPageIndicator)
               Positioned(
                 bottom: 80,
                 left: 0,
                 right: 0,
                 child: Center(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${currentImageIndex + 1} de ${carneImages.length}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                  child: AnimatedOpacity(
+                    opacity: _showPageIndicator ? 1.0 : 0.0,
+                    duration: Duration(milliseconds: 300),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 250),
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: Offset(0.3, 0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Text(
+                          '${currentImageIndex + 1} de ${carneImages.length}',
+                          key: ValueKey(currentImageIndex),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
 
-            // Navegación entre imágenes (si hay más de una)
-            if (carneImages.length > 1) ...[
-              // Botón imagen anterior
-              if (currentImageIndex > 0)
-                Positioned(
-                  left: 20,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          currentImageIndex--;
-                        });
-                      },
-                      child: Container(
-                        width: 45,
-                        height: 45,
+            // Indicadores de puntos para navegación visual (permanentes)
+            if (carneImages.length > 1)
+              Positioned(
+                bottom: 40,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      carneImages.length,
+                          (index) => AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        margin: EdgeInsets.symmetric(horizontal: 4),
+                        width: currentImageIndex == index ? 24 : 8,
+                        height: 5,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.chevron_left,
-                          color: Colors.white,
-                          size: 30,
+                          color: currentImageIndex == index
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
                   ),
                 ),
+              ),
 
-              // Botón imagen siguiente
-              if (currentImageIndex < carneImages.length - 1)
-                Positioned(
-                  right: 20,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          currentImageIndex++;
-                        });
-                      },
-                      child: Container(
-                        width: 45,
-                        height: 45,
-                        decoration: BoxDecoration(
+            // Instrucción de deslizamiento (solo aparece al inicio)
+            if (carneImages.length > 1 && _showSwipeInstructions)
+              Positioned(
+                bottom: 130,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: AnimatedOpacity(
+                    opacity: _showSwipeInstructions ? 1.0 : 0.0,
+                    duration: Duration(milliseconds: 500),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
                           color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.swipe_left,
+                            color: Colors.white.withOpacity(0.6),
+                            size: 14,
                           ),
-                        ),
-                        child: Icon(
-                          Icons.chevron_right,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Desliza para navegar',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.swipe_right,
+                            color: Colors.white.withOpacity(0.6),
+                            size: 14,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-            ],
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  void _animateButtonPress(bool isPressed) {}
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 24,
+              ),
+              SizedBox(width: 10),
+              Text('Eliminar imagen',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar esta imagen? Esta acción no se puede deshacer.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _removeImageFromViewer();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorIcon,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Eliminar',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1426,5 +1806,26 @@ class ColegiaturaVerificationScreenState
       ),
     );
   }
-}
 
+
+  @override
+  void dispose() {
+    // Guardar datos antes de dispose (opcional)
+    _saveData();
+
+    // Limpiar ML Kit
+    textRecognizer.close();
+    objectDetector.close();
+
+    _pageIndicatorTimer?.cancel();
+    _swipeInstructionsTimer?.cancel();
+
+    for (var controller in colegiaturaControllers) {
+      controller.dispose();
+    }
+    for (var node in colegiaturaFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+}

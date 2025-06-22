@@ -1,8 +1,14 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:lottie/lottie.dart';
 import '../../../configuration/themes/app_colors.dart';
 import '../../../domain/patient/pruebaa.dart';
+import '../../requestSnacbar/snackBar_manager.dart';
+import '../../skeletons/home_skeleton_screen.dart';
+import 'citas_detail/weekly_agenda_screen.dart';
+import 'notificactions/notification_animation.dart';
+import 'notificactions/notification_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -76,28 +82,78 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Error inesperado: ${error.toString()}';
   }
 
+  // Modifica estos métodos en tu HomeScreen para manejar endpoints faltantes
+
   Future<void> loadTodayAppointments() async {
     try {
       final today = DateTime.now();
       final startOfDay = DateTime(today.year, today.month, today.day);
 
-      // Llamada correcta al servicio
-      final appointments = await appointmentService.getAppointmentsByDate(startOfDay);
+      // Intenta obtener citas, pero maneja el caso donde el endpoint no existe
+      try {
+        final appointments = await appointmentService.getAppointmentsByDate(startOfDay);
 
-      todayAppointments = appointments
-          .where((apt) =>
-      apt.status == AppointmentStatus.confirmada ||
-          apt.status == AppointmentStatus.programada)
-          .toList()
-        ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
+        todayAppointments = appointments
+            .where((apt) =>
+        apt.status == AppointmentStatus.confirmada ||
+            apt.status == AppointmentStatus.programada)
+            .toList()
+          ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
 
-      Logger.info('Loaded ${todayAppointments.length} appointments for today');
+        Logger.info('Loaded ${todayAppointments.length} appointments for today');
+      } catch (e) {
+        // Si el endpoint no existe, usa datos mock o lista vacía
+        Logger.warning('Appointments endpoint not available, using empty list');
+        todayAppointments = [];
+
+        // Opcional: usar datos de prueba
+        // todayAppointments = _getMockAppointments();
+      }
     } catch (e) {
       Logger.error('Error loading today appointments', e);
       todayAppointments = [];
     }
   }
 
+  Future<void> loadUrgentPatients() async {
+    try {
+      try {
+        final patients = await patientService.getUrgentPatients();
+        final now = DateTime.now();
+        final urgentThreshold = now.subtract(const Duration(hours: 72));
+
+        urgentPatients = patients
+            .where((patient) =>
+        patient.status != PatientStatus.inactivo &&
+            (patient.lastVisitDate == null ||
+                patient.lastVisitDate!.isBefore(urgentThreshold)))
+            .take(3)
+            .toList();
+
+        Logger.info('Loaded ${urgentPatients.length} urgent patients');
+      } catch (e) {
+        // Si el endpoint no existe, usa pacientes activos y simula lógica urgente
+        Logger.warning('Urgent patients endpoint not available, using fallback logic');
+
+        final allPatients = await patientService.getAllPatients();
+        final now = DateTime.now();
+        final urgentThreshold = now.subtract(const Duration(hours: 72));
+
+        urgentPatients = allPatients
+            .where((patient) =>
+        patient.status != PatientStatus.inactivo &&
+            (patient.lastVisitDate == null ||
+                patient.lastVisitDate!.isBefore(urgentThreshold)))
+            .take(3)
+            .toList();
+
+        Logger.info('Loaded ${urgentPatients.length} urgent patients using fallback');
+      }
+    } catch (e) {
+      Logger.error('Error loading urgent patients', e);
+      urgentPatients = [];
+    }
+  }
 
   Future<void> loadActivePatients() async {
     try {
@@ -111,27 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       Logger.error('Error loading active patients', e);
       activePatientCount = 0;
-    }
-  }
-
-  Future<void> loadUrgentPatients() async {
-    try {
-      final patients = await patientService.getUrgentPatients();
-      final now = DateTime.now();
-      final urgentThreshold = now.subtract(const Duration(hours: 72));
-
-      urgentPatients = patients
-          .where((patient) =>
-      patient.status != PatientStatus.inactivo &&
-          (patient.lastVisitDate == null ||
-              patient.lastVisitDate!.isBefore(urgentThreshold)))
-          .take(3)
-          .toList();
-
-      Logger.info('Loaded ${urgentPatients.length} urgent patients');
-    } catch (e) {
-      Logger.error('Error loading urgent patients', e);
-      urgentPatients = [];
     }
   }
 
@@ -173,19 +208,88 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  static final List<NotificationItem> _staticNotifications = [
+    NotificationItem(
+      id: '1',
+      type: NotificationType.newPatient,
+      title: 'Nuevo paciente registrado',
+      message: 'María González se ha registrado como nueva paciente',
+      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+      patientName: 'María González',
+      patientAvatar: 'https://example.com/avatar1.jpg',
+    ),
+    NotificationItem(
+      id: '2',
+      type: NotificationType.newAppointment,
+      title: 'Nueva cita programada',
+      message: 'Carlos Pérez ha programado una cita para mañana a las 10:00 AM',
+      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
+      patientName: 'Carlos Pérez',
+    ),
+    NotificationItem(
+      id: '3',
+      type: NotificationType.chatMessage,
+      title: 'Mensaje de Ana López',
+      message: 'Tengo una pregunta sobre mi plan nutricional',
+      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      patientName: 'Ana López',
+      patientAvatar: 'https://example.com/avatar2.jpg',
+    ),
+    NotificationItem(
+      id: '4',
+      type: NotificationType.planUpdate,
+      title: 'Plan nutricional actualizado',
+      message: 'Se ha actualizado el plan de Pedro Martínez',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      patientName: 'Pedro Martínez',
+    ),
+    NotificationItem(
+      id: '5',
+      type: NotificationType.reminder,
+      title: 'Recordatorio de cita',
+      message: 'Tienes una cita con Laura García en 30 minutos',
+      timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      patientName: 'Laura García',
+    ),
+    NotificationItem(
+      id: '6',
+      type: NotificationType.appUpdate,
+      title: 'Actualización disponible',
+      message: 'Nueva versión de la aplicación disponible con mejoras',
+      timestamp: DateTime.now().subtract(const Duration(days: 3)),
+      isRead: true,
+    ),
+  ];
+
+  // Getter que devuelve las notificaciones estáticas
+  List<NotificationItem> get notifications => _staticNotifications;
+
+  // Función mejorada para manejar el tap de notificaciones
+  void onNotificationTap() {
+    // Validar que tenemos notificaciones antes de navegar
+    if (notifications.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NotificationScreen(
+            notifications: notifications,
+          ),
+        ),
+      );
+    } else {
+      // Mostrar mensaje si no hay notificaciones
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay notificaciones disponibles'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   Widget buildContent() {
     if (isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Cargando datos...'),
-          ],
-        ),
-      );
+      return const HomeScreenSkeleton();
     }
 
     if (error != null) {
@@ -233,7 +337,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            // Pasar las notificaciones y la función de callback
+            _buildHeader(notifications, onNotificationTap),
             const SizedBox(height: 15),
             _buildName(),
             const SizedBox(height: 10),
@@ -254,23 +359,46 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+
+  Widget _buildHeader(List<NotificationItem> notifications, VoidCallback onNotificationTap) {
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SvgPicture.asset('assets/images/menu_icon.svg',
-              width: 36,
-              height: 36,
+            // Icono de menú con efecto hover
+            GestureDetector(
+              onTap: () {
+                // Tu lógica para el menú
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.transparent,
+                ),
+                child: SvgPicture.asset(
+                  'assets/images/menu_icon.svg',
+                  width: 36,
+                  height: 36,
+                ),
+              ),
             ),
+
+            // Avatar con efecto de glow
             Container(
               width: 73.406,
               height: 55.14,
               decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(width: 0.1, color: Colors.white70)
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(width: 2, color: Colors.white.withOpacity(0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(30),
@@ -280,9 +408,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SvgPicture.asset('assets/images/notification_icon.svg',
-              width: 25.305,
-              height: 30.278,
+
+            // Icono de notificación animado
+            AnimatedNotificationIcon(
+              notifications: notifications,
+              onTap: onNotificationTap,
             ),
           ],
         ),
@@ -435,56 +565,110 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(right: 14),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+        GestureDetector(
+          onTap: () => _navigateToWeeklyAgenda(),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(right: 14),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                      color: AppColors.primary.withOpacity(0.5), width: 0.2)),
-              child: todayAppointments.isEmpty
-                  ? _buildNoAppointments()
-                  : Column(
-                children: todayAppointments
-                    .take(2)
-                    .map((appointment) => Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: _buildAgendaItem(appointment),
-                ))
-                    .toList(),
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Container(
-                  width: 45,
-                  height: 45,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+                      color: AppColors.primary.withOpacity(0.5),
+                      width: 0.2
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3.0),
-                    child: SvgPicture.asset(
-                      'assets/images/next_icon.svg',
-                      width: 27,
-                      height: 27,
+                ),
+                child: todayAppointments.isEmpty
+                    ? _buildNoAppointments()
+                    : Column(
+                  children: todayAppointments
+                      .take(2)
+                      .map((appointment) => Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: _buildAgendaItem(appointment),
+                  ))
+                      .toList(),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Container(
+                    width: 45,
+                    height: 45,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3.0),
+                      child: SvgPicture.asset(
+                        'assets/images/next_icon.svg',
+                        width: 27,
+                        height: 27,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  Future<void> _navigateToWeeklyAgenda() async {
+    try {
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Lottie.asset('assets/loading/palta_saltarina.json',
+              width: 80,
+              height: 80
+          ),
+        ),
+      );
+
+      // Obtener citas de la semana
+      final weeklyAppointments = await appointmentService.getWeeklyAppointments();
+
+      // Cerrar indicador de carga
+      Navigator.pop(context);
+
+      // Navegar a la pantalla de agenda semanal
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WeeklyAgendaScreen(
+            appointments: weeklyAppointments,
+            patientService: patientService,
+          ),
+        ),
+      );
+    } catch (e) {
+      // Cerrar indicador de carga si está abierto
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      // Mostrar error
+      SnackBarManager.showWithAction(
+        context,
+        message: 'Error al cargar la agenda semanal: ${_getErrorMessage(e)}',
+        actionText: 'DESHACER',
+        onAction: _navigateToWeeklyAgenda,
+      );
+
+      Logger.error('Error navigating to weekly agenda', e);
+    }
   }
 
   Widget _buildNoAppointments() {

@@ -30,6 +30,7 @@ class AppColors {
   //fondo de category
   static const Color backgroundDiabetes = Color(0xFFFFBC93);
   static const Color backgroundHipertencion = Color(0xFF00CEDC);
+  static const Color backgroundDetail = Color(0xFF4CBFC7);
   static const Color backgroundObecidad = Color(0xFF679FD3);
 
   //text

@@ -737,26 +737,26 @@ class _SignInScreenState extends State<SignInScreen>
 
   Widget _buildTermsAndConditions() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: RichText(
         textAlign: TextAlign.center,
         text: TextSpan(
-          text: 'Al hacer clic en continuar, acepta nuestros ',
+          text: 'Al continuar, aceptas los',
           style: TextStyle(
             color: AppColors.textTertiary,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w300,
             fontSize: 12,
             letterSpacing: 0.5,
             height: 1.3,
           ),
           children: [
             TextSpan(
-              text: 'Términos de servicio',
+              text: '\nTérminos y Condiciones',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textLight,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.none,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.underline,
                 letterSpacing: 0.5,
               ),
             ),
@@ -773,8 +773,8 @@ class _SignInScreenState extends State<SignInScreen>
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textLight,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.none,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.underline,
               ),
             ),
           ],

@@ -8,9 +8,14 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 import 'package:lottie/lottie.dart';
-
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../../domain/validators/carnet_validations_enum.dart';
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+
+// Enum para controlar lados del carnet
+enum CardSide { front, back, unknown }
+enum ValidationMode { single, dual }
+
 
 class ValidationScreen extends StatefulWidget {
   final File imageFile;
@@ -35,6 +40,15 @@ class _ValidationScreenState extends State<ValidationScreen>
   List<ValidationStep> _validationSteps = [];
   ValidationResult? _finalResult;
   int _currentStepIndex = -1;
+
+  // NUEVO - Agregar estas variables
+  CardSide _currentCardSide = CardSide.unknown;
+  ValidationMode _validationMode = ValidationMode.dual; // Por defecto requiere ambos lados
+  bool _frontProcessed = false;
+  bool _backProcessed = false;
+  Map<String, dynamic> _frontData = {};
+  Map<String, dynamic> _backData = {};
+  late BarcodeScanner _barcodeScanner;
 
   // ML Kit components
   late TextRecognizer _textRecognizer;
@@ -72,6 +86,8 @@ class _ValidationScreenState extends State<ValidationScreen>
         multipleObjects: false,
       ),
     );
+
+    _barcodeScanner = BarcodeScanner();
 
     // Configurar animaciones mejoradas
     _progressController = AnimationController(
@@ -302,6 +318,13 @@ class _ValidationScreenState extends State<ValidationScreen>
     try {
       String text = _analysisData['clean_text'] ?? '';
 
+      // NUEVO - Detectar QR code para identificar reverso
+      final inputImage = InputImage.fromFile(widget.imageFile);
+      final List<Barcode> barcodes = await _barcodeScanner.processImage(inputImage);
+
+      bool hasQRCode = barcodes.isNotEmpty;
+      _analysisData['has_qr_code'] = hasQRCode;
+
       // Patrones para detectar el frente del carnet
       List<String> frontPatterns = [
         'apellidos',
@@ -324,23 +347,45 @@ class _ValidationScreenState extends State<ValidationScreen>
         'carnet es personal',
         'intransfenble',
         'intransferible',
+        'firma del titular',
         'anexo 102'
       ];
 
       int frontMatches = _countPatternMatches(text, frontPatterns);
       int backMatches = _countPatternMatches(text, backPatterns);
 
+      // NUEVO - Lógica mejorada de detección
+      CardSide detectedSide = CardSide.unknown;
+
+      if (hasQRCode && backMatches > 0) {
+        detectedSide = CardSide.back;
+      } else if (frontMatches > backMatches && frontMatches > 1) {
+        detectedSide = CardSide.front;
+      } else if (backMatches > 0) {
+        detectedSide = CardSide.back;
+      }
+
       _analysisData['front_matches'] = frontMatches;
       _analysisData['back_matches'] = backMatches;
       _analysisData['detected_side'] = frontMatches >= backMatches ? 'front' : 'back';
 
-      print('Detección lado - Frente: $frontMatches, Reverso: $backMatches');
-      print('Lado detectado: ${_analysisData['detected_side']}');
+      // NUEVO - Validar que no se repita el mismo lado
+      if (detectedSide == CardSide.front && _frontProcessed) {
+        print('ERROR: Frente ya procesado anteriormente');
+        return false;
+      }
+
+      if (detectedSide == CardSide.back && _backProcessed) {
+        print('ERROR: Reverso ya procesado anteriormente');
+        return false;
+      }
+
+      print('Detección lado - Frente: $frontMatches, Reverso: $backMatches, QR: $hasQRCode');
+      print('Lado detectado: ${detectedSide.toString().split('.').last}');
 
       await Future.delayed(const Duration(milliseconds: 1000));
 
-      // Aceptar ambos lados
-      return frontMatches > 0 || backMatches > 0;
+      return detectedSide != CardSide.unknown;
     } catch (e) {
       print('Error detectando lado: $e');
       return false;
@@ -350,7 +395,7 @@ class _ValidationScreenState extends State<ValidationScreen>
   Future<bool> _validateCNPElements() async {
     try {
       String text = _analysisData['clean_text'] ?? '';
-      String side = _analysisData['detected_side'] ?? 'front';
+      String side = _currentCardSide.toString().split('.').last;
 
       Map<String, List<String>> cnpPatterns;
 
@@ -471,6 +516,14 @@ class _ValidationScreenState extends State<ValidationScreen>
         bool hasInstitution = categoryMatches['institution']! > 0;
         bool hasDates = categoryMatches['dates']! > 0;
         isValid = hasInstitution && totalMatches >= 2;
+      }
+
+      if (_currentCardSide == CardSide.front) {
+        _frontData = Map.from(_analysisData);
+        _frontProcessed = true;
+      } else if (_currentCardSide == CardSide.back) {
+        _backData = Map.from(_analysisData);
+        _backProcessed = true;
       }
 
       await Future.delayed(const Duration(milliseconds: 2200));
@@ -629,34 +682,76 @@ class _ValidationScreenState extends State<ValidationScreen>
   void _finalizeValidation(bool isValid, String? errorMessage) {
     if (!mounted) return;
 
+    // NUEVO - Verificar si necesita el otro lado
+    if (isValid && _validationMode == ValidationMode.dual) {
+      if (_currentCardSide == CardSide.front && !_backProcessed) {
+        // Solicitar el reverso
+        _showRequireBothSidesDialog('Se validó el frente correctamente. Ahora capture el reverso del carnet.');
+        return;
+      } else if (_currentCardSide == CardSide.back && !_frontProcessed) {
+        // Solicitar el frente
+        _showRequireBothSidesDialog('Se validó el reverso correctamente. Ahora capture el frente del carnet.');
+        return;
+      }
+    }
+
     setState(() {
       _currentState = isValid ? ValidationState.success : ValidationState.failed;
       _finalResult = ValidationResult(
         isValid: isValid,
         errorMessage: errorMessage,
-        analysisData: Map.from(_analysisData),
+        analysisData: _mergeAnalysisData(), // CAMBIO
       );
     });
 
     // Auto-cerrar después de mostrar resultado
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
-        widget.onValidationComplete(isValid, _analysisData);
+        widget.onValidationComplete(isValid, _mergeAnalysisData()); // CAMBIO
       }
     });
   }
 
-  @override
-  void dispose() {
-    _progressController.dispose();
-    _fadeController.dispose();
-    _pulseController.dispose();
-    _slideController.dispose();
-    _textRecognizer.close();
-    _objectDetector.close();
-    super.dispose();
+  // NUEVO - Método para mostrar diálogo de ambos lados
+  void _showRequireBothSidesDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Se requieren ambos lados'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onValidationComplete(false, null);
+            },
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onValidationComplete(false, {'require_other_side': true});
+            },
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
   }
 
+  // Método para combinar datos de ambos lados
+  Map<String, dynamic> _mergeAnalysisData() {
+    Map<String, dynamic> merged = Map.from(_analysisData);
+
+    if (_frontProcessed && _backProcessed) {
+      merged['front_data'] = _frontData;
+      merged['back_data'] = _backData;
+      merged['both_sides_validated'] = true;
+    }
+
+    return merged;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1441,6 +1536,18 @@ class _ValidationScreenState extends State<ValidationScreen>
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _progressController.dispose();
+    _fadeController.dispose();
+    _pulseController.dispose();
+    _slideController.dispose();
+    _textRecognizer.close();
+    _objectDetector.close();
+    _barcodeScanner.close(); // NUEVO
+    super.dispose();
   }
 }
 

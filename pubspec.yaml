@@ -60,6 +60,12 @@ dependencies:
   local_auth: ^2.3.0
   get_it: ^8.0.3
 
+  #skeleton
+  shimmer: ^3.0.0
+
+  #manejar calendario local
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -93,7 +99,9 @@ flutter:
     - assets/loading/loading_infinity.json
     #success
     - assets/lottie/succes/success.json
-    - assets/nutrition_illustration.png
+    - assets/nina.svg
+    - assets/fut_omb.svg
+    - assets/3_omb.svg
     #next icon
     - assets/images/next_icon.svg
     - assets/images/next_orange.svg
@@ -109,19 +117,32 @@ flutter:
     - assets/images/user_icon.svg
     - assets/images/candado_icon.svg
     - assets/images/alert_icon.svg
+    - assets/images/user_detail.svg
+    - assets/images/user_fondo_detail.svg
+    - assets/images/bag.png
+    #images enfermedad detail
+    - assets/images/log_m.svg
+    - assets/images/log_n.svg
+    - assets/images/call_icon.svg
+    - assets/images/message_icon.svg
+    - assets/images/pen_inactive.svg
+    - assets/images/pen_active.svg
+    - assets/images/line_divider.svg
     #nutriotinist placeholder
     - assets/images/placeholder_nutri.jpg
     - assets/images/user_placeholder_orange.svg
     - assets/images/user_placeholder_esmer.svg
     - assets/images/plus_icon.svg
     #loading
+    - assets/loading/palta_saltarina.json
+    - assets/loading/empty_calendar.json
+
     - assets/loading/fruta_rebote.json
     - assets/loading/brocoli_esmeralda.json
     - assets/loading/brocoli_loading.json
     - assets/loading/frutas_fila.json
     - assets/loading/naranja.json
     - assets/loading/palta_loading.json
-    - assets/loading/palta_saltarina.json
     - assets/loading/pote_vegetales.json
     #icon enfer
     - assets/images/iconEnf/diabetes_icon.svg

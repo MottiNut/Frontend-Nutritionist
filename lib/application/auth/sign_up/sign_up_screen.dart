@@ -204,13 +204,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  // CORREGIDO: Manejo del botón de retroceso del sistema
   Future<bool> _onWillPop() async {
     final currentStep = context.read<RegistrationBloc>().state.currentStep;
-    if (currentStep > 0) {
-      _previousPage(currentStep);
-      return false;
+
+    // Si estamos en el primer paso, ir al login en lugar de cerrar la app
+    if (currentStep == 0) {
+      Navigator.of(context).pushReplacementNamed('/login');
+      return false; // No permitir el pop normal
     }
-    return true;
+
+    // Si no estamos en el primer paso, retroceder al paso anterior
+    _previousPage(currentStep);
+    return false; // No permitir el pop normal, manejamos la navegación nosotros
   }
 
   void _showValidationError(String message) {
@@ -270,7 +276,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     return 'Error en la validación de colegiatura';
   }
-
 
   // ========== REGISTRO FINAL ==========
 
@@ -479,81 +484,84 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return WillPopScope(
           onWillPop: _onWillPop,
           child: Scaffold(
-            body: Stack(
-              children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          PersonalInfoScreen(
-                            key: _personalInfoKey,
-                            initialPhoto: state.photo,
-                            initialNombre: state.firstName,
-                            initialApellido: state.lastName,
-                            onDataChanged: _onPersonalInfoChanged,
-                          ),
-                          EmailPasswordScreen(
-                            key: _emailPasswordKey,
-                            initialEmail: state.email,
-                            initialPassword: state.password,
-                            initialConfirmPassword: state.confirmPassword,
-                            onDataChanged: _onEmailPasswordChanged,
-                          ),
-                          ColegiaturaVerificationScreen(
-                            key: _colegiaturaKey,
-                            nombre: state.firstName,
-                            apellido: state.lastName,
-                            email: state.email,
-                            contrasena: state.password,
-                            onValidationComplete: _onColegiaturaValidated,
-                            onVerificationStart: _onVerificationStart,
-                            onVerificationSuccess: _onVerificationSuccess,
-                          ),
-                          SpecialtyScreen(
-                            key: _specialtyKey,
-                            nombre: state.firstName,
-                            apellido: state.lastName,
-                            email: state.email,
-                            contrasena: state.password,
-                            codeCNP: state.cnpCode,
-                            photoCNP: state.cnpPhotos.isNotEmpty
-                                ? state.cnpPhotos.first.path
-                                : '',
-                            initialEspecialidad: state.specialty,
-                            initialMaestria: state.masterDegree ?? '',
-                            initialOther: state.otherSpecialty ?? '',
-                            onDataChanged: _onSpecialtyChanged,
-                          ),
-                          LocationSelectorScreen(
-                            key: _locationKey,
-                            nombre: state.firstName,
-                            apellido: state.lastName,
-                            email: state.email,
-                            contrasena: state.password,
-                            codeCNP: state.cnpCode,
-                            photoCNP: state.cnpPhotos.isNotEmpty
-                                ? state.cnpPhotos.first.path
-                                : '',
-                            especialidad: state.specialty,
-                            maestria: state.masterDegree ?? '',
-                            other: state.otherSpecialty ?? '',
-                            initialUbicacion: state.location,
-                            initialDireccion: state.address,
-                            onDataChanged: _onLocationChanged,
-                          ),
-                        ],
+            // CORREGIDO: Usar SafeArea para evitar que el contenido se esconda
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Column(
+                    children: [
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            PersonalInfoScreen(
+                              key: _personalInfoKey,
+                              initialPhoto: state.photo,
+                              initialNombre: state.firstName,
+                              initialApellido: state.lastName,
+                              onDataChanged: _onPersonalInfoChanged,
+                            ),
+                            EmailPasswordScreen(
+                              key: _emailPasswordKey,
+                              initialEmail: state.email,
+                              initialPassword: state.password,
+                              initialConfirmPassword: state.confirmPassword,
+                              onDataChanged: _onEmailPasswordChanged,
+                            ),
+                            ColegiaturaVerificationScreen(
+                              key: _colegiaturaKey,
+                              nombre: state.firstName,
+                              apellido: state.lastName,
+                              email: state.email,
+                              contrasena: state.password,
+                              onValidationComplete: _onColegiaturaValidated,
+                              onVerificationStart: _onVerificationStart,
+                              onVerificationSuccess: _onVerificationSuccess,
+                            ),
+                            SpecialtyScreen(
+                              key: _specialtyKey,
+                              nombre: state.firstName,
+                              apellido: state.lastName,
+                              email: state.email,
+                              contrasena: state.password,
+                              codeCNP: state.cnpCode,
+                              photoCNP: state.cnpPhotos.isNotEmpty
+                                  ? state.cnpPhotos.first.path
+                                  : '',
+                              initialEspecialidad: state.specialty,
+                              initialMaestria: state.masterDegree ?? '',
+                              initialOther: state.otherSpecialty ?? '',
+                              onDataChanged: _onSpecialtyChanged,
+                            ),
+                            LocationSelectorScreen(
+                              key: _locationKey,
+                              nombre: state.firstName,
+                              apellido: state.lastName,
+                              email: state.email,
+                              contrasena: state.password,
+                              codeCNP: state.cnpCode,
+                              photoCNP: state.cnpPhotos.isNotEmpty
+                                  ? state.cnpPhotos.first.path
+                                  : '',
+                              especialidad: state.specialty,
+                              maestria: state.masterDegree ?? '',
+                              other: state.otherSpecialty ?? '',
+                              initialUbicacion: state.location,
+                              initialDireccion: state.address,
+                              onDataChanged: _onLocationChanged,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    _buildNavigationBar(state),
-                  ],
-                ),
+                      _buildNavigationBar(state),
+                    ],
+                  ),
 
-                // Loading overlay durante el registro
-                if (state.isLoading) _buildLoadingOverlay(),
-              ],
+                  // Loading overlay durante el registro
+                  if (state.isLoading) _buildLoadingOverlay(),
+                ],
+              ),
             ),
           ),
         );

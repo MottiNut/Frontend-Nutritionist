@@ -36,6 +36,7 @@ enum ActivityLevel {
 
 enum PatientStatus {
   nuevo('Nuevo', 'new'),
+  activo('Activo', 'active'),
   enTratamiento('En Tratamiento', 'in_treatment'),
   controlado('Controlado', 'controlled'),
   inactivo('Inactivo', 'inactive');
