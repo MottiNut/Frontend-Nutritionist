@@ -1,0 +1,235 @@
+name: mottinutnutriotinist
+description: "A new Flutter project."
+
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.5
+  http: ^1.4.0
+  # JSON serialization
+  json_annotation: ^4.8.1
+  http_parser: ^4.0.2
+
+  google_sign_in: ^6.2.1
+  # Firebase Core (requerido)
+  firebase_core: ^2.24.2
+  #notifications
+  firebase_messaging: ^14.7.10
+  flutter_local_notifications: ^16.3.2
+
+  firebase_auth: ^4.15.3
+  # Apple Sign In (solo iOS)
+  sign_in_with_apple: ^5.0.0
+  # Cloud Firestore (para guardar datos del usuario)
+  cloud_firestore: ^4.13.6
+
+  #conecction
+  connectivity_plus: ^6.1.4
+  #message
+  fluttertoast: ^8.2.12
+  vibration: ^3.1.3
+
+  #animation
+  lottie: ^3.1.2
+  #typograpy
+  font_awesome_flutter: ^10.8.0
+  #imagnes svg
+  flutter_svg: ^2.1.0
+  #font
+  google_fonts: ^6.2.1
+  #carga de imagenes
+  image_picker: ^1.1.2
+  #permision of app
+  permission_handler: ^11.3.1
+  device_info_plus: ^9.1.0
+
+  #drowpsown search
+  animated_custom_dropdown: ^3.1.1
+
+  #search
+  speech_to_text: ^7.1.0
+  audioplayers: ^6.4.0
+  flutter_vibrate: ^1.3.0
+  #validar carnet
+  google_mlkit_text_recognition: ^0.12.0
+  google_mlkit_object_detection: ^0.12.0
+  image: ^3.3.0
+  cached_network_image: ^3.4.1
+
+  #reconocimiento de foto
+  google_ml_kit: ^0.17.0
+
+  #validar sign up
+  dartz: ^0.10.1
+  equatable: ^2.0.7
+  flutter_bloc: ^9.1.1
+
+  #conection robusta_events:
+  dio: ^5.8.0+1
+  shared_preferences: ^2.3.3
+  flutter_secure_storage: ^9.2.4
+  local_auth: ^2.3.0
+  get_it: ^8.0.3
+
+  share_plus: ^7.2.2
+  path_provider: ^2.1.1
+
+  table_calendar: ^3.1.3
+
+  #skeleton
+  shimmer: ^3.0.0
+  url_launcher: ^6.3.1
+
+  #manejar calendario local
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.11.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logos/motti.png"
+
+
+flutter:
+  uses-material-design: true
+  assets:
+
+    - assets/images/logos/mottinut.svg
+    - assets/images/logos/motti.png
+    - assets/images/logos/mottinut_logo.svg
+    - assets/images/security.png
+    #icons of navigation
+    - assets/icons/home_grey.svg
+    - assets/icons/home.svg
+    - assets/icons/patient_grey.svg
+    - assets/icons/patient.svg
+    - assets/icons/recetas_icon.svg
+    - assets/icons/recetas_icon_grey.svg
+    - assets/icons/profile_icon.svg
+    - assets/icons/profile_icon_grey.svg
+    - assets/images/logos/mottinut_logo.svg
+    #iconos de login
+    - assets/images/logo_google_login.png
+    - assets/images/apple_logo.png
+    #loading
+    - assets/loading/loading_infinity.json
+    #success
+    - assets/lottie/succes/success.json
+    - assets/lottie/locations_animations.json
+    - assets/nina.svg
+    - assets/fut_omb.svg
+    - assets/3_omb.svg
+    #next icon
+    - assets/images/next_icon.svg
+    - assets/images/next_orange.svg
+    - assets/images/notification_icon.svg
+    - assets/images/menu_icon.svg
+    - assets/images/next_gris.svg
+    - assets/images/anterior_icon.svg
+    - assets/images/gallery_icon.svg
+    - assets/images/file_correct.svg
+    - assets/images/check_autorization.svg
+    - assets/images/icon_verificado.svg
+    - assets/images/eye_icon.svg
+    - assets/images/user_icon.svg
+    - assets/images/candado_icon.svg
+    - assets/images/alert_icon.svg
+    - assets/images/user_detail.svg
+    - assets/images/user_fondo_detail.svg
+    - assets/images/bag.png
+    #images enfermedad detail
+    - assets/images/log_m.svg
+    - assets/images/log_n.svg
+    - assets/images/call_icon.svg
+    - assets/images/message_icon.svg
+    - assets/images/pen_inactive.svg
+    - assets/images/pen_active.svg
+    - assets/images/line_divider.svg
+    #nutriotinist placeholder
+    - assets/images/placeholder_nutri.jpg
+    - assets/images/user_placeholder_orange.svg
+    - assets/images/user_placeholder_esmer.svg
+    - assets/images/plus_icon.svg
+    #loading
+    - assets/loading/palta_saltarina.json
+    - assets/loading/empty_calendar.json
+
+    - assets/loading/fruta_rebote.json
+    - assets/loading/brocoli_esmeralda.json
+    - assets/loading/brocoli_loading.json
+    - assets/loading/frutas_fila.json
+    - assets/loading/naranja.json
+    - assets/loading/palta_loading.json
+    - assets/loading/pote_vegetales.json
+    #icon enfer
+    - assets/images/iconEnf/diabetes_icon.svg
+    - assets/images/iconEnf/diabe_icon_c.svg
+    - assets/images/iconEnf/hipertencion_icon.svg
+    - assets/images/iconEnf/hiper_icon_c.svg
+    - assets/images/iconEnf/obecidad_icon.svg
+    - assets/images/iconEnf/obe_icon_c.svg
+    - assets/images/iconEnf/other_icon.svg
+    #detalles de pacientes
+    - assets/images/categorys/linear_diabetes_icon.svg
+    - assets/images/categorys/linear_hiper_icon.svg
+    - assets/images/categorys/linear_obes_icon.svg
+    #plan
+    - assets/plan/alt.png
+    - assets/plan/bal.png
+    - assets/plan/dx.png
+    - assets/plan/edad.png
+    - assets/plan/imc.png
+    - assets/plan/per.png
+    - assets/plan/no_found.png
+    - assets/plan/person.png
+    - assets/plan/pla.png
+
+    - assets/plan/alm.png
+    - assets/plan/cen.png
+    - assets/plan/des.png
+    - assets/plan/po.png
+    - assets/plan/sn.png
+    - assets/plan/tr.png
+    - assets/plan/pr.png
+
+
+  fonts:
+    - family: Omnes
+      fonts:
+        - asset: assets/fonts/Omnes-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Omnes-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Omnes-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Omnes-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Omnes-Black.ttf
+          weight: 900
+        - asset: assets/fonts/Omnes-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Omnes-Hairline.ttf
+          weight: 100
+        - asset: assets/fonts/Omnes-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Omnes-SemiBold-Italic.ttf
+          weight: 600
+          style: italic
