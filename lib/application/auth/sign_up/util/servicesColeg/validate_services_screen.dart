@@ -372,33 +372,42 @@ class _ValidationScreenState extends State<ValidationScreen>
   }
 
   Future<bool> _extractAndValidateText() async {
-    try {
-      final inputImage = InputImage.fromFile(widget.imageFile);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
+  try {
+    final inputImage = InputImage.fromFile(widget.imageFile);
+    final recognizedText = await _textRecognizer.processImage(inputImage);
 
-      String extractedText = recognizedText.text;
-      _analysisData['extracted_text'] = extractedText;
-      _analysisData['text_blocks'] = recognizedText.blocks.length;
-      _analysisData['text_length'] = extractedText.length;
+    String extractedText = recognizedText.text;
+    _analysisData['extracted_text'] = extractedText;
+    _analysisData['text_blocks'] = recognizedText.blocks.length;
+    _analysisData['text_length'] = extractedText.length;
 
-      print('Texto extraído (${extractedText.length} chars):');
-      print(extractedText);
+    print('Texto extraído (${extractedText.length} chars):');
+    print(extractedText);
 
-      // Verificar que se extrajo texto suficiente
-      bool hasMinimumText = extractedText.trim().length > 15;
+    // NUEVO: Extraer número CNP
+    String extractedCNP = _extractCNPNumber(extractedText);
+    _analysisData['extracted_cnp'] = extractedCNP;
+    _analysisData['has_cnp'] = extractedCNP.isNotEmpty;
 
-      // Limpiar texto para análisis
-      String cleanText = _cleanText(extractedText);
-      _analysisData['clean_text'] = cleanText;
-
-      await Future.delayed(const Duration(milliseconds: 1800));
-
-      return hasMinimumText;
-    } catch (e) {
-      print('Error extrayendo texto: $e');
-      return false;
+    if (extractedCNP.isNotEmpty) {
+      print('Número CNP detectado: $extractedCNP');
     }
+
+    // Verificar que se extrajo texto suficiente
+    bool hasMinimumText = extractedText.trim().length > 15;
+
+    // Limpiar texto para análisis
+    String cleanText = _cleanText(extractedText);
+    _analysisData['clean_text'] = cleanText;
+
+    await Future.delayed(const Duration(milliseconds: 1800));
+
+    return hasMinimumText;
+  } catch (e) {
+    print('Error extrayendo texto: $e');
+    return false;
   }
+}
 
   Future<bool> _detectCardSide() async {
     try {
@@ -670,6 +679,30 @@ class _ValidationScreenState extends State<ValidationScreen>
     }
   }
 
+  //  extraer el número CNP del texto reconocido
+String _extractCNPNumber(String recognizedText) {
+  // Patrones para buscar el número CNP
+  final patterns = [
+    RegExp(r'CNP[:\s]*(\d{4})', caseSensitive: false),
+    RegExp(r'N°[:\s]*CNP[:\s]*(\d{4})', caseSensitive: false),
+    RegExp(r'Colegiatura[:\s]*(\d{4})', caseSensitive: false),
+    RegExp(r'Registro[:\s]*(\d{4})', caseSensitive: false),
+    RegExp(r'\b(\d{4})\b'),  
+  ];
+
+  for (var pattern in patterns) {
+    final match = pattern.firstMatch(recognizedText);
+    if (match != null && match.groupCount >= 1) {
+      final extractedNumber = match.group(1);
+      if (extractedNumber != null && extractedNumber.length == 4) {
+        return extractedNumber;
+      }
+    }
+  }
+
+  return '';  
+}
+
   Future<bool> _performFinalAnalysis() async {
     try {
       double confidence = _calculateCNPConfidenceScore();
@@ -759,48 +792,49 @@ class _ValidationScreenState extends State<ValidationScreen>
   }
 
   void _finalizeValidation(bool isValid, String? errorMessage) {
-    if (!mounted) return;
+  if (!mounted) return;
 
-    // Verificar si es lado duplicado
-    if (!isValid && _analysisData['duplicate_side'] == true) {
-      String detectedSide = _analysisData['detected_side'] ?? 'unknown';
-      String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
+  // Verificar si es lado duplicado
+  if (!isValid && _analysisData['duplicate_side'] == true) {
+    String detectedSide = _analysisData['detected_side'] ?? 'unknown';
+    String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
 
-      // Determinar lado faltante
-      String missingSide = 'unknown';
-      if (!widget.existingSides.contains('front')) {
-        missingSide = 'frente';
-      } else if (!widget.existingSides.contains('back')) {
-        missingSide = 'reverso';
-      }
-
-      widget.onValidationComplete(false, {
-        'detected_side': detectedSide,
-        'duplicate_side': true,
-        'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
-      });
-      return;
+    // Determinar lado faltante
+    String missingSide = 'unknown';
+    if (!widget.existingSides.contains('front')) {
+      missingSide = 'frente';
+    } else if (!widget.existingSides.contains('back')) {
+      missingSide = 'reverso';
     }
 
-    // Lógica normal de finalización
-    setState(() {
-      _currentState = isValid ? ValidationState.success : ValidationState.failed;
-      _finalResult = ValidationResult(
-        isValid: isValid,
-        errorMessage: errorMessage,
-        analysisData: _mergeAnalysisData(),
-      );
+    widget.onValidationComplete(false, {
+      'detected_side': detectedSide,
+      'duplicate_side': true,
+      'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
+      'extracted_cnp': _analysisData['extracted_cnp'],  
+      'has_cnp': _analysisData['has_cnp'],  
     });
-
-    // Auto-cerrar después de mostrar resultado
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Map<String, dynamic> result = _mergeAnalysisData();
-        widget.onValidationComplete(isValid, result);
-      }
-    });
+    return;
   }
 
+  // Lógica normal de finalización
+  setState(() {
+    _currentState = isValid ? ValidationState.success : ValidationState.failed;
+    _finalResult = ValidationResult(
+      isValid: isValid,
+      errorMessage: errorMessage,
+      analysisData: _mergeAnalysisData(),
+    );
+  });
+
+  // Auto-cerrar después de mostrar resultado
+  Timer(const Duration(seconds: 3), () {
+    if (mounted) {
+      Map<String, dynamic> result = _mergeAnalysisData();
+      widget.onValidationComplete(isValid, result);
+    }
+  });
+}
   // Método para combinar datos de ambos lados
   Map<String, dynamic> _mergeAnalysisData() {
     Map<String, dynamic> merged = Map.from(_analysisData);

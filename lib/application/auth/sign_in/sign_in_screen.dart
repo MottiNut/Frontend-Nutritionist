@@ -98,7 +98,8 @@ class _SignInScreenState extends State<SignInScreen>
     _passwordFocusNode = FocusNode();
     _passwordFocusNode.addListener(() {
       setState(() {
-        _showPasswordToggle = _passwordFocusNode.hasFocus || _passwordController.text.isNotEmpty;
+        _showPasswordToggle =
+            _passwordFocusNode.hasFocus || _passwordController.text.isNotEmpty;
       });
     });
   }
@@ -127,8 +128,10 @@ class _SignInScreenState extends State<SignInScreen>
   Future<void> _saveCredentials() async {
     try {
       if (_rememberMe) {
-        await _secureStorage.write(key: 'saved_email', value: _emailController.text.trim());
-        await _secureStorage.write(key: 'saved_password', value: _passwordController.text.trim());
+        await _secureStorage.write(
+            key: 'saved_email', value: _emailController.text.trim());
+        await _secureStorage.write(
+            key: 'saved_password', value: _passwordController.text.trim());
         await _secureStorage.write(key: 'remember_me', value: 'true');
       } else {
         await _clearSavedCredentials();
@@ -229,14 +232,14 @@ class _SignInScreenState extends State<SignInScreen>
                       children: [
                         SizedBox(height: 15),
                         _buildInputFields(),
-                        SizedBox(height: 5),
-                        _buildRememberMeCheckbox(), // AGREGADO
-                        SizedBox(height: 20),
+                        SizedBox(height: 1),
+                        _buildRememberMeCheckbox(),
+                        SizedBox(height: 15),
                         _buildLoginButton(),
                         _buildRecoverPasswordButton(context),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         _buildDividerSection(),
-                        SizedBox(height: 12),
+                        SizedBox(height: 8),
                         _buildSocialButtonsRow(),
                         Spacer(),
                         _buildTermsAndConditions(context),
@@ -256,23 +259,32 @@ class _SignInScreenState extends State<SignInScreen>
   Widget _buildRememberMeCheckbox() {
     return Row(
       children: [
-        Checkbox(
-          value: _rememberMe,
-          onChanged: (value) {
-            setState(() {
-              _rememberMe = value ?? false;
-            });
-          },
-          activeColor: Colors.white,
-          checkColor: AppColors.primary,
-          side: BorderSide(color: Colors.white70, width: 1.5),
+        Transform.scale(
+          scale: 0.8,
+          child: Checkbox(
+            value: _rememberMe,
+            onChanged: (value) {
+              setState(() {
+                _rememberMe = value ?? false;
+              });
+            },
+            activeColor: Colors.white,
+            checkColor: AppColors.primary,
+            side: BorderSide(color: Colors.white70, width: 1.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+            visualDensity: VisualDensity.compact,
+          ),
         ),
+      
         Text(
           'Recordar mis datos',
           style: TextStyle(
             color: Colors.white70,
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.w400,
+            letterSpacing: 0.1,
           ),
         ),
       ],
@@ -442,8 +454,7 @@ class _SignInScreenState extends State<SignInScreen>
                   color: AppColors.textLight,
                   fontSize: 20,
                   letterSpacing: -0.4,
-                  fontWeight: FontWeight.w300
-              ),
+                  fontWeight: FontWeight.w300),
               prefixIcon: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: SvgPicture.asset(
@@ -461,8 +472,7 @@ class _SignInScreenState extends State<SignInScreen>
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
                     color: _showEmailError ? AppColors.errorText : Colors.white,
-                    width: 0.75
-                ),
+                    width: 0.75),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -523,7 +533,8 @@ class _SignInScreenState extends State<SignInScreen>
                   _showPasswordError = false;
                 }
                 _isPasswordEmpty = value.isEmpty;
-                _showPasswordToggle = value.isNotEmpty || _passwordFocusNode.hasFocus;
+                _showPasswordToggle =
+                    value.isNotEmpty || _passwordFocusNode.hasFocus;
               });
             },
             decoration: InputDecoration(
@@ -547,25 +558,27 @@ class _SignInScreenState extends State<SignInScreen>
               suffixIcon: IconButton(
                 icon: _obscureText
                     ? SvgPicture.asset(
-                  'assets/images/eye_icon.svg',
-                  height: 18,
-                  width: 18,
-                  color: _showPasswordToggle
-                      ? AppColors.iconSecondary
-                      : Colors.white54 ,
-                )
+                        'assets/images/eye_icon.svg',
+                        height: 18,
+                        width: 18,
+                        color: _showPasswordToggle
+                            ? AppColors.iconSecondary
+                            : Colors.white54,
+                      )
                     : Icon(
-                  Icons.visibility_off,
-                  color: _showPasswordToggle
-                      ? AppColors.iconSecondary.withOpacity(0.8)
-                      : Colors.grey.withOpacity(0.5),
-                  size: 25,
-                ),
-                onPressed: _showPasswordToggle ? () {
-                  setState(() {
-                    _obscureText = !_obscureText;
-                  });
-                } : null,
+                        Icons.visibility_off,
+                        color: _showPasswordToggle
+                            ? AppColors.iconSecondary.withOpacity(0.8)
+                            : Colors.grey.withOpacity(0.5),
+                        size: 25,
+                      ),
+                onPressed: _showPasswordToggle
+                    ? () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      }
+                    : null,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
@@ -574,7 +587,8 @@ class _SignInScreenState extends State<SignInScreen>
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(
-                  color: _showPasswordError ? AppColors.errorText : Colors.white,
+                  color:
+                      _showPasswordError ? AppColors.errorText : Colors.white,
                   width: 1.5,
                 ),
               ),
@@ -663,26 +677,29 @@ class _SignInScreenState extends State<SignInScreen>
   }
 
   Widget _buildRecoverPasswordButton(BuildContext context) {
-    return TextButton(
+  return Align(
+    alignment: Alignment.centerRight,  
+    child: TextButton(
       onPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => RecoverPasswordScreen()),
         );
       },
-      child: const Text(
+      child: Text(
         '¿Olvidaste tu contraseña?',
         style: TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            decoration: TextDecoration.none,
-            decorationColor: Colors.white,
-            letterSpacing: 0.5
+          color: Colors.white70,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w400,
+          decoration: TextDecoration.none,
+          letterSpacing: 0.5,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildDividerSection() {
     return Column(
@@ -690,10 +707,10 @@ class _SignInScreenState extends State<SignInScreen>
       children: [
         Row(
           children: [
-            const Expanded(
+             Expanded(
               child: Divider(
-                color: Colors.white38,
-                thickness: 1,
+                color: Colors.white.withOpacity(0.15),
+                thickness: 0.7,
                 indent: 8,
                 endIndent: 8,
               ),
@@ -701,15 +718,15 @@ class _SignInScreenState extends State<SignInScreen>
             Text(
               'o con',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withOpacity(0.6),
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w300,
               ),
             ),
-            const Expanded(
+             Expanded(
               child: Divider(
-                color: Colors.white38,
-                thickness: 1,
+                color: Colors.white.withOpacity(0.15),
+                thickness: 0.7,
                 indent: 8,
                 endIndent: 8,
               ),
@@ -749,7 +766,7 @@ class _SignInScreenState extends State<SignInScreen>
           style: TextStyle(
             color: AppColors.textTertiary,
             fontWeight: FontWeight.w300,
-            fontSize: 12,
+            fontSize: 11,
             letterSpacing: 0.5,
             height: 1.3,
           ),
@@ -757,7 +774,7 @@ class _SignInScreenState extends State<SignInScreen>
             TextSpan(
               text: 'Términos y Condiciones',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: AppColors.textLight,
                 fontWeight: FontWeight.w500,
                 decoration: TextDecoration.underline,
@@ -778,13 +795,13 @@ class _SignInScreenState extends State<SignInScreen>
               style: TextStyle(
                 color: AppColors.textTertiary,
                 fontWeight: FontWeight.w400,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
             TextSpan(
               text: 'Política de privacidad',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: AppColors.textLight,
                 fontWeight: FontWeight.w500,
                 decoration: TextDecoration.underline,
@@ -808,8 +825,8 @@ class _SignInScreenState extends State<SignInScreen>
   Widget _buildSocialButton(
       String assetPath, String provider, VoidCallback onPressed) {
     return Container(
-      width: 45,
-      height: 45,
+      width: 43,
+      height: 43,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(50),
@@ -866,7 +883,7 @@ class _SignInScreenState extends State<SignInScreen>
                 errorBuilder: (context, error, stackTrace) {
                   return CircularProgressIndicator(
                     valueColor:
-                    AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
                   );
                 },
               ),
@@ -904,9 +921,11 @@ class _SignInScreenState extends State<SignInScreen>
 
       // USANDO SNACKBARMANAGER
       if (_isEmailEmpty && _isPasswordEmpty) {
-        SnackBarManager.showWarning(context, 'Por favor completa todos los campos');
+        SnackBarManager.showWarning(
+            context, 'Por favor completa todos los campos');
       } else if (_isEmailEmpty) {
-        SnackBarManager.showWarning(context, 'Por favor ingresa tu correo electrónico');
+        SnackBarManager.showWarning(
+            context, 'Por favor ingresa tu correo electrónico');
       } else {
         SnackBarManager.showWarning(context, 'Por favor ingresa tu contraseña');
       }
@@ -947,7 +966,7 @@ class _SignInScreenState extends State<SignInScreen>
         Future.delayed(Duration(milliseconds: 1500), () {
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/home',
-                (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
             arguments: {'initialIndex': 0},
           );
         });
@@ -991,7 +1010,8 @@ class _SignInScreenState extends State<SignInScreen>
 
     // ✅ Manejo de errores de servidor
     if (_isServerError(normalizedError)) {
-      SnackBarManager.showError(context, 'Problema del servidor. Intenta más tarde');
+      SnackBarManager.showError(
+          context, 'Problema del servidor. Intenta más tarde');
       return;
     }
 
@@ -1062,9 +1082,7 @@ class _SignInScreenState extends State<SignInScreen>
     } else {
       final remaining = 3 - _loginAttempts;
       SnackBarManager.showError(
-          context,
-          'Credenciales incorrectas. Te quedan $remaining intentos'
-      );
+          context, 'Credenciales incorrectas. Te quedan $remaining intentos');
     }
   }
 
@@ -1138,7 +1156,6 @@ class _SignInScreenState extends State<SignInScreen>
     }
 
     SnackBarManager.showError(context, message);
-
   }
 
   void _handleAccountLock() {
@@ -1149,7 +1166,8 @@ class _SignInScreenState extends State<SignInScreen>
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: Row(
             children: [
               Icon(Icons.lock, color: AppColors.errorText, size: 24),
@@ -1167,7 +1185,8 @@ class _SignInScreenState extends State<SignInScreen>
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => RecoverPasswordScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => RecoverPasswordScreen()),
                 );
               },
               child: Text('Recuperar Contraseña'),
@@ -1176,7 +1195,8 @@ class _SignInScreenState extends State<SignInScreen>
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               child: Text('Entendido', style: TextStyle(color: Colors.white)),
             ),
@@ -1193,21 +1213,20 @@ class _SignInScreenState extends State<SignInScreen>
     } catch (error) {
       print(error);
 
-      SnackBarManager.showError(context,  'Se produjo un error al iniciar sesión con Google. Inténtalo nuevamente.');
-
+      SnackBarManager.showError(context,
+          'Se produjo un error al iniciar sesión con Google. Inténtalo nuevamente.');
     }
   }
 
   void _loginWithApple() async {
     try {
-
-      SnackBarManager.showError(context, 'Login con Apple próximamente disponible');
-
+      SnackBarManager.showError(
+          context, 'Login con Apple próximamente disponible');
     } catch (error) {
       print(error);
 
-      SnackBarManager.showError(context, 'Se produjo un error al iniciar sesión con Apple. Inténtalo nuevamente.');
-
+      SnackBarManager.showError(context,
+          'Se produjo un error al iniciar sesión con Apple. Inténtalo nuevamente.');
     }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+//import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'auth_provider.dart';
@@ -107,7 +107,7 @@ class FirebaseAuthService {
 
   // === AUTENTICACIÓN CON APPLE ===
 
-  Future<UserCredential?> signInWithApple() async {
+  /*Future<UserCredential?> signInWithApple() async {
     try {
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
@@ -143,7 +143,7 @@ class FirebaseAuthService {
     } catch (e) {
       throw Exception('Error en inicio de sesión con Apple: $e');
     }
-  }
+  }*/
 
   // === GESTIÓN DE USUARIOS EN FIRESTORE ===
 

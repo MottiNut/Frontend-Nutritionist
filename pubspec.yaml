@@ -20,14 +20,14 @@ dependencies:
   json_annotation: ^4.8.1
   http_parser: ^4.0.2
 
-  google_sign_in: ^6.2.1
+  google_sign_in: ^5.4.4
   # Firebase Core (requerido)
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
+  firebase_core: ^4.1.0
+  firebase_auth: ^6.0.2
   # Apple Sign In (solo iOS)
-  sign_in_with_apple: ^5.0.0
+  sign_in_with_apple: ^7.0.1
   # Cloud Firestore (para guardar datos del usuario)
-  cloud_firestore: ^4.13.6
+  cloud_firestore: ^6.0.1
 
   #conecction
   connectivity_plus: ^6.1.4
@@ -46,19 +46,19 @@ dependencies:
   #carga de imagenes
   image_picker: ^1.1.2
   #permision of app
-  permission_handler: ^11.3.1
-  device_info_plus: ^9.1.0
+  permission_handler: ^12.0.1
+  device_info_plus: ^11.5.0
 
   #drowpsown search
   animated_custom_dropdown: ^3.1.1
 
   #validar carnet
-  google_mlkit_text_recognition: ^0.12.0
-  google_mlkit_object_detection: ^0.12.0
-  image: ^3.3.0
+  google_mlkit_text_recognition: ^0.15.0
+  google_mlkit_object_detection: ^0.15.0
+  image: ^4.2.0
 
   #reconocimiento de foto
-  google_ml_kit: ^0.17.0
+  google_ml_kit: ^0.20.0
 
   #validar sign up
   dartz: ^0.10.1
@@ -85,22 +85,25 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logos/mot.png"
+  image_path: "assets/images/logos/icon_blue.png"
+  min_sdk_android: 21
 
 flutter:
 
   uses-material-design: true
 
-
   assets:
 
     - assets/images/logos/mottinut.svg
+    - assets/images/logos/mot.png
+    - assets/images/logos/icon_blue.png
+    - assets/images/logos/icon_background.png
     - assets/images/logos/mottinut_logo.svg
     - assets/images/security.png
     #icons of navigation
