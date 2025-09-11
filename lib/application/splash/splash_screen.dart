@@ -21,21 +21,6 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    // Configuración para barras transparentes con iconos negros
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      // Barra de navegación transparente con iconos negros
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
-      // Barra de estado transparente con iconos negros
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
-
-    // Hacer que la app se extienda detrás de las barras del sistema
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-    );
-
     _checkInternetConnection();
   }
 
@@ -128,14 +113,18 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundplash,
-      // Extender el contenido detrás de las barras del sistema
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      body: SafeArea(
-        // Si quieres que el contenido no se sobreponga con las barras
-        child: Stack(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: AppColors.backgroundplash, // color abajo
+        systemNavigationBarIconBrightness: Brightness.light, // íconos blancos
+        statusBarColor: AppColors.backgroundplash,           // color arriba
+        statusBarIconBrightness: Brightness.light,           // íconos blancos
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundplash,
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        body: Stack(
           children: [
             Center(
               child: Column(
@@ -167,4 +156,6 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
+
+
 }

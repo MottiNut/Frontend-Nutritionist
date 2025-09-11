@@ -24,13 +24,12 @@ class MottiNutNutriotinistApp extends StatelessWidget {
         final isDarkMode = darkModeProvider.isDarkMode;
         final typography = AppTypography();
 
-        // Configurar el estilo del sistema de manera más robusta
         SystemChrome.setSystemUIOverlayStyle(
-          SystemUiOverlayStyle(
+          const SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
-            systemNavigationBarColor: isDarkMode ? Colors.black : Colors.white,
-            systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: Brightness.light,
+            systemNavigationBarColor: Colors.black,
+            systemNavigationBarIconBrightness: Brightness.light,
             systemNavigationBarDividerColor: Colors.transparent,
           ),
         );

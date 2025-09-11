@@ -76,6 +76,8 @@ class _ValidationScreenState extends State<ValidationScreen>
     _initializeComponents();
     _setupValidationSteps();
     _startValidationProcess();
+
+    _debugImageInfo();
   }
 
   void _initializeComponents() {
@@ -147,6 +149,22 @@ class _ValidationScreenState extends State<ValidationScreen>
     _fadeController.forward();
     _slideController.forward();
     _pulseController.repeat(reverse: true);
+  }
+
+  void _debugImageInfo() async {
+    try {
+      final bytes = await widget.imageFile.readAsBytes();
+      final image = img.decodeImage(bytes);
+
+      print('DEBUG - Información de imagen:');
+      print('Tamaño archivo: ${bytes.length} bytes');
+      print('Dimensiones: ${image?.width}x${image?.height}');
+      print('Ratio: ${image != null ? image.width / image.height : 'null'}');
+      print('Formato: ${widget.imageFile.path.split('.').last}');
+      print('Ruta: ${widget.imageFile.path}');
+    } catch (e) {
+      print('Error obteniendo info de imagen: $e');
+    }
   }
 
   void _setupValidationSteps() {
@@ -296,9 +314,9 @@ class _ValidationScreenState extends State<ValidationScreen>
               child: const Text(
                 'Continuar Validación',
                 style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15
                 ),
               ),
             ),
@@ -326,6 +344,15 @@ class _ValidationScreenState extends State<ValidationScreen>
 
   Future<bool> _executeValidationStep(ValidationStep step) async {
     switch (step.id) {
+      case 'side_detection':
+        bool sideDetected = await _detectCardSide();
+        if (!sideDetected && _analysisData['has_cnp'] == true) {
+          print('Fallo detección de lado pero tiene CNP, asumiendo frente...');
+          _currentCardSide = CardSide.front;
+          _analysisData['detected_side'] = 'front';
+          return true;
+        }
+        return sideDetected;
       case 'image_quality':
         return await _validateImageQuality();
       case 'text_extraction':
@@ -355,12 +382,13 @@ class _ValidationScreenState extends State<ValidationScreen>
       _analysisData['image_ratio'] = image.width / image.height;
       _analysisData['image_size_bytes'] = bytes.length;
 
-      // Verificaciones de calidad más flexibles
-      bool hasMinimumResolution = image.width >= 400 && image.height >= 250;
-      bool hasValidRatio = (image.width / image.height) >= 0.8 && (image.width / image.height) <= 2.5;
-      bool hasMinimumSize = bytes.length > 10000; // Al menos 10KB
+
+      bool hasMinimumResolution = image.width >= 300 && image.height >= 200; // Reducido
+      bool hasValidRatio = (image.width / image.height) >= 0.5 && (image.width / image.height) <= 3.0; // Más flexible
+      bool hasMinimumSize = bytes.length > 5000; // Reducido de 10KB a 5KB
 
       print('Calidad imagen: ${image.width}x${image.height}, ratio: ${image.width / image.height}, size: ${bytes.length}');
+      print('Validaciones: resolución=$hasMinimumResolution, ratio=$hasValidRatio, tamaño=$hasMinimumSize');
 
       await Future.delayed(const Duration(milliseconds: 1200));
 
@@ -371,47 +399,108 @@ class _ValidationScreenState extends State<ValidationScreen>
     }
   }
 
+
   Future<bool> _extractAndValidateText() async {
-  try {
-    final inputImage = InputImage.fromFile(widget.imageFile);
-    final recognizedText = await _textRecognizer.processImage(inputImage);
+    try {
+      final inputImage = InputImage.fromFile(widget.imageFile);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
 
-    String extractedText = recognizedText.text;
-    _analysisData['extracted_text'] = extractedText;
-    _analysisData['text_blocks'] = recognizedText.blocks.length;
-    _analysisData['text_length'] = extractedText.length;
+      String extractedText = recognizedText.text;
+      _analysisData['extracted_text'] = extractedText;
+      _analysisData['text_blocks'] = recognizedText.blocks.length;
+      _analysisData['text_length'] = extractedText.length;
 
-    print('Texto extraído (${extractedText.length} chars):');
-    print(extractedText);
+      print('Texto extraído completo:');
+      print('=' * 50);
+      print(extractedText);
+      print('=' * 50);
+      print('Longitud: ${extractedText.length} caracteres');
+      print('Bloques: ${recognizedText.blocks.length}');
 
-    // NUEVO: Extraer número CNP
-    String extractedCNP = _extractCNPNumber(extractedText);
-    _analysisData['extracted_cnp'] = extractedCNP;
-    _analysisData['has_cnp'] = extractedCNP.isNotEmpty;
+      // EXTRAER CÓDIGO CNP - BUSCAR RELACIÓN ESPACIAL
+      String extractedCNP = _extractCNPNumberFromSpatialContext(recognizedText);
+      if (extractedCNP.isNotEmpty) {
+        _analysisData['extracted_cnp'] = extractedCNP;
+        _analysisData['has_cnp'] = true;
+        print('Código CNP detectado: $extractedCNP');
+      } else {
+        _analysisData['has_cnp'] = false;
+        print('No se detectó código CNP en la posición esperada');
+      }
 
-    if (extractedCNP.isNotEmpty) {
-      print('Número CNP detectado: $extractedCNP');
+      // DEBUG: Mostrar texto limpio
+      String cleanText = _cleanText(extractedText);
+      _analysisData['clean_text'] = cleanText;
+      print('Texto limpio para análisis: "$cleanText"');
+
+      bool hasMinimumText = extractedText.trim().length > 10;
+
+      await Future.delayed(const Duration(milliseconds: 1800));
+
+      return hasMinimumText;
+    } catch (e) {
+      print('Error extrayendo texto: $e');
+      return false;
+    }
+  }
+
+  String _extractCNPNumberFromSpatialContext(RecognizedText recognizedText) {
+    // Buscar el bloque que contiene "N° CNP :" o variantes
+    for (final block in recognizedText.blocks) {
+      for (final line in block.lines) {
+        String lineText = line.text.toLowerCase();
+
+        // Verificar si esta línea contiene el texto buscado
+        if (lineText.contains('n° cnp') || lineText.contains('nº cnp') ||
+            lineText.contains('n cnp') || lineText.contains('cnp')) {
+
+          print('Encontrado texto CNP en línea: ${line.text}');
+
+          // Buscar en las líneas debajo de esta (relación espacial)
+          final lineRect = line.boundingBox;
+
+          for (final otherBlock in recognizedText.blocks) {
+            for (final otherLine in otherBlock.lines) {
+              if (otherLine != line) {
+                final otherLineRect = otherLine.boundingBox;
+
+                // Verificar si esta línea está debajo de la línea CNP
+                // con una proximidad razonable (mismo bloque o posición similar en X)
+                if (otherLineRect.top > lineRect.bottom &&
+                    otherLineRect.top - lineRect.bottom < 100 && // Máximo 100px de separación
+                    (otherLineRect.left - lineRect.left).abs() < 50) { // Misma posición horizontal
+
+                  // Buscar 4 dígitos consecutivos en esta línea
+                  final digitPattern = RegExp(r'\b\d{4}\b');
+                  final match = digitPattern.firstMatch(otherLine.text);
+
+                  if (match != null) {
+                    String potentialCNP = match.group(0)!;
+                    print('Encontrados 4 dígitos debajo de CNP: $potentialCNP');
+
+                    // Validar que no sean números comunes
+                    if (potentialCNP != '0000' && potentialCNP != '1111' &&
+                        potentialCNP != '1234' && potentialCNP != '2023' &&
+                        potentialCNP != '2024' && potentialCNP != '2025') {
+                      return potentialCNP;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
-    // Verificar que se extrajo texto suficiente
-    bool hasMinimumText = extractedText.trim().length > 15;
-
-    // Limpiar texto para análisis
-    String cleanText = _cleanText(extractedText);
-    _analysisData['clean_text'] = cleanText;
-
-    await Future.delayed(const Duration(milliseconds: 1800));
-
-    return hasMinimumText;
-  } catch (e) {
-    print('Error extrayendo texto: $e');
-    return false;
+    // Si no se encuentra con relación espacial, intentar con el método anterior
+    return _extractCNPNumber(recognizedText.text);
   }
-}
 
   Future<bool> _detectCardSide() async {
     try {
       String text = _analysisData['clean_text'] ?? '';
+      print('Analizando texto para detección de lado: $text');
 
       // Detectar QR code para identificar reverso
       final inputImage = InputImage.fromFile(widget.imageFile);
@@ -419,43 +508,82 @@ class _ValidationScreenState extends State<ValidationScreen>
 
       bool hasQRCode = barcodes.isNotEmpty;
       _analysisData['has_qr_code'] = hasQRCode;
+      print('QR Code detectado: $hasQRCode');
 
-      // Patrones para detectar frente y reverso
+      // PATRONES MEJORADOS para el FRENTE
       List<String> frontPatterns = [
-        'apellidos', 'nombres', 'n° cnp', 'carné de colegiado',
-        'carne de colegiado', 'n° de dni', 'decana nacional', 'consejo nacional'
+        'apellidos', 'nombres', 'cnp', 'carné', 'carne', 'colegiado',
+        'dni', 'decana', 'consejo', 'nacional', 'nutricionistas',
+        'nutricionista', 'colegio', 'peru', 'perú', 'república',
+        'nombre', 'apellido', 'codigo', 'código', 'numero', 'número',
+        'registro', 'profesional', 'licencia', 'matricula'
       ];
 
+      // PATRONES MEJORADOS para el REVERSO
       List<String> backPatterns = [
-        'fecha de colegiación', 'fecha de caducidad', 'grupo sanguíneo',
-        'secretaria@cnp.org.pe', 'www.cnp.org.pe', 'carnet es personal',
-        'intransfenble', 'intransferible', 'firma del titular', 'anexo 102'
+        'colegiación', 'caducidad', 'sanguíneo', 'grupo',
+        'secretaria', 'cnp.org.pe', 'www.cnp', 'personal',
+        'intransferible', 'intransfenble', 'firma', 'titular',
+        'anexo', '463', '1761', '2023', '2024', '2025', '2026', '2027', '2028',
+        'validez', 'vigencia', 'expira', 'vencimiento', 'direccion', 'dirección',
+        'telefono', 'teléfono', 'email', 'correo'
       ];
 
       int frontMatches = _countPatternMatches(text, frontPatterns);
       int backMatches = _countPatternMatches(text, backPatterns);
 
-      // Determinar lado detectado
+      print('Matches detectados - Frente: $frontMatches, Reverso: $backMatches');
+
+      // LÓGICA MEJORADA de detección
       CardSide detectedSide = CardSide.unknown;
       String sideString = 'unknown';
 
-      if (hasQRCode && backMatches > 0) {
-        detectedSide = CardSide.back;
-        sideString = 'back';
-      } else if (frontMatches > backMatches && frontMatches > 1) {
-        detectedSide = CardSide.front;
-        sideString = 'front';
-      } else if (backMatches > 0) {
+      // Priorizar QR code para reverso
+      if (hasQRCode) {
         detectedSide = CardSide.back;
         sideString = 'back';
       }
+      // Si hay más matches de frente que de reverso
+      else if (frontMatches > backMatches && frontMatches >= 1) {
+        detectedSide = CardSide.front;
+        sideString = 'front';
+      }
+      // Si hay más matches de reverso
+      else if (backMatches > frontMatches && backMatches >= 1) {
+        detectedSide = CardSide.back;
+        sideString = 'back';
+      }
+      // Si hay igualdad pero al menos 1 match
+      else if (frontMatches == backMatches && frontMatches >= 1) {
+        // Heurística: si tiene "firma" probablemente sea reverso
+        if (text.contains('firma')) {
+          detectedSide = CardSide.back;
+          sideString = 'back';
+        } else {
+          detectedSide = CardSide.front;
+          sideString = 'front';
+        }
+      }
 
-      // NUEVO: Verificar si el lado ya fue subido
+      // Detección por palabras clave específicas (backup)
+      if (detectedSide == CardSide.unknown) {
+        if (text.contains('apellidos') || text.contains('nombres') ||
+            text.contains('dni') || text.contains('nombre')) {
+          detectedSide = CardSide.front;
+          sideString = 'front';
+        } else if (text.contains('colegiación') || text.contains('caducidad') ||
+            text.contains('firma') || text.contains('validez')) {
+          detectedSide = CardSide.back;
+          sideString = 'back';
+        }
+      }
+
+      // Verificar si el lado ya fue subido
       if (widget.existingSides.contains(sideString)) {
         print('ERROR: El lado $sideString ya fue procesado anteriormente');
         _analysisData['duplicate_side'] = true;
         _analysisData['detected_side'] = sideString;
-        return false; // Fallar la validación si es duplicado
+        return false;
       }
 
       _analysisData['front_matches'] = frontMatches;
@@ -463,8 +591,7 @@ class _ValidationScreenState extends State<ValidationScreen>
       _analysisData['detected_side'] = sideString;
       _currentCardSide = detectedSide;
 
-      print('Detección lado - Frente: $frontMatches, Reverso: $backMatches, QR: $hasQRCode');
-      print('Lado detectado: $sideString');
+      print('Lado detectado final: $sideString');
       print('Lados existentes: ${widget.existingSides}');
 
       await Future.delayed(const Duration(milliseconds: 1000));
@@ -481,94 +608,39 @@ class _ValidationScreenState extends State<ValidationScreen>
       String text = _analysisData['clean_text'] ?? '';
       String side = _currentCardSide.toString().split('.').last;
 
+      print('Validando elementos CNP para lado: $side');
+      print('Texto a analizar: $text');
+
       Map<String, List<String>> cnpPatterns;
 
       if (side == 'front') {
-        // Patrones para el frente del carnet
         cnpPatterns = {
           'institution': [
-            'colegio de nutricionistas',
-            'colegio',
-            'nutricionistas',
-            'nutrición',
-            'nutricionist',
-            'peru',
-            'perú',
-            'cnp',
-            'consejo nacional'
+            'colegio', 'nutricionistas', 'nutrición', 'cnp',
+            'peru', 'perú', 'consejo', 'nacional', 'república'
           ],
           'credential': [
-            'carnet',
-            'carné',
-            'carne',
-            'credencial',
-            'profesional',
-            'colegiado',
-            'identificación',
+            'carnet', 'carné', 'carne', 'credencial', 'colegiado'
           ],
           'personal_data': [
-            'apellidos',
-            'nombres',
-            'dni',
-            'n°',
-            'numero',
-            'número',
-          ],
-          'professional': [
-            'lic.',
-            'licenciado',
-            'nutricionista',
-            'nutrición',
-            'nutricional',
-            'decana',
-            'nacional'
+            'apellidos', 'nombres', 'dni', 'n°', 'numero', 'número'
           ],
         };
       } else {
-        // Patrones para el reverso del carnet
         cnpPatterns = {
           'institution': [
-            'colegio de nutricionistas',
-            'cnp',
-            'peru',
-            'perú',
-            'secretaria@cnp.org.pe',
-            'www.cnp.org.pe'
+            'colegio', 'nutricionistas', 'cnp', 'peru', 'perú',
+            'secretaria', 'cnp.org.pe', 'www.cnp'
           ],
           'dates': [
-            'fecha de colegiación',
-            'fecha de caducidad',
-            'colegiación',
-            'caducidad',
-            '2023',
-            '2024',
-            '2025',
-            '2026',
-            '2027',
-            '2028',
-            '2029',
-            '2031',
-            '2032',
-            '2033',
-            '2034',
-            '2035',
+            'colegiación', 'caducidad', '2023', '2024', '2025',
+            '2026', '2027', '2028', '2029'
           ],
           'personal_info': [
-            'grupo sanguíneo',
-            'grupo',
-            'sanguíneo',
-            'firma del titular',
-            'firma',
-            'titular'
+            'grupo', 'sanguíneo', 'firma', 'titular'
           ],
           'security': [
-            'carnet es personal',
-            'intransferible',
-            'intransfenble',
-            'personal',
-            'anexo 102',
-            'anexo',
-            '463-1761'
+            'personal', 'intransferible', 'intransfenble', 'anexo'
           ],
         };
       }
@@ -582,7 +654,7 @@ class _ValidationScreenState extends State<ValidationScreen>
           if (text.contains(pattern)) {
             matches++;
             totalMatches++;
-            print('Match encontrado: "$pattern" en categoría: $category');
+            print('✓ Match encontrado: "$pattern" en categoría: $category');
           }
         }
         categoryMatches[category] = matches;
@@ -591,20 +663,27 @@ class _ValidationScreenState extends State<ValidationScreen>
       _analysisData['cnp_matches'] = categoryMatches;
       _analysisData['total_matches'] = totalMatches;
 
-      print('Matches por categoría: $categoryMatches');
+      print('Resumen matches por categoría: $categoryMatches');
       print('Total matches: $totalMatches');
 
-      // Validación más flexible dependiendo del lado
+      // CORRECCIÓN: Validación más flexible
       bool isValid;
       if (side == 'front') {
         bool hasInstitution = categoryMatches['institution']! > 0;
+        bool hasCredential = categoryMatches['credential']! > 0;
         bool hasPersonalData = categoryMatches['personal_data']! > 0;
-        isValid = hasInstitution && hasPersonalData && totalMatches >= 3;
+
+        // Necesita al menos 2 categorías O 2 matches totales
+        isValid = (hasInstitution && (hasCredential || hasPersonalData)) || totalMatches >= 2;
       } else {
         bool hasInstitution = categoryMatches['institution']! > 0;
         bool hasDates = categoryMatches['dates']! > 0;
-        isValid = hasInstitution && totalMatches >= 2;
+
+        // Para reverso, necesita institución O fechas O al menos 1 match total
+        isValid = hasInstitution || hasDates || totalMatches >= 1;
       }
+
+      print('Validación CNP resultado: $isValid');
 
       if (_currentCardSide == CardSide.front) {
         _frontData = Map.from(_analysisData);
@@ -679,29 +758,35 @@ class _ValidationScreenState extends State<ValidationScreen>
     }
   }
 
-  //  extraer el número CNP del texto reconocido
-String _extractCNPNumber(String recognizedText) {
-  // Patrones para buscar el número CNP
-  final patterns = [
-    RegExp(r'CNP[:\s]*(\d{4})', caseSensitive: false),
-    RegExp(r'N°[:\s]*CNP[:\s]*(\d{4})', caseSensitive: false),
-    RegExp(r'Colegiatura[:\s]*(\d{4})', caseSensitive: false),
-    RegExp(r'Registro[:\s]*(\d{4})', caseSensitive: false),
-    RegExp(r'\b(\d{4})\b'),  
-  ];
+  String _extractCNPNumber(String recognizedText) {
+    // Patrones mejorados para buscar el número CNP
+    final patterns = [
+      RegExp(r'CNP[:\s]*[°]*[:\s]*(\d{4})', caseSensitive: false),
+      RegExp(r'N°[:\s]*CNP[:\s]*(\d{4})', caseSensitive: false),
+      RegExp(r'Colegiatura[:\s]*N°[:\s]*(\d{4})', caseSensitive: false),
+      RegExp(r'Registro[:\s]*[N°]*[:\s]*(\d{4})', caseSensitive: false),
+      RegExp(r'Código[:\s]*(\d{4})', caseSensitive: false),
+      RegExp(r'\bCNP\s*[-]?\s*(\d{4})\b', caseSensitive: false),
+    ];
 
-  for (var pattern in patterns) {
-    final match = pattern.firstMatch(recognizedText);
-    if (match != null && match.groupCount >= 1) {
-      final extractedNumber = match.group(1);
-      if (extractedNumber != null && extractedNumber.length == 4) {
-        return extractedNumber;
+    for (var pattern in patterns) {
+      final matches = pattern.allMatches(recognizedText);
+      for (var match in matches) {
+        if (match.groupCount >= 1) {
+          final extractedNumber = match.group(1);
+          if (extractedNumber != null &&
+              extractedNumber.length == 4 &&
+              extractedNumber != '0000' &&
+              extractedNumber != '1111' &&
+              extractedNumber != '1234') {
+            return extractedNumber;
+          }
+        }
       }
     }
-  }
 
-  return '';  
-}
+    return '';
+  }
 
   Future<bool> _performFinalAnalysis() async {
     try {
@@ -712,7 +797,7 @@ String _extractCNPNumber(String recognizedText) {
 
       await Future.delayed(const Duration(milliseconds: 1500));
 
-      return confidence >= 0.60; // Reducido de 0.75 a 0.60 para ser más flexible
+      return confidence >= 0.45; // Reducido de 0.60 a 0.45
     } catch (e) {
       print('Error en análisis final: $e');
       return false;
@@ -723,44 +808,52 @@ String _extractCNPNumber(String recognizedText) {
     double confidence = 0.0;
     String side = _analysisData['detected_side'] ?? 'front';
 
-    // Peso por calidad de imagen (20%)
+    // Peso por calidad de imagen (15%) - Reducido
     int imageWidth = _analysisData['image_width'] ?? 0;
     int imageHeight = _analysisData['image_height'] ?? 0;
-    if (imageWidth >= 400 && imageHeight >= 250) {
-      confidence += 0.20;
+    if (imageWidth >= 300 && imageHeight >= 200) { // Requisitos más bajos
+      confidence += 0.15;
     }
 
     // Peso por texto extraído (15%)
     int textLength = _analysisData['text_length'] ?? 0;
-    confidence += math.min(textLength / 100.0, 0.15);
+    confidence += math.min(textLength / 80.0, 0.15); // Más generoso
 
-    // Peso por matches CNP (40%)
+    // Peso por matches CNP (50%) - Aumentado
     int totalMatches = _analysisData['total_matches'] ?? 0;
-    double matchWeight = side == 'front' ? 8.0 : 5.0; // Diferentes expectativas por lado
-    confidence += math.min(totalMatches / matchWeight, 0.40);
+    double matchWeight = side == 'front' ? 4.0 : 2.0; // Más permisivo
+    confidence += math.min(totalMatches / matchWeight, 0.50);
 
-    // Peso por elementos específicos (25%)
+    // Peso por elementos específicos (20%)
     bool hasOfficial = _analysisData['has_official_terms'] ?? false;
     bool hasNumbers = _analysisData['has_valid_numbers'] ?? false;
     bool hasDates = _analysisData['has_valid_dates'] ?? false;
 
-    if (hasOfficial) confidence += 0.15;
+    if (hasOfficial) confidence += 0.10;
     if (hasNumbers) confidence += 0.05;
     if (hasDates) confidence += 0.05;
 
+    print('Score de confianza calculado: $confidence');
     return confidence.clamp(0.0, 1.0);
   }
 
+
   bool _validateOverallResult() {
     double confidence = _analysisData['confidence_score'] ?? 0.0;
-    return confidence >= 0.60;
+    return confidence >= 0.45;
   }
 
-  // Función auxiliar para limpiar texto
   String _cleanText(String text) {
     return text
         .toLowerCase()
-        .replaceAll(RegExp(r'[^\w\s\-@\.]'), ' ')
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+
+        .replaceAll(RegExp(r'[^\w\s\-@\.\d]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
@@ -792,49 +885,48 @@ String _extractCNPNumber(String recognizedText) {
   }
 
   void _finalizeValidation(bool isValid, String? errorMessage) {
-  if (!mounted) return;
+    if (!mounted) return;
 
-  // Verificar si es lado duplicado
-  if (!isValid && _analysisData['duplicate_side'] == true) {
-    String detectedSide = _analysisData['detected_side'] ?? 'unknown';
-    String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
+    // Verificar si es lado duplicado
+    if (!isValid && _analysisData['duplicate_side'] == true) {
+      String detectedSide = _analysisData['detected_side'] ?? 'unknown';
+      String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
 
-    // Determinar lado faltante
-    String missingSide = 'unknown';
-    if (!widget.existingSides.contains('front')) {
-      missingSide = 'frente';
-    } else if (!widget.existingSides.contains('back')) {
-      missingSide = 'reverso';
+      // Determinar lado faltante
+      String missingSide = 'unknown';
+      if (!widget.existingSides.contains('front')) {
+        missingSide = 'frente';
+      } else if (!widget.existingSides.contains('back')) {
+        missingSide = 'reverso';
+      }
+
+      widget.onValidationComplete(false, {
+        'detected_side': detectedSide,
+        'duplicate_side': true,
+        'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
+      });
+      return;
     }
 
-    widget.onValidationComplete(false, {
-      'detected_side': detectedSide,
-      'duplicate_side': true,
-      'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
-      'extracted_cnp': _analysisData['extracted_cnp'],  
-      'has_cnp': _analysisData['has_cnp'],  
+    // Lógica normal de finalización
+    setState(() {
+      _currentState = isValid ? ValidationState.success : ValidationState.failed;
+      _finalResult = ValidationResult(
+        isValid: isValid,
+        errorMessage: errorMessage,
+        analysisData: _mergeAnalysisData(),
+      );
     });
-    return;
+
+    // Auto-cerrar después de mostrar resultado
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        Map<String, dynamic> result = _mergeAnalysisData();
+        widget.onValidationComplete(isValid, result);
+      }
+    });
   }
 
-  // Lógica normal de finalización
-  setState(() {
-    _currentState = isValid ? ValidationState.success : ValidationState.failed;
-    _finalResult = ValidationResult(
-      isValid: isValid,
-      errorMessage: errorMessage,
-      analysisData: _mergeAnalysisData(),
-    );
-  });
-
-  // Auto-cerrar después de mostrar resultado
-  Timer(const Duration(seconds: 3), () {
-    if (mounted) {
-      Map<String, dynamic> result = _mergeAnalysisData();
-      widget.onValidationComplete(isValid, result);
-    }
-  });
-}
   // Método para combinar datos de ambos lados
   Map<String, dynamic> _mergeAnalysisData() {
     Map<String, dynamic> merged = Map.from(_analysisData);
@@ -852,48 +944,48 @@ String _extractCNPNumber(String recognizedText) {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
-    child: Scaffold(
-      backgroundColor: AppColors.backgroundSecondary,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () async {
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundSecondary,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () async {
 
-            bool canExit = await _onWillPop();
-            if (canExit && mounted) {
-              widget.onValidationComplete(false, null);
-            }
-          },
-          icon: const Icon(Icons.close, color: Colors.white, size: 28),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(width: 12),
-            const Text(
-              'Verificación de carnet CNP',
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
+              bool canExit = await _onWillPop();
+              if (canExit && mounted) {
+                widget.onValidationComplete(false, null);
+              }
+            },
+            icon: const Icon(Icons.close, color: Colors.white, size: 28),
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(width: 12),
+              const Text(
+                'Verificación de carnet CNP',
+                style: TextStyle(
+                  color: AppColors.textLight,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: _buildContent(),
+        body: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: _buildContent(),
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -1248,17 +1340,17 @@ String _extractCNPNumber(String recognizedText) {
                   ),
                   // Indicador de carga
                   SizedBox(
-                    width: 50,
-                    height: 50,
-                    child: Container(
                       width: 50,
                       height: 50,
-                      child: Lottie.asset(
-                        'assets/loading/palta_saltarina.json',
+                      child: Container(
                         width: 50,
                         height: 50,
-                      ),
-                    )
+                        child: Lottie.asset(
+                          'assets/loading/palta_saltarina.json',
+                          width: 50,
+                          height: 50,
+                        ),
+                      )
                   ),
                 ],
               ),
@@ -1300,10 +1392,10 @@ String _extractCNPNumber(String recognizedText) {
               const Text(
                 'Proceso de Validación',
                 style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.4
+                    color: AppColors.textLight,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4
                 ),
               ),
             ],
@@ -1364,10 +1456,10 @@ String _extractCNPNumber(String recognizedText) {
                         Text(
                           step.description,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12,
-                            height: 1.3,
-                            fontWeight: FontWeight.w300
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 12,
+                              height: 1.3,
+                              fontWeight: FontWeight.w300
                           ),
                         ),
                       ],
@@ -1656,4 +1748,3 @@ String _extractCNPNumber(String recognizedText) {
     super.dispose();
   }
 }
-

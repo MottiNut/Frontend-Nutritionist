@@ -69,11 +69,9 @@ class ColegiaturaVerificationScreenState
 
   String? _lastExtractedCNP;
 
-  // Variables para vista de imagen ampliada
   bool showImageViewer = false;
   int currentImageIndex = 0;
 
-  // Validación automática está habilitada
   bool autoValidationEnabled = false;
 
   // ML Kit instances
@@ -141,17 +139,18 @@ class ColegiaturaVerificationScreenState
   }
 
   void _initializeMLKit() {
-    // TextRecognizer con configuración más tolerante
+
     textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
-    // ObjectDetector con umbral más bajo y modo más permisivo
     final options = ObjectDetectorOptions(
       mode: DetectionMode.stream,
       classifyObjects: true,
       multipleObjects: true,
+      //confidenceThreshold: 0.35,
     );
     objectDetector = ObjectDetector(options: options);
   }
+
 
   Future<void> _loadSavedData() async {
     try {
@@ -244,13 +243,14 @@ class ColegiaturaVerificationScreenState
     }
   }
 
+
   void _checkAutoValidation() {
     if (_isFormValid() && !isVerifying && !colegiaturaVerified) {
       // Validar coincidencia si fue autocompletado
       if (_wasAutoFilled && _lastExtractedCNP != null) {
         String currentNumber = colegiaturaDigits.join('');
         if (currentNumber != _lastExtractedCNP) {
-          _validateCNPMatch(); // Mostrar advertencia
+          _validateCNPMatch();
         }
       }
 
@@ -541,11 +541,9 @@ class ColegiaturaVerificationScreenState
 
       // 6. Guardar la imagen procesada
       final directory = await getTemporaryDirectory();
-      final processedPath =
-          '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath = '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final processedFile = File(processedPath);
-      await processedFile
-          .writeAsBytes(img.encodeJpg(contrastedImage, quality: 90));
+      await processedFile.writeAsBytes(img.encodeJpg(contrastedImage, quality: 90));
 
       return processedFile;
     } catch (e) {
@@ -588,18 +586,12 @@ class ColegiaturaVerificationScreenState
         builder: (context) => ValidationScreen(
           imageFile: imageFile,
           existingSides: imageSides,
-          onValidationComplete:
-              (bool isValid, Map<String, dynamic>? analysisData) async {
+          onValidationComplete: (bool isValid, Map<String, dynamic>? analysisData) async {
             if (isValid && analysisData != null) {
               final String extractedCNP = analysisData['extracted_cnp'] ?? '';
               final bool hasCNP = analysisData['has_cnp'] ?? false;
 
               if (hasCNP && extractedCNP.length == 4) {
-                // Almacenar el último CNP detectado
-                setState(() {
-                  _lastExtractedCNP = extractedCNP;
-                });
-
                 // Auto-completar los campos si se detectó un CNP válido
                 _autoFillCNPFields(extractedCNP);
               }
@@ -690,6 +682,7 @@ class ColegiaturaVerificationScreenState
 
     setState(() {
       _wasAutoFilled = true;
+      _lastExtractedCNP = cnpNumber;
       for (int i = 0; i < 4; i++) {
         colegiaturaDigits[i] = cnpNumber[i];
         if (colegiaturaControllers.length > i) {
@@ -698,10 +691,11 @@ class ColegiaturaVerificationScreenState
       }
     });
 
-    SnackBarManager.showInfo(context,
-        'Número CNP actualizado correctamente.');
-       /*'Número CNP detectado: $cnpNumber. Verifica que sea correcto.'); */
-    // Guardar los cambios
+    SnackBarManager.showInfo(
+        context,
+        'Número CNP detectado: $cnpNumber. Verifica que sea correcto.'
+    );
+
     _saveData();
     _validateColegiatura();
   }
@@ -715,11 +709,15 @@ class ColegiaturaVerificationScreenState
         fullNumber.length == 4) {
       if (_lastExtractedCNP != fullNumber) {
         // Mostrar snackbar de advertencia
-        SnackBarManager.showWarning(context,
-            'El número ingresado ($fullNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)');
+        SnackBarManager.showWarning(
+            context,
+            'El número ingresado ($fullNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)'
+        );
       } else {
         SnackBarManager.showSuccess(
-            context, '✓ Número CNP verificado correctamente');
+            context,
+            '✓ Número CNP verificado correctamente'
+        );
       }
     }
   }
@@ -729,7 +727,7 @@ class ColegiaturaVerificationScreenState
       carneImages.removeAt(index);
       imageTypes.removeAt(index);
       if (index < imageSides.length) {
-        imageSides.removeAt(index); // NUEVO: También remover el lado
+        imageSides.removeAt(index);
       }
     });
     _saveData();
@@ -1090,27 +1088,21 @@ class ColegiaturaVerificationScreenState
                                 colegiaturaControllers[index].text = value;
 
                                 // NUEVA VALIDACIÓN: Si fue autocompletado y el usuario modifica
-                                if (_wasAutoFilled &&
-                                    _lastExtractedCNP != null) {
-                                  String currentNumber =
-                                      colegiaturaDigits.join('');
-                                  if (currentNumber != _lastExtractedCNP &&
-                                      currentNumber.length == 4) {
-                                    _showCNPMismatchDialog(
-                                        _lastExtractedCNP!, currentNumber);
+                                if (_wasAutoFilled && _lastExtractedCNP != null) {
+                                  String currentNumber = colegiaturaDigits.join('');
+                                  if (currentNumber != _lastExtractedCNP && currentNumber.length == 4) {
+                                    _showCNPMismatchDialog(_lastExtractedCNP!, currentNumber);
                                   }
                                 }
 
                                 if (value.isNotEmpty) {
                                   if (index < 3) {
-                                    colegiaturaFocusNodes[index + 1]
-                                        .requestFocus();
+                                    colegiaturaFocusNodes[index + 1].requestFocus();
                                   } else {
                                     colegiaturaFocusNodes[index].unfocus();
                                   }
                                 } else if (value.isEmpty && index > 0) {
-                                  colegiaturaFocusNodes[index - 1]
-                                      .requestFocus();
+                                  colegiaturaFocusNodes[index - 1].requestFocus();
                                 }
 
                                 if (colegiaturaErrorMessage.isNotEmpty) {
@@ -1123,7 +1115,8 @@ class ColegiaturaVerificationScreenState
 
                               // Guardar datos después de cambiar
                               _saveData();
-                            }),
+                            }
+                            ),
                       );
                     }),
                   ),

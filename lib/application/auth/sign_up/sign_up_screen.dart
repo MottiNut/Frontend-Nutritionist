@@ -1173,7 +1173,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           : 'Seleccionar verificación'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),

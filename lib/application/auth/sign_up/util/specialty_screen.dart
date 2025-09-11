@@ -497,7 +497,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                                 child: Text(
                                   item['name'],
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 17,
                                     fontWeight: FontWeight.w700,
                                     color: isSelected ? AppColors.primary : Colors.grey[800],
                                   ),
@@ -715,7 +715,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
       ) {
     return Container(
       margin: const EdgeInsets.only(top: 8, left: 12, right: 4),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -753,16 +753,16 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                   title,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.primary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
-                '${selectedOptions.length} seleccionadas',
+                '${selectedOptions.length} ',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   color: Colors.grey[600],
                   fontWeight: FontWeight.w500,
                 ),
@@ -822,8 +822,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                             child: Text(
                               option['name']!,
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
                                 color: isSelected ? Colors.white : Colors.grey[800],
                               ),
                               maxLines: 1,
@@ -835,7 +835,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                             child: Text(
                               option['desc']!,
                               style: TextStyle(
-                                fontSize: 9,
+                                fontSize: 11,
                                 color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey[600],
                               ),
                               maxLines: 1,
@@ -1021,7 +1021,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 22,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
                     ),
                     textAlign: TextAlign.center,

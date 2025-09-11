@@ -204,7 +204,7 @@ class LocationSelectorScreenState extends State<LocationSelectorScreen> {
                         style: TextStyle(
                           color: AppColors.primary,
                           fontSize: 22,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: -0.3,
                         ),
                         textAlign: TextAlign.center,
