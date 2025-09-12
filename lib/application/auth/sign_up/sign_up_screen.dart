@@ -28,15 +28,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // Keys para acceder a los estados de las pantallas
   final GlobalKey<PersonalInfoScreenState> _personalInfoKey =
-  GlobalKey<PersonalInfoScreenState>();
+      GlobalKey<PersonalInfoScreenState>();
   final GlobalKey<EmailPasswordScreenState> _emailPasswordKey =
-  GlobalKey<EmailPasswordScreenState>();
+      GlobalKey<EmailPasswordScreenState>();
   final GlobalKey<ColegiaturaVerificationScreenState> _colegiaturaKey =
-  GlobalKey<ColegiaturaVerificationScreenState>();
+      GlobalKey<ColegiaturaVerificationScreenState>();
   final GlobalKey<SpecialtyScreenState> _specialtyKey =
-  GlobalKey<SpecialtyScreenState>();
+      GlobalKey<SpecialtyScreenState>();
   final GlobalKey<LocationSelectorScreenState> _locationKey =
-  GlobalKey<LocationSelectorScreenState>();
+      GlobalKey<LocationSelectorScreenState>();
 
   // Datos del formulario
   String _firstName = '';
@@ -93,11 +93,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _firstName = nombre;
       _lastName = apellido;
       _profilePhoto = photo;
-
     });
   }
 
-  void _onEmailPasswordChanged(String email, String password, String confirmPassword, String phone) {
+  void _onEmailPasswordChanged(
+      String email, String password, String confirmPassword, String phone) {
     setState(() {
       _email = email;
       _password = password;
@@ -114,7 +114,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
   }
 
-  void _onColegiaturaValidated(String codeCNP, File? licenseFront, File? licenseBack) {
+  void _onColegiaturaValidated(
+      String codeCNP, File? licenseFront, File? licenseBack) {
     setState(() {
       _cnpCode = codeCNP;
       _licenseFrontImage = licenseFront;
@@ -150,16 +151,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   bool get _isEmailPasswordValid =>
       _email.trim().isNotEmpty &&
-          _password.isNotEmpty &&
-          _confirmPassword.isNotEmpty &&
-          _password == _confirmPassword &&
-          _password.length >= 6 &&
-          _email.contains('@');
+      _password.isNotEmpty &&
+      _confirmPassword.isNotEmpty &&
+      _password == _confirmPassword &&
+      _password.length >= 6 &&
+      _email.contains('@');
 
   bool get _isColegiaturaValid =>
       _cnpCode.trim().isNotEmpty &&
-          _licenseFrontImage != null &&
-          _licenseBackImage != null;
+      _licenseFrontImage != null &&
+      _licenseBackImage != null;
 
   bool get _isSpecialtyValid => _specialty.trim().isNotEmpty;
 
@@ -169,7 +170,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     bool basicValid = _location.trim().isNotEmpty &&
         _address.trim().isNotEmpty &&
         termsAccepted;
-
 
     switch (_verificationMethod) {
       case VerificationMethod.sms:
@@ -182,7 +182,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-
   bool get _isSmsAvailable => _phone.trim().isNotEmpty;
 
   // ========== NAVEGACIÓN ==========
@@ -190,18 +189,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _nextPage() {
     switch (_currentStep) {
       case 0:
-        _validateAndProceed(
-            _isPersonalInfoValid,
-            'Por favor, completa la información personal'
-        );
+        _validateAndProceed(_isPersonalInfoValid,
+            'Por favor, completa la información personal');
         break;
       case 1:
         _validateAndProceed(
             _isEmailPasswordValid && !_emailExists,
             _emailExists
                 ? 'Este email ya está registrado'
-                : 'Por favor, completa el email y contraseña correctamente'
-        );
+                : 'Por favor, completa el email y contraseña correctamente');
         break;
       case 2:
         debugPrint('=== DEBUG COLEGIATURA ===');
@@ -209,8 +205,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         debugPrint('cnpIsValid: $_cnpIsValid');
         debugPrint('cnpVerificationInProgress: $_cnpVerificationInProgress');
         debugPrint('cnpCode: $_cnpCode');
-        debugPrint('licenseFrontImage: ${_licenseFrontImage != null ? 'Sí' : 'No'}');
-        debugPrint('licenseBackImage: ${_licenseBackImage != null ? 'Sí' : 'No'}');
+        debugPrint(
+            'licenseFrontImage: ${_licenseFrontImage != null ? 'Sí' : 'No'}');
+        debugPrint(
+            'licenseBackImage: ${_licenseBackImage != null ? 'Sí' : 'No'}');
 
         debugPrint('========================');
 
@@ -226,10 +224,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
       case 3:
-        _validateAndProceed(
-            _isSpecialtyValid,
-            'Por favor, completa la información de especialidad'
-        );
+        _validateAndProceed(_isSpecialtyValid,
+            'Por favor, completa la información de especialidad');
         break;
       case 4:
         _handleRegistration();
@@ -285,8 +281,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // ========== REGISTRO ==========
 
-
-
   // ========== VALIDACIÓN ESPECÍFICA ==========
 
   String _getColegiaturaValidationMessage() {
@@ -338,7 +332,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         break;
       case VerificationMethod.email:
-      // No se requiere validación adicional para email
+        // No se requiere validación adicional para email
         break;
     }
 
@@ -352,7 +346,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       case 1:
         return _isEmailPasswordValid && !_emailExists;
       case 2:
-        return _isColegiaturaValid && _cnpIsValid && !_cnpVerificationInProgress;
+        return _isColegiaturaValid &&
+            _cnpIsValid &&
+            !_cnpVerificationInProgress;
       case 3:
         return _isSpecialtyValid;
       case 4:
@@ -408,8 +404,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Lottie.asset(
-                    'assets/loading/loading_infinity.json',
-                width: 40, height: 40,
+                  'assets/loading/loading_infinity.json',
+                  width: 40,
+                  height: 40,
                 ),
                 SizedBox(height: 16),
                 Text(
@@ -428,7 +425,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleRegistration() async {
-
     if (_profilePhoto == null) {
       _showValidationError('Por favor, selecciona una foto de perfil');
       return;
@@ -495,8 +491,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _showVerificationMethodModal() {
-
-    _selectedVerificationMethod = _verificationMethodSelected ? _verificationMethod : VerificationMethod.email;
+    _selectedVerificationMethod = _verificationMethodSelected
+        ? _verificationMethod
+        : VerificationMethod.email;
 
     showModalBottomSheet(
       context: context,
@@ -513,7 +510,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return StatefulBuilder(
       builder: (context, setModalState) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.55, // ✅ Más pequeño
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.65,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
@@ -521,183 +520,120 @@ class _SignUpScreenState extends State<SignUpScreen> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: Column(
-            children: [
-              // ✅ Header más compacto
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: Column(
-                  children: [
-                    // Handle bar
-                    Container(
-                      width: 36,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Título más elegante
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            Icons.verified_user_rounded,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Verificar cuenta',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black87,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Selecciona tu método preferido',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // ✅ Opciones más compactas y elegantes
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: Column(
                     children: [
-                      // Opción Email
-                      _buildVerificationOption(
-                        context: context,
-                        setModalState: setModalState,
-                        method: VerificationMethod.email,
-                        icon: Icons.mail_outline_rounded,
-                        title: 'Email',
-                        subtitle: _email,
-                        description: 'Código de 6 dígitos',
-                        isAvailable: true,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Opción SMS
-                      _buildVerificationOption(
-                        context: context,
-                        setModalState: setModalState,
-                        method: VerificationMethod.sms,
-                        icon: Icons.sms_outlined,
-                        title: 'SMS',
-                        subtitle: _isSmsAvailable ? _phone : 'No disponible',
-                        description: _isSmsAvailable ? 'Código de 6 dígitos' : 'Agrega tu número',
-                        isAvailable: _isSmsAvailable,
-                      ),
-
-                      const Spacer(),
-
-                      // ✅ Botones estilo TikTok
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Column(
-                          children: [
-                            // Botón principal
-                            GestureDetector(
-                              onTap: () => _confirmVerificationMethod(),
-                              child: Container(
-                                width: double.infinity,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.primary,
-                                      AppColors.primary.withOpacity(0.8),
-                                    ],
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'Continuar',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // Botón secundario
-                            GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
-                              child: Container(
-                                width: double.infinity,
-                                height: 44,
-                                child: const Center(
-                                  child: Text(
-                                    'Cancelar',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                      // Barra de agarre
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 5),
+
+                      // Título
+                      Row(
+                        children: [
+                           Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Verificar cuenta',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black87,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Selecciona tu método preferido',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                // Opciones de verificación
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Opción Email
+                        _buildVerificationOption(
+                          context: context,
+                          setModalState: setModalState,
+                          method: VerificationMethod.email,
+                          icon: Icons.mail_outline_rounded,
+                          title: 'Email',
+                          subtitle: _email,
+                          description: 'Código de 6 dígitos',
+                          isAvailable: true,
+                          onTap: () {
+                            _selectedVerificationMethod = VerificationMethod.email;
+                            _confirmVerificationMethod();
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Opción SMS
+                        _buildVerificationOption(
+                          context: context,
+                          setModalState: setModalState,
+                          method: VerificationMethod.sms,
+                          icon: Icons.sms_outlined,
+                          title: 'SMS',
+                          subtitle: _isSmsAvailable ? _phone : 'No disponible',
+                          description: _isSmsAvailable
+                              ? 'Código de 6 dígitos'
+                              : 'Agrega tu número',
+                          isAvailable: _isSmsAvailable,
+                          onTap: _isSmsAvailable
+                              ? () {
+                            _selectedVerificationMethod = VerificationMethod.sms;
+                            _confirmVerificationMethod();
+                          }
+                              : null,
+                        ),
+
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-// ✅ Widget helper para las opciones
   Widget _buildVerificationOption({
     required BuildContext context,
     required StateSetter setModalState,
@@ -707,15 +643,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     required String subtitle,
     required String description,
     required bool isAvailable,
+    required VoidCallback? onTap,
   }) {
     final isSelected = _selectedVerificationMethod == method;
 
     return GestureDetector(
-      onTap: isAvailable ? () {
-        setModalState(() {
-          _selectedVerificationMethod = method;
-        });
-      } : null,
+      onTap: isAvailable ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
@@ -725,9 +658,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               : Colors.grey[50],
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : Colors.grey[200]!,
+            color: isSelected ? AppColors.primary : Colors.grey[200]!,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -739,9 +670,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : Colors.grey[400],
+                  color: isSelected ? AppColors.primary : Colors.grey[400],
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -771,7 +700,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         if (!isAvailable) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.orange[100],
                               borderRadius: BorderRadius.circular(6),
@@ -804,7 +734,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       description,
                       style: TextStyle(
                         fontSize: 11,
-                        color: isAvailable ? Colors.grey[500] : Colors.orange[600],
+                        color:
+                        isAvailable ? Colors.grey[500] : Colors.orange[600],
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -835,8 +766,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _confirmVerificationMethod() {
     // ✅ CORRECCIÓN: Validar que la selección sea válida usando _phone
-    if (_selectedVerificationMethod == VerificationMethod.sms && _phone.trim().isEmpty) {
-      _showValidationError('No puedes seleccionar SMS sin un número de teléfono válido');
+    if (_selectedVerificationMethod == VerificationMethod.sms &&
+        _phone.trim().isEmpty) {
+      _showValidationError(
+          'No puedes seleccionar SMS sin un número de teléfono válido');
       return;
     }
 
@@ -879,7 +812,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (_licenseFrontImage != null) {
         final frontSize = await _licenseFrontImage!.length();
         if (frontSize > 10 * 1024 * 1024) {
-          _showValidationError('La foto frontal del CNP es muy grande. Máximo 10MB.');
+          _showValidationError(
+              'La foto frontal del CNP es muy grande. Máximo 10MB.');
           return;
         }
       }
@@ -887,13 +821,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (_licenseBackImage != null) {
         final backSize = await _licenseBackImage!.length();
         if (backSize > 10 * 1024 * 1024) {
-          _showValidationError('La foto trasera del CNP es muy grande. Máximo 10MB.');
+          _showValidationError(
+              'La foto trasera del CNP es muy grande. Máximo 10MB.');
           return;
         }
       }
 
       debugPrint('=== INICIANDO PETICIÓN DE REGISTRO ===');
-      debugPrint('Método de verificación seleccionado: ${_selectedVerificationMethod.name}');
+      debugPrint(
+          'Método de verificación seleccionado: ${_selectedVerificationMethod.name}');
       debugPrint('Email: ${_email.trim().toLowerCase()}');
       debugPrint('Teléfono: $_phone');
 
@@ -902,13 +838,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       debugPrint('Términos aceptados: $termsAccepted');
 
-
       // Validar que los términos estén aceptados
       if (!termsAccepted) {
         _showValidationError('Debes aceptar los términos y condiciones');
         return;
       }
-
 
       // ✅ SOLUCIÓN PRINCIPAL: Registrar usuario
       final success = await authProvider.register(
@@ -922,8 +856,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         licenseFrontImage: _licenseFrontImage!,
         licenseBackImage: _licenseBackImage!,
         specialty: _specialty.trim(),
-        masterDegree: _masterDegree.trim().isNotEmpty ? _masterDegree.trim() : null,
-        otherSpecialty: _otherSpecialty.trim().isNotEmpty ? _otherSpecialty.trim() : null,
+        masterDegree:
+            _masterDegree.trim().isNotEmpty ? _masterDegree.trim() : null,
+        otherSpecialty:
+            _otherSpecialty.trim().isNotEmpty ? _otherSpecialty.trim() : null,
         location: _location.trim(),
         address: _address.trim(),
         acceptTerms: termsAccepted,
@@ -932,12 +868,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
       debugPrint('=== RESULTADO DEL REGISTRO ===');
       debugPrint('Registro exitoso: $success');
       debugPrint('Usuario autenticado: ${authProvider.isAuthenticated}');
-      debugPrint('Verificación pendiente: ${authProvider.isVerificationPending}');
+      debugPrint(
+          'Verificación pendiente: ${authProvider.isVerificationPending}');
       debugPrint('Error del provider: ${authProvider.errorMessage}');
 
       if (!success) {
         // ❌ Error en el registro
-        String errorMsg = authProvider.errorMessage ?? 'Error durante el registro. Por favor, intenta nuevamente.';
+        String errorMsg = authProvider.errorMessage ??
+            'Error durante el registro. Por favor, intenta nuevamente.';
         debugPrint('❌ ERROR EN REGISTRO: $errorMsg');
         _showValidationError(errorMsg);
         return;
@@ -980,7 +918,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         debugPrint('=== CÓDIGO YA ENVIADO POR EL BACKEND ===');
 
         // Mostrar mensaje de éxito
-        _showSuccessMessage('¡Registro exitoso! Te hemos enviado un código de verificación por $methodText a $destination');
+        _showSuccessMessage(
+            '¡Registro exitoso! Te hemos enviado un código de verificación por $methodText a $destination');
 
         // ✅ NAVEGAR DIRECTAMENTE A PANTALLA DE VERIFICACIÓN
         if (mounted) {
@@ -1006,9 +945,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // CASO 3: Estado inesperado
       debugPrint('⚠️ ESTADO INESPERADO DESPUÉS DEL REGISTRO');
       debugPrint('isAuthenticated: ${authProvider.isAuthenticated}');
-      debugPrint('isVerificationPending: ${authProvider.isVerificationPending}');
-      _showValidationError('Estado inesperado después del registro. Por favor, contacta soporte.');
-
+      debugPrint(
+          'isVerificationPending: ${authProvider.isVerificationPending}');
+      _showValidationError(
+          'Estado inesperado después del registro. Por favor, contacta soporte.');
     } catch (e, stackTrace) {
       debugPrint('=== EXCEPCIÓN DURANTE EL REGISTRO ===');
       debugPrint('Error: $e');
@@ -1088,9 +1028,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     // Botón para cambiar método
                     GestureDetector(
-                      onTap: isLoading ? null : () {
-                        _showVerificationMethodModal();
-                      },
+                      onTap: isLoading
+                          ? null
+                          : () {
+                              _showVerificationMethodModal();
+                            },
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -1112,7 +1054,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // Botón principal
             GestureDetector(
               onTap: (_canProceedToNext && !isLoading)
-                  ? (_verificationMethodSelected ? _proceedWithRegistration : _showVerificationMethodModal)
+                  ? (_verificationMethodSelected
+                      ? _proceedWithRegistration
+                      : _showVerificationMethodModal)
                   : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -1120,19 +1064,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 decoration: BoxDecoration(
                   gradient: (_canProceedToNext && !isLoading)
                       ? LinearGradient(
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primary.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withOpacity(0.8),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
                       : LinearGradient(
-                    colors: [
-                      Colors.grey[400]!,
-                      Colors.grey[300]!,
-                    ],
-                  ),
+                          colors: [
+                            Colors.grey[400]!,
+                            Colors.grey[300]!,
+                          ],
+                        ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -1144,13 +1088,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 3,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
                       const SizedBox(width: 16),
                     ] else ...[
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
@@ -1169,11 +1114,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       isLoading
                           ? 'Creando tu cuenta...'
                           : (_verificationMethodSelected
-                          ? 'Crear mi cuenta'
-                          : 'Seleccionar verificación'),
+                              ? 'Crear mi cuenta'
+                              : 'Seleccionar verificación'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
@@ -1274,11 +1219,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       : AppColors.textInput.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: (_canProceedToNext && !isLoading)
-                      ? [BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  )]
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
                       : [],
                 ),
                 child: Row(
@@ -1290,7 +1237,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
                       const SizedBox(width: 8),

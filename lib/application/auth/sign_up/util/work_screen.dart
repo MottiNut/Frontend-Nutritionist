@@ -178,7 +178,7 @@ class LocationSelectorScreenState extends State<LocationSelectorScreen> {
     return GestureDetector(
       onTap: _unfocusAddressField,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFFFFFFF),
         body: SafeArea(
           child: Column(
             children: [
@@ -224,14 +224,14 @@ class LocationSelectorScreenState extends State<LocationSelectorScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Container(
+                     /* Container(
                         child: Lottie.asset(
                           'assets/lottie/locations_animations.json',
-                          width: 150,
-                          height: 150,
+                          width: 130,
+                          height: 130,
 
                         ),
-                      ),
+                      ),*/
                     ],
                   ),
                 ),

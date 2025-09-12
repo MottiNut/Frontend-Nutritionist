@@ -17,28 +17,30 @@ class SpecialtyScreen extends StatefulWidget {
   final String initialEspecialidad;
   final String initialMaestria;
   final String initialOther;
-  final Function(String especialidad, String maestria, String other)? onDataChanged;
+  final Function(String especialidad, String maestria, String other)?
+      onDataChanged;
 
-  const SpecialtyScreen(
-      {Key? key,
-        required this.nombre,
-        required this.apellido,
-        required this.email,
-        required this.contrasena,
-        required this.codeCNP,
-        this.licenseFrontImage,
-        this.licenseBackImage,
-        this.initialEspecialidad = '',
-        this.initialMaestria = '',
-        this.initialOther = '',
-        this.onDataChanged,
-      }) : super(key: key);
+  const SpecialtyScreen({
+    Key? key,
+    required this.nombre,
+    required this.apellido,
+    required this.email,
+    required this.contrasena,
+    required this.codeCNP,
+    this.licenseFrontImage,
+    this.licenseBackImage,
+    this.initialEspecialidad = '',
+    this.initialMaestria = '',
+    this.initialOther = '',
+    this.onDataChanged,
+  }) : super(key: key);
 
   @override
   State<SpecialtyScreen> createState() => SpecialtyScreenState();
 }
 
-class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderStateMixin {
+class SpecialtyScreenState extends State<SpecialtyScreen>
+    with TickerProviderStateMixin {
   // Lista de especialidades seleccionadas
   List<String> selectedSpecialties = [];
 
@@ -81,10 +83,19 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
   // Opciones de especialidades específicas
   final List<Map<String, String>> especialidadOptions = [
-    {'name': 'Nutrición Clínica', 'desc': 'Tratamiento nutricional hospitalario'},
-    {'name': 'Nutrición Deportiva', 'desc': 'Optimización del rendimiento atlético'},
+    {
+      'name': 'Nutrición Clínica',
+      'desc': 'Tratamiento nutricional hospitalario'
+    },
+    {
+      'name': 'Nutrición Deportiva',
+      'desc': 'Optimización del rendimiento atlético'
+    },
     {'name': 'Nutrición Pediátrica', 'desc': 'Alimentación en edad pediátrica'},
-    {'name': 'Obesidad y Sobrepeso', 'desc': 'Manejo integral del peso corporal'},
+    {
+      'name': 'Obesidad y Sobrepeso',
+      'desc': 'Manejo integral del peso corporal'
+    },
     {'name': 'Diabetes', 'desc': 'Control nutricional de la diabetes'},
     {'name': 'Hipertensión', 'desc': 'Dieta para control de presión arterial'},
     {'name': 'Nutrición Geriátrica', 'desc': 'Alimentación en adultos mayores'},
@@ -93,12 +104,24 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
   // Opciones de maestrías específicas
   final List<Map<String, String>> maestriaOptions = [
-    {'name': 'Ciencias de la Nutrición', 'desc': 'Investigación nutricional avanzada'},
+    {
+      'name': 'Ciencias de la Nutrición',
+      'desc': 'Investigación nutricional avanzada'
+    },
     {'name': 'Salud Pública', 'desc': 'Nutrición poblacional y epidemiología'},
     {'name': 'Nutrición Clínica', 'desc': 'Práctica clínica especializada'},
-    {'name': 'Alimentación y Nutrición Humana', 'desc': 'Enfoque integral alimentario'},
-    {'name': 'Nutrición Deportiva', 'desc': 'Rendimiento y metabolismo deportivo'},
-    {'name': 'Seguridad Alimentaria', 'desc': 'Calidad e inocuidad alimentaria'},
+    {
+      'name': 'Alimentación y Nutrición Humana',
+      'desc': 'Enfoque integral alimentario'
+    },
+    {
+      'name': 'Nutrición Deportiva',
+      'desc': 'Rendimiento y metabolismo deportivo'
+    },
+    {
+      'name': 'Seguridad Alimentaria',
+      'desc': 'Calidad e inocuidad alimentaria'
+    },
   ];
 
   @override
@@ -159,7 +182,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
         // Cargar especialidades principales seleccionadas
         final selectedSpecialtiesJson = prefs!.getString('selectedSpecialties');
-        if (selectedSpecialtiesJson != null && selectedSpecialtiesJson.isNotEmpty) {
+        if (selectedSpecialtiesJson != null &&
+            selectedSpecialtiesJson.isNotEmpty) {
           final decoded = json.decode(selectedSpecialtiesJson);
           if (decoded is List) {
             selectedSpecialties = List<String>.from(decoded);
@@ -168,7 +192,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
         // Cargar estados de expansión con valores por defecto más inteligentes
         showEspecialidadOptions = prefs!.getBool('showEspecialidadOptions') ??
-            (selectedEspecialidades.isNotEmpty); // Default a true si hay selecciones
+            (selectedEspecialidades
+                .isNotEmpty); // Default a true si hay selecciones
         showMaestriaOptions = prefs!.getBool('showMaestriaOptions') ??
             (selectedMaestrias.isNotEmpty); // Default a true si hay selecciones
         showOtroField = prefs!.getBool('showOtroField') ??
@@ -194,14 +219,14 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
   void _updateVisualState() {
     setState(() {
-      // Asegurar que las opciones principales estén seleccionadas si hay sub-selecciones
       if (selectedEspecialidades.isNotEmpty) {
         if (!selectedSpecialties.contains('Especialidad')) {
           selectedSpecialties.add('Especialidad');
         }
         // Mantener el estado de expansión si hay selecciones
         if (selectedEspecialidades.isNotEmpty) {
-          showEspecialidadOptions = prefs?.getBool('showEspecialidadOptions') ?? false;
+          showEspecialidadOptions =
+              prefs?.getBool('showEspecialidadOptions') ?? false;
         }
       }
 
@@ -231,23 +256,28 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
     if (prefs != null) {
       try {
         // Guardar especialidades seleccionadas
-        await prefs!.setString('selectedEspecialidades', json.encode(selectedEspecialidades));
+        await prefs!.setString(
+            'selectedEspecialidades', json.encode(selectedEspecialidades));
 
         // Guardar maestrías seleccionadas
-        await prefs!.setString('selectedMaestrias', json.encode(selectedMaestrias));
+        await prefs!
+            .setString('selectedMaestrias', json.encode(selectedMaestrias));
 
         // Guardar texto "Otro"
         await prefs!.setString('otroText', otroText);
 
         // Guardar especialidades principales seleccionadas
-        await prefs!.setString('selectedSpecialties', json.encode(selectedSpecialties));
+        await prefs!
+            .setString('selectedSpecialties', json.encode(selectedSpecialties));
 
         // Guardar estados de expansión
-        await prefs!.setBool('showEspecialidadOptions', showEspecialidadOptions);
+        await prefs!
+            .setBool('showEspecialidadOptions', showEspecialidadOptions);
         await prefs!.setBool('showMaestriaOptions', showMaestriaOptions);
         await prefs!.setBool('showOtroField', showOtroField);
 
-        print('Datos guardados correctamente en SharedPreferences'); // Para debug
+        print(
+            'Datos guardados correctamente en SharedPreferences'); // Para debug
       } catch (e) {
         print('Error al guardar en SharedPreferences: $e'); // Para debug
       }
@@ -256,7 +286,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
 
   void _initializeWithPreviousData() {
     // Restaurar especialidades seleccionadas (solo si no hay datos en SharedPreferences)
-    if (widget.initialEspecialidad.isNotEmpty && selectedEspecialidades.isEmpty) {
+    if (widget.initialEspecialidad.isNotEmpty &&
+        selectedEspecialidades.isEmpty) {
       selectedEspecialidades = widget.initialEspecialidad.split(',');
       if (selectedEspecialidades.isNotEmpty) {
         selectedSpecialties.add('Especialidad');
@@ -395,7 +426,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
     if (selectedSpecialties.isEmpty) return false;
 
     // Si seleccionó Especialidad, debe elegir al menos una especialidad específica
-    if (selectedSpecialties.contains('Especialidad') && selectedEspecialidades.isEmpty) {
+    if (selectedSpecialties.contains('Especialidad') &&
+        selectedEspecialidades.isEmpty) {
       return false;
     }
 
@@ -422,7 +454,15 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
         mainAxisSize: MainAxisSize.min,
         children: [
           GestureDetector(
-            onTap: () => toggleStudy(item['name']),
+            onTap: () {
+              if (isSelected) {
+                // ✅ Si ya está seleccionado, toca para expandir/colapsar
+                toggleExpansion(item['name']);
+              } else {
+                // ✅ Si NO está seleccionado, primero lo selecciona
+                toggleStudy(item['name']);
+              }
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.all(16),
@@ -445,7 +485,9 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.black.withOpacity(0.04),
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.04),
                     blurRadius: isSelected ? 8 : 4,
                     offset: Offset(0, isSelected ? 3 : 2),
                   ),
@@ -455,37 +497,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Icono principal
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? LinearGradient(
-                          colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                            : null,
-                        color: isSelected ? null : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: isSelected ? [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ] : null,
-                      ),
-                      child: Icon(
-                        item['icon'],
-                        color: isSelected ? Colors.white : Colors.grey[600],
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Contenido principal
+                    // ----- CONTENIDO PRINCIPAL -----
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,27 +511,13 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                                   style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
-                                    color: isSelected ? AppColors.primary : Colors.grey[800],
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Colors.grey[800],
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (hasSubSelections)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '${_getSubSelectionCount(item['name'])}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
                             ],
                           ),
                           const SizedBox(height: 2),
@@ -534,47 +532,44 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                             overflow: TextOverflow.ellipsis,
                           ),
 
-                          // Mostrar selecciones cuando está contraído
+                          // ✅ Mostrar selecciones en modo compacto si está colapsado
                           if (hasSubSelections && !isExpanded)
                             _buildCompactSelections(item['name']),
                         ],
                       ),
                     ),
 
-                    // Indicadores de estado
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isSelected)
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.primary,
-                            size: 20,
+                    // ----- ICONO FLECHA -----
+                    if (_hasSubOptions(item['name']))
+                      GestureDetector(
+                        onTap: () => toggleExpansion(item['name']),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.grey.shade200,
                           ),
-                        if (isSelected && _hasSubOptions(item['name']))
-                          GestureDetector(
-                            onTap: () => toggleExpansion(item['name']),
-                            child: Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              padding: const EdgeInsets.all(2),
-                              child: Icon(
-                                isExpanded
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
-                            ),
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.all(3),
+                          child: Icon(
+                            isExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            color: isSelected
+                                ? AppColors.iconSecondary
+                                : Colors.black,
+                            size: 15,
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Sub-opciones expandibles
+          // ----- SUB-OPCIONES EXPANDIBLES -----
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -607,10 +602,10 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
     );
   }
 
+
   Widget _buildCompactSelections(String studyName) {
     List<String> selections = [];
 
-    // Obtener selecciones directamente desde las variables de estado
     switch (studyName) {
       case 'Especialidad':
         selections = List<String>.from(selectedEspecialidades);
@@ -624,9 +619,6 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
         }
         break;
     }
-
-    // Debug print para verificar
-    print('_buildCompactSelections for $studyName: $selections');
 
     // Si no hay selecciones, no mostrar nada
     if (selections.isEmpty) return const SizedBox.shrink();
@@ -679,10 +671,12 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                   ),
                 ),
                 child: Text(
-                  selection.length > 20 ? '${selection.substring(0, 20)}...' : selection,
+                  selection.length > 20
+                      ? '${selection.substring(0, 20)}...'
+                      : selection,
                   style: TextStyle(
-                    fontSize: 9,
-                    color: AppColors.primary,
+                    fontSize: 10,
+                    color: AppColors.textLDark,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -707,15 +701,15 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
   }
 
   Widget _buildProfessionalSubOptions(
-      List<Map<String, String>> options,
-      List<String> selectedOptions,
-      Function(String) toggleFunction,
-      String title,
-      IconData icon,
-      ) {
+    List<Map<String, String>> options,
+    List<String> selectedOptions,
+    Function(String) toggleFunction,
+    String title,
+    IconData icon,
+  ) {
     return Container(
-      margin: const EdgeInsets.only(top: 8, left: 12, right: 4),
-      padding: const EdgeInsets.all(4),
+      margin: const EdgeInsets.only(top: 5, left: 12, right: 4),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -752,7 +746,7 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: AppColors.primary,
                   ),
@@ -790,28 +784,35 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                     onTap: () => toggleFunction(option['name']!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
                         gradient: isSelected
                             ? LinearGradient(
-                          colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primary.withOpacity(0.8)
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
                             : null,
                         color: isSelected ? null : Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : Colors.grey[200]!,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.grey[200]!,
                           width: isSelected ? 2 : 1,
                         ),
-                        boxShadow: isSelected ? [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ] : null,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -824,19 +825,23 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
-                                color: isSelected ? Colors.white : Colors.grey[800],
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[800],
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(height: 1),
+
                           Flexible(
                             child: Text(
                               option['desc']!,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey[600],
+                                fontSize: 13,
+                                color: isSelected
+                                    ? Colors.white.withOpacity(0.8)
+                                    : Colors.grey[600],
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -949,7 +954,9 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
   }
 
   bool _hasSubOptions(String studyName) {
-    return studyName == 'Especialidad' || studyName == 'Maestría' || studyName == 'Otro';
+    return studyName == 'Especialidad' ||
+        studyName == 'Maestría' ||
+        studyName == 'Otro';
   }
 
   bool _isExpanded(String studyName) {
@@ -1050,7 +1057,8 @@ class SpecialtyScreenState extends State<SpecialtyScreen> with TickerProviderSta
                   children: [
                     // Lista de estudios de postgrado
                     ...postgradoStudies.map((study) {
-                      final isSelected = selectedSpecialties.contains(study['name']);
+                      final isSelected =
+                          selectedSpecialties.contains(study['name']);
                       return _buildStudyCard(study, isSelected);
                     }).toList(),
 

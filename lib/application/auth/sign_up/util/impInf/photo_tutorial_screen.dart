@@ -92,7 +92,7 @@ class _PhotoTutorialScreenState extends State<PhotoTutorialScreen> {
       }) {
     return GestureDetector(
       onTap: () {
-        Navigator.pop(context); // Cerrar el bottom sheet
+        Navigator.pop(context);
         _pickImageSafely(source);
       },
       child: Container(
@@ -106,7 +106,7 @@ class _PhotoTutorialScreenState extends State<PhotoTutorialScreen> {
           children: [
             Icon(
               icon,
-              size: 28,
+              size: 30,
               color: AppColors.primary,
             ),
             SizedBox(height: 8),

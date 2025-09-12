@@ -26,7 +26,7 @@ class ColegiaturaVerificationScreen extends StatefulWidget {
   final String email;
   final String contrasena;
   final Function(String codeCNP, File? licenseFront, File? licenseBack)?
-      onValidationComplete;
+  onValidationComplete;
   final VoidCallback? onVerificationStart;
   final VoidCallback? onCnpValidated;
 
@@ -48,7 +48,7 @@ class ColegiaturaVerificationScreen extends StatefulWidget {
 
 class ColegiaturaVerificationScreenState
     extends State<ColegiaturaVerificationScreen> {
-  // Variables para colegiatura
+
   List<String> colegiaturaDigits = ['', '', '', ''];
   List<FocusNode> colegiaturaFocusNodes = [
     FocusNode(),
@@ -92,7 +92,7 @@ class ColegiaturaVerificationScreenState
   List<String> imageSides = [];
 
   bool _wasAutoFilled = false;
-
+  bool _mismatchAlertShown = false;
   @override
   void initState() {
     super.initState();
@@ -249,8 +249,17 @@ class ColegiaturaVerificationScreenState
       // Validar coincidencia si fue autocompletado
       if (_wasAutoFilled && _lastExtractedCNP != null) {
         String currentNumber = colegiaturaDigits.join('');
-        if (currentNumber != _lastExtractedCNP) {
-          _validateCNPMatch();
+        if (currentNumber.length == 4 && currentNumber != _lastExtractedCNP) {
+          // Mostrar snackbar de advertencia si no coincide
+          SnackBarManager.showWarning(
+              context,
+              'El número ingresado ($currentNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)'
+          );
+        } else if (currentNumber == _lastExtractedCNP) {
+          SnackBarManager.showSuccess(
+              context,
+              '✓ Número CNP verificado correctamente'
+          );
         }
       }
 
@@ -349,7 +358,7 @@ class ColegiaturaVerificationScreenState
     try {
       // Mostrar opciones disponibles
       final Map<String, dynamic>? selectedOption =
-          await showModalBottomSheet<Map<String, dynamic>>(
+      await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
         builder: (BuildContext context) {
           return SafeArea(
@@ -389,7 +398,7 @@ class ColegiaturaVerificationScreenState
                     // Opciones
                     ListTile(
                       leading:
-                          Icon(Icons.photo_library, color: AppColors.primary),
+                      Icon(Icons.photo_library, color: AppColors.primary),
                       title: Text(
                         'Galería',
                         style: TextStyle(
@@ -407,7 +416,7 @@ class ColegiaturaVerificationScreenState
 
                     ListTile(
                       leading:
-                          Icon(Icons.photo_camera, color: AppColors.primary),
+                      Icon(Icons.photo_camera, color: AppColors.primary),
                       title: Text(
                         'Cámara',
                         style: TextStyle(
@@ -498,7 +507,7 @@ class ColegiaturaVerificationScreenState
           title: Text('Permiso requerido'),
           content: Text(
             'Para usar la $tipo, necesitas otorgar los permisos correspondientes. '
-            '¿Deseas ir a configuración para habilitarlos?',
+                '¿Deseas ir a configuración para habilitarlos?',
           ),
           actions: [
             TextButton(
@@ -564,7 +573,7 @@ class ColegiaturaVerificationScreenState
       if (pickedFile != null) {
         File imageFile = File(pickedFile.path);
 
-        // NORMALIZAR LA IMAGEN ANTES DE PROCESAR
+        // NORMALIZAR LA IMAGEN ANTES de PROCESAR
         setState(() => isUploading = true);
         File normalizedImage = await _normalizeImage(imageFile);
 
@@ -628,18 +637,17 @@ class ColegiaturaVerificationScreenState
 
           String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
           String missingSide =
-              _getMissingSide() == 'front' ? 'frente' : 'reverso';
+          _getMissingSide() == 'front' ? 'frente' : 'reverso';
 
           SnackBarManager.showError(context,
               'Ya subiste el $sideText del carnet. Necesitas subir el $missingSide.');
           return;
         }
 
-        // Si es válido y no duplicado, agregarlo
         setState(() {
           carneImages.add(imageFile);
           imageTypes.add(type);
-          imageSides.add(detectedSide); // NUEVO: Guardar el lado
+          imageSides.add(detectedSide);
           isUploading = false;
         });
 
@@ -658,7 +666,7 @@ class ColegiaturaVerificationScreenState
         });
 
         String missingSide =
-            _getMissingSide() == 'front' ? 'frente' : 'reverso';
+        _getMissingSide() == 'front' ? 'frente' : 'reverso';
         SnackBarManager.showInfo(context,
             'Ahora captura el $missingSide del carnet para completar la validación.');
       } else {
@@ -683,6 +691,7 @@ class ColegiaturaVerificationScreenState
     setState(() {
       _wasAutoFilled = true;
       _lastExtractedCNP = cnpNumber;
+      _mismatchAlertShown = false;
       for (int i = 0; i < 4; i++) {
         colegiaturaDigits[i] = cnpNumber[i];
         if (colegiaturaControllers.length > i) {
@@ -737,10 +746,14 @@ class ColegiaturaVerificationScreenState
     setState(() {
       imageTypes.removeAt(index);
       carneImages.removeAt(index);
+      if (index < imageSides.length) {
+        imageSides.removeAt(index);
+      }
 
       // Resetear estado de autocompletado si se eliminan imágenes
       _wasAutoFilled = false;
       _lastExtractedCNP = null;
+      _mismatchAlertShown = false;
 
       // Reset validaciones si se elimina una imagen crítica
       if (carneImages.length < 2) {
@@ -822,10 +835,7 @@ class ColegiaturaVerificationScreenState
         fullNumber,
         licenseFront,
         licenseBack,
-        //termsAccepted,
       );
-
-      //widget.onVerificationSuccess?.call();
 
       // NUEVO: Limpiar datos después de completar el proceso
       await _clearSavedData();
@@ -845,10 +855,14 @@ class ColegiaturaVerificationScreenState
       colegiaturaDigits = ['', '', '', ''];
       carneImages.clear();
       imageTypes.clear();
+      imageSides.clear();
 
       colegiaturaVerified = false;
       autoValidationEnabled = false;
       colegiaturaErrorMessage = '';
+      _wasAutoFilled = false;
+      _lastExtractedCNP = null;
+      _mismatchAlertShown = false;
 
       // Limpiar controllers
       for (int i = 0; i < colegiaturaControllers.length; i++) {
@@ -1025,7 +1039,6 @@ class ColegiaturaVerificationScreenState
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: List.generate(4, (index) {
-                      // ... (código existente para los campos de dígitos)
                       bool hasValue = colegiaturaDigits[index].isNotEmpty;
                       bool hasError = colegiaturaErrorMessage.isNotEmpty &&
                           colegiaturaDigits[index].isEmpty;
@@ -1040,7 +1053,7 @@ class ColegiaturaVerificationScreenState
                       } else if (hasFocus || hasValue) {
                         borderColor = AppColors.primary;
                         backgroundColor =
-                            hasValue ? AppColors.primary : Colors.white;
+                        hasValue ? AppColors.primary : Colors.white;
                       } else {
                         borderColor = Colors.grey[400]!;
                         backgroundColor = Colors.white;
@@ -1062,7 +1075,7 @@ class ColegiaturaVerificationScreenState
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color:
-                                  hasValue ? Colors.white : Colors.grey[600]!,
+                              hasValue ? Colors.white : Colors.grey[600]!,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -1070,7 +1083,7 @@ class ColegiaturaVerificationScreenState
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             cursorColor:
-                                hasValue ? Colors.white : AppColors.primary,
+                            hasValue ? Colors.white : AppColors.primary,
                             decoration: const InputDecoration(
                               filled: true,
                               fillColor: Colors.transparent,
@@ -1087,10 +1100,13 @@ class ColegiaturaVerificationScreenState
                                 colegiaturaDigits[index] = value;
                                 colegiaturaControllers[index].text = value;
 
-                                // NUEVA VALIDACIÓN: Si fue autocompletado y el usuario modifica
                                 if (_wasAutoFilled && _lastExtractedCNP != null) {
                                   String currentNumber = colegiaturaDigits.join('');
-                                  if (currentNumber != _lastExtractedCNP && currentNumber.length == 4) {
+
+                                  if (currentNumber.length == 4 &&
+                                      currentNumber != _lastExtractedCNP &&
+                                      !_mismatchAlertShown) {
+                                    _mismatchAlertShown = true;
                                     _showCNPMismatchDialog(_lastExtractedCNP!, currentNumber);
                                   }
                                 }
@@ -1116,7 +1132,7 @@ class ColegiaturaVerificationScreenState
                               // Guardar datos después de cambiar
                               _saveData();
                             }
-                            ),
+                        ),
                       );
                     }),
                   ),
@@ -1166,7 +1182,7 @@ class ColegiaturaVerificationScreenState
                   // Sección de carné
                   Container(
                     padding:
-                        EdgeInsets.only(left: 60, top: 4, right: 16, bottom: 1),
+                    EdgeInsets.only(left: 60, top: 4, right: 16, bottom: 1),
                     child: Column(
                       children: [
                         // Estructura principal con SVG
@@ -1175,42 +1191,42 @@ class ColegiaturaVerificationScreenState
                             Container(
                               child: carneImages.isNotEmpty
                                   ? Stack(
-                                      children: [
-                                        // SVG con icono de respaldo cuando hay imágenes
-                                        SvgPicture.asset(
-                                          'assets/images/file_correct.svg',
-                                          placeholderBuilder: (context) => Icon(
-                                            Icons.check_circle,
-                                            color: Colors.green,
-                                            size: 24,
-                                          ),
-                                        ),
-                                      ],
-                                    )
+                                children: [
+                                  // SVG con icono de respaldo cuando hay imágenes
+                                  SvgPicture.asset(
+                                    'assets/images/file_correct.svg',
+                                    placeholderBuilder: (context) => Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ],
+                              )
                                   : (isUploading
-                                      ? Container(
-                                          width: 60,
-                                          height: 60,
-                                          child: Lottie.asset(
-                                            'assets/loading/palta_saltarina.json',
-                                            width: 60,
-                                            height: 60,
-                                          ),
-                                        )
-                                      : GestureDetector(
-                                          onTap: carneImages.length < 2
-                                              ? _pickImage
-                                              : null,
-                                          child: SvgPicture.asset(
-                                            'assets/images/gallery_icon.svg',
-                                            placeholderBuilder: (context) =>
-                                                Icon(
-                                              Icons.photo_library,
-                                              color: Colors.grey[600],
-                                              size: 24,
-                                            ),
-                                          ),
-                                        )),
+                                  ? Container(
+                                width: 60,
+                                height: 60,
+                                child: Lottie.asset(
+                                  'assets/loading/palta_saltarina.json',
+                                  width: 60,
+                                  height: 60,
+                                ),
+                              )
+                                  : GestureDetector(
+                                onTap: carneImages.length < 2
+                                    ? _pickImage
+                                    : null,
+                                child: SvgPicture.asset(
+                                  'assets/images/gallery_icon.svg',
+                                  placeholderBuilder: (context) =>
+                                      Icon(
+                                        Icons.photo_library,
+                                        color: Colors.grey[600],
+                                        size: 24,
+                                      ),
+                                ),
+                              )),
                             ),
                             SizedBox(width: 16),
                             Expanded(
@@ -1253,7 +1269,6 @@ class ColegiaturaVerificationScreenState
               ),
             ),
           ),
-          if (isVerifying) _buildVerificationOverlay(),
         ],
       ),
     );
@@ -1266,8 +1281,7 @@ class ColegiaturaVerificationScreenState
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
@@ -1308,9 +1322,6 @@ class ColegiaturaVerificationScreenState
             // Botón para conservar el número ingresado
             TextButton(
               onPressed: () {
-                setState(() {
-                  _wasAutoFilled = false; // Ya no es autocompletado
-                });
                 Navigator.of(context).pop();
               },
               child: Text(
@@ -1326,7 +1337,7 @@ class ColegiaturaVerificationScreenState
             TextButton(
               onPressed: () {
                 setState(() {
-                  _autoFillCNPFields(detectedCNP); // Restaurar el detectado
+                  _autoFillCNPFields(detectedCNP);
                 });
                 Navigator.of(context).pop();
               },
@@ -1336,9 +1347,9 @@ class ColegiaturaVerificationScreenState
               child: Text(
                 'Usar $detectedCNP',
                 style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13
                 ),
               ),
             ),
@@ -1351,12 +1362,12 @@ class ColegiaturaVerificationScreenState
   void _openImageViewer(int initialIndex) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        opaque: false, // Permite ver a través del fondo
+        opaque: false,
         barrierDismissible: true,
         pageBuilder: (context, animation, secondaryAnimation) {
           return ImageViewerOverlay(
-            images: carneImages, // Tu lista de imágenes
-            initialIndex: initialIndex, // Índice de la imagen inicial
+            images: carneImages,
+            initialIndex: initialIndex,
             onImageDelete: (index) {
               _removeImageAtIndex(index);
             },
@@ -1380,6 +1391,9 @@ class ColegiaturaVerificationScreenState
     setState(() {
       if (index >= 0 && index < carneImages.length) {
         carneImages.removeAt(index);
+        if (index < imageSides.length) {
+          imageSides.removeAt(index);
+        }
       }
     });
 
@@ -1395,18 +1409,17 @@ class ColegiaturaVerificationScreenState
     return Column(
       children: [
         SizedBox(height: 12),
-        Container(
+        SizedBox(
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: carneImages.length + (carneImages.length < 2 ? 1 : 0),
             itemBuilder: (context, index) {
-              // Botón agregar si hay menos de 2 imágenes válidas
+
               if (index == carneImages.length && carneImages.length < 2) {
                 return _buildAddImageButton();
               }
 
-              // Miniaturas de carnets VÁLIDOS únicamente
               return _buildThumbnailItem(index);
             },
           ),
@@ -1456,6 +1469,21 @@ class ColegiaturaVerificationScreenState
   }
 
   Widget _buildThumbnailItem(int index) {
+
+    String sideText = 'DESCONOCIDO';
+    Color backgroundColor = Colors.grey;
+
+    if (index < imageSides.length) {
+      String side = imageSides[index];
+      if (side == 'front') {
+        sideText = 'FRENTE';
+        backgroundColor = AppColors.backgroundHipertencion;
+      } else if (side == 'back') {
+        sideText = 'REVERSO';
+        backgroundColor = AppColors.backgroundHipertencion;
+      }
+    }
+
     return Container(
       margin: EdgeInsets.only(right: 8),
       child: Stack(
@@ -1508,14 +1536,14 @@ class ColegiaturaVerificationScreenState
               ),
             ),
           ),
-          // Indicador de estado activo/seleccionado
+          // Indicador de lado (FRENTE/REVERSO)
           Positioned(
             bottom: 4,
             left: 4,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: backgroundColor,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
@@ -1526,7 +1554,7 @@ class ColegiaturaVerificationScreenState
                 ],
               ),
               child: Text(
-                'ACTIVO',
+                sideText,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 8,
@@ -1562,41 +1590,6 @@ class ColegiaturaVerificationScreenState
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildVerificationOverlay() {
-    return Container(
-      color: Colors.black.withOpacity(0.9),
-      child: Center(
-        child: Container(
-          width: 220,
-          height: 170,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Lottie.asset('assets/loading/palta_saltarina.json'),
-              ),
-              const Text(
-                'Verificando...',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 5),
-            ],
-          ),
-        ),
       ),
     );
   }
