@@ -71,6 +71,7 @@ class _HipertensionPatientsScreenState extends State<HipertensionPatientsScreen>
   }
 
   // Cargar pacientes con hipertensión desde el API
+  // En el método _loadHipertensionPatients()
   Future<void> _loadHipertensionPatients() async {
     try {
       setState(() {
@@ -78,8 +79,9 @@ class _HipertensionPatientsScreenState extends State<HipertensionPatientsScreen>
         errorMessage = null;
       });
 
-      //final patients = await patientService.getHipertencionPatients();
-      final patients = await patientService.getDiabeticPatients();
+      // CAMBIO: Llamar al servicio de hipertensión en lugar de diabetes
+      final patients = await patientService.getHipertencionPatients();
+      // final patients = await patientService.getDiabeticPatients(); // ← ELIMINAR
 
       setState(() {
         allPatients = patients;

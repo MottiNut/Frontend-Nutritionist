@@ -9,15 +9,15 @@ import 'package:lottie/lottie.dart';
 import 'PatientAvatarWidget.dart';
 import 'PatientDetailScreen.dart';
 
-class DiabetesPatientsScreenn extends StatefulWidget {
-  const DiabetesPatientsScreenn({Key? key}) : super(key: key);
+class HypertensionPatientsScreen  extends StatefulWidget {
+  const HypertensionPatientsScreen ({Key? key}) : super(key: key);
 
   @override
-  State<DiabetesPatientsScreenn> createState() =>
-      _DiabetesPatientsScreenState();
+  State<HypertensionPatientsScreen > createState() =>
+      _HypertensionPatientsScreenState ();
 }
 
-class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
+class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'Todos';
   String _sortBy = 'fullName';
@@ -47,7 +47,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     try {
       final nutritionistService = NutritionistService();
 
-      // Obtener y guardar el token
       String? token = await _getAuthToken();
 
       if (token == null || token.isEmpty) {
@@ -56,63 +55,24 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
 
       _authToken = token;
 
-      print('🔍 Cargando pacientes con token: ${token.substring(0, 10)}...');
+      print('🔍 Cargando pacientes con hipertensión con token: ${token.substring(0, 10)}...');
 
-      final patients = await nutritionistService.getAllPatients(
-        chronicDisease: _selectedFilter == 'Todos' ? null : _selectedFilter,
+      // Llamada directa al método de hipertensión
+      final hypertensionPatients = await nutritionistService.getHypertensionPatients(
         sortBy: _sortBy,
         order: _sortOrder,
         token: token,
       );
 
-      print('📊 Total de pacientes obtenidos: ${patients.length}');
-
-      // 🔧 SOLUCIÓN 2: Filtrado más flexible para diabetes
-      final diabetesPatients = patients.where((p) {
-        if (p.chronicDisease == null) return false;
-
-        final disease = p.chronicDisease!.toLowerCase();
-
-        // Lista de términos relacionados con diabetes
-        final diabetesTerms = [
-          'diabetes',
-          'diabético',
-          'diabética',
-          'diabetico',
-          'diabetica',
-          'tipo 1',
-          'tipo 2',
-          'type 1',
-          'type 2',
-          'dm1',
-          'dm2',
-          'dmt1',
-          'dmt2',
-          'diabetes mellitus',
-          'diabetes tipo',
-          'diabetes type'
-        ];
-
-        return diabetesTerms.any((term) => disease.contains(term));
-      }).toList();
-
-      print(
-          '🩺 Pacientes con diabetes encontrados: ${diabetesPatients.length}');
-
-      // Imprimir detalles para debug
-      for (var patient in diabetesPatients) {
-        print(
-            '👤 Paciente: ${patient.fullName} - Enfermedad: ${patient.chronicDisease}');
-      }
+      print('🩺 Pacientes con hipertensión encontrados: ${hypertensionPatients.length}');
 
       setState(() {
-        _patients = diabetesPatients;
-        _filteredPatients = diabetesPatients;
+        _patients = hypertensionPatients;
+        _filteredPatients = hypertensionPatients;
         _isLoading = false;
       });
 
-      if (diabetesPatients.isEmpty && patients.isNotEmpty) {
-        // Si no hay pacientes con diabetes pero sí hay pacientes en general
+      if (hypertensionPatients.isEmpty) {
         _showInfoDialog();
       }
     } catch (e) {
@@ -125,14 +85,15 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     }
   }
 
+  // En _showInfoDialog, mejorar las opciones
   void _showInfoDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Información'),
         content: const Text(
-            'Se encontraron pacientes en el sistema, pero ninguno tiene diabetes registrada como enfermedad crónica.\n\n'
-            '¿Deseas ver todos los pacientes o crear un nuevo paciente con diabetes?'),
+            'Se encontraron pacientes en el sistema, pero ninguno tiene hipertensión registrada como enfermedad crónica.\n\n'
+                '¿Deseas ver todos los pacientes o crear un nuevo paciente con hipertensión?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -147,15 +108,57 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           ),
           TextButton(
             onPressed: () {
-              /*Navigator.of(context).pop();
-              // Navegar a vista de todos los pacientes
-              _navigateToAllPatients();*/
+              Navigator.of(context).pop();
+              _loadAllPatientsAsFallback(); // Nueva función
             },
             child: const Text('Ver Todos'),
           ),
         ],
       ),
     );
+  }
+
+// Nueva función para cargar todos los pacientes como fallback
+  Future<void> _loadAllPatientsAsFallback() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final nutritionistService = NutritionistService();
+      String? token = await _getAuthToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
+      }
+
+      // Cargar todos los pacientes sin filtrar
+      final allPatients = await nutritionistService.getAllPatients(
+        sortBy: _sortBy,
+        order: _sortOrder,
+        token: token,
+      );
+
+      setState(() {
+        _patients = allPatients;
+        _filteredPatients = allPatients;
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mostrando todos los pacientes (modo fallback)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      print('❌ Error al cargar todos los pacientes: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar pacientes: ${e.toString()}';
+      });
+    }
   }
 
   Future<String?> _getAuthToken() async {
@@ -177,20 +180,15 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             (patient.phone?.toLowerCase().contains(query) ?? false);
 
         bool matchesFilter = true;
-        if (_selectedFilter != 'Todos') {
-          if (_selectedFilter == 'Tipo 1') {
-            matchesFilter =
-                patient.chronicDisease?.toLowerCase().contains('tipo 1') ==
-                        true ||
-                    patient.chronicDisease?.toLowerCase().contains('type 1') ==
-                        true;
-          } else if (_selectedFilter == 'Tipo 2') {
-            matchesFilter =
-                patient.chronicDisease?.toLowerCase().contains('tipo 2') ==
-                        true ||
-                    patient.chronicDisease?.toLowerCase().contains('type 2') ==
-                        true;
-          }
+        if (_selectedFilter == 'Grado 1') {
+          matchesFilter = patient.chronicDisease?.toLowerCase().contains('grado 1') == true ||
+              patient.chronicDisease?.toLowerCase().contains('leve') == true;
+        } else if (_selectedFilter == 'Grado 2') {
+          matchesFilter = patient.chronicDisease?.toLowerCase().contains('grado 2') == true ||
+              patient.chronicDisease?.toLowerCase().contains('moderada') == true;
+        } else if (_selectedFilter == 'Grado 3') {
+          matchesFilter = patient.chronicDisease?.toLowerCase().contains('grado 3') == true ||
+              patient.chronicDisease?.toLowerCase().contains('severa') == true;
         }
 
         return matchesSearch && matchesFilter;
@@ -270,7 +268,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.orange.withOpacity(0.08) // 🔹 Resalta selección
+                          ? AppColors.backgroundHipertencion.withOpacity(0.08)
                           : Colors.grey[100],
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -283,13 +281,13 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                             fontSize: 14,
                             fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? Colors.orange : Colors.black87,
+                            color: isSelected ? AppColors.backgroundHipertencion : Colors.black87,
                           ),
                         ),
                         if (isSelected)
                           Icon(
                             isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                            color: Colors.orange,
+                            color: AppColors.backgroundHipertencion,
                             size: 18,
                           ),
                       ],
@@ -330,6 +328,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   Color _getStatusColor(PatientProfile patient) {
     if (patient.bmi == null) return Colors.grey;
 
+    // Colores específicos para hipertensión
     if (patient.bmi! < 18.5) return Colors.blue;
     if (patient.bmi! < 25) return Colors.green;
     if (patient.bmi! < 30) return Colors.orange;
@@ -345,19 +344,23 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     return 'Crítico';
   }
 
-  String _getDiabetesType(String? chronicDisease) {
-    if (chronicDisease == null) return 'T?';
+// Función para determinar el tipo de hipertensión
+  String _getHypertensionType(String? chronicDisease) {
+    if (chronicDisease == null) return 'HTA?';
     final disease = chronicDisease.toLowerCase();
-    if (disease.contains('tipo 1') || disease.contains('type 1')) return 'T1';
-    if (disease.contains('tipo 2') || disease.contains('type 2')) return 'T2';
-    return 'TD';
+
+    if (disease.contains('grado 1') || disease.contains('leve')) return 'HT1';
+    if (disease.contains('grado 2') || disease.contains('moderada')) return 'HT2';
+    if (disease.contains('grado 3') || disease.contains('severa')) return 'HT3';
+
+    return 'HT';
   }
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: AppColors.secondary.withOpacity(0.6),
+        statusBarColor: AppColors.backgroundHipertencion.withOpacity(0.6),
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.light,
       ),
@@ -371,17 +374,17 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
               'assets/images/anterior_icon.svg',
               width: 21,
               height: 21,
-              color: AppColors.secondary,
+              color: AppColors.backgroundHipertencion,
             ),
             onPressed: () {
               Navigator.pop(context);
             },
           ),
           title: const Text(
-            'Pacientes con Diabetes',
+            'Pacientes con Hipertensión',
             style: TextStyle(
-              color: Colors.orange,
-              fontSize: 21,
+              color: AppColors.backgroundHipertencion,
+              fontSize: 19,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -389,99 +392,148 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             IconButton(
               icon: Icon(
                 _isGridView ? Icons.view_list : Icons.grid_view,
-                color: Colors.orange,
+                color: AppColors.backgroundHipertencion,
               ),
               onPressed: () => setState(() => _isGridView = !_isGridView),
             ),
+            /* IconButton(
+              icon: const Icon(Icons.info_outline, color: AppColors.backgroundHipertencion),
+              onPressed: _showDebugInfo,
+            ),*/
           ],
         ),
-        body: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(12, 5, 12, 5),
-              child: Column(
+        body: _buildBodyContent(),
+      ),
+    );
+  }
+
+  Widget _buildBodyContent() {
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Error al cargar pacientes',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadPatients,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.backgroundHipertencion,
+                ),
+                child: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+              ),
+             /* const SizedBox(height: 10),
+              TextButton(
+                onPressed: _showDebugInfo,
+                child: const Text('Ver detalles técnicos'),
+              ),*/
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 5, 12, 5),
+          child: Column(
+            children: [
+              /*
+              Row(
                 children: [
-                  // Botones de filtro de tipo de diabetes
-                  Row(
-                    children: [
-                      _buildFilterChip('Todos', _selectedFilter == 'Todos'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Tipo 1', _selectedFilter == 'Tipo 1'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Tipo 2', _selectedFilter == 'Tipo 2'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Barra de búsqueda
-                  Container(
-                    height: 43,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(25),
+                  _buildFilterChip('Todos', _selectedFilter == 'Todos'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Grado 1', _selectedFilter == 'Grado 1'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Grado 2', _selectedFilter == 'Grado 2'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Grado 3', _selectedFilter == 'Grado 3'),
+                ],
+              ),
+                  const SizedBox(height: 16),*/
+              // Barra de búsqueda
+              Container(
+                height: 43,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Center(
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
                     ),
-                    child: Center(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Buscar paciente...',
-                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                          prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          suffixIcon: Icon(Icons.mic, color: Colors.grey),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                        ),
-                      ),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar paciente...',
+                      hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: Icon(Icons.mic, color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                     ),
                   ),
+                ),
+              ),
 
-                  const SizedBox(height: 6),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '${_filteredPatients.length} pacientes',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        '${_filteredPatients.length} pacientes',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                      OutlinedButton.icon(
+                        onPressed: _showSortOptions,
+                        icon: Icon(
+                          _sortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward,
+                          size: 12,
                         ),
-                      ),
-                      Row(
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _showSortOptions,
-                            icon: Icon(
-                              _sortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward,
-                              size: 12,
-                            ),
-                            label: const Text(
-                              'Ordenar',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              foregroundColor: Colors.orange,
-                              side: const BorderSide(color: Colors.orange, width: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              backgroundColor: Colors.white,
-                            ),
+                        label: const Text(
+                          'Ordenar',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
                           ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          foregroundColor: AppColors.backgroundHipertencion,
+                          side: const BorderSide(color: AppColors.backgroundHipertencion, width: 1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
 
-                          /* const SizedBox(width: 8),
+                      /* const SizedBox(width: 8),
                           Container(
                             height: 30,
                             width: 30,
@@ -496,73 +548,101 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                               onPressed: _showAdvancedFilters,
                             ),
                           ),*/
-                        ],
-                      ),
                     ],
-                  )
-
+                  ),
                 ],
-              ),
-            ),
-            // Lista de pacientes mejorada
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadPatients,
-                color: Colors.orange,
-                child: _isLoading
-                    ? Center(
-                        child: Lottie.asset(
-                            'assets/loading/palta_saltarina.json',
-                            width: 100,
-                            height: 100))
-                    : _filteredPatients.isEmpty
-                        ? _buildEmptyState()
-                        : Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: _isGridView
-                                ? GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 0.75,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                    ),
-                                    itemCount: _filteredPatients.length,
-                                    itemBuilder: (context, index) {
-                                      return _buildPatientCard(
-                                          _filteredPatients[index]);
-                                    },
-                                  )
-                                : ListView.builder(
-                                    itemCount: _filteredPatients.length,
-                                    itemBuilder: (context, index) {
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 8),
-                                        child: _buildPatientListItem(
-                                            _filteredPatients[
-                                                index]), // Nuevo método para lista
-                                      );
-                                    },
-                                  ),
-                          ),
-              ),
-            ),
-          ],
-        ),
-        /*floatingActionButton: FloatingActionButton.extended(
-          onPressed: _navigateToCreatePatient,
-          backgroundColor: const Color(0xFF00A693),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Nuevo Paciente',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              )
+
+            ],
           ),
-        ),*/
-      ),
+        ),
+        // Lista de pacientes mejorada
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadPatients,
+            color: AppColors.backgroundHipertencion,
+            backgroundColor: Colors.white,
+            child: _isLoading
+                ? Center(
+                child: Lottie.asset(
+                    'assets/loading/palta_saltarina.json',
+                    width: 100,
+                    height: 100))
+                : _filteredPatients.isEmpty
+                ? _buildEmptyState()
+                : Padding(
+              padding: const EdgeInsets.all(16),
+              child: _isGridView
+                  ? GridView.builder(
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _filteredPatients.length,
+                itemBuilder: (context, index) {
+                  return _buildPatientCard(
+                      _filteredPatients[index]);
+                },
+              )
+                  : ListView.builder(
+                itemCount: _filteredPatients.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding:
+                    const EdgeInsets.only(bottom: 8),
+                    child: _buildPatientListItem(
+                        _filteredPatients[
+                        index]), // Nuevo método para lista
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
+
+  /*void _showDebugInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Información de Depuración'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Token: ${_authToken != null ? '${_authToken!.substring(0, 20)}...' : 'Nulo'}'),
+              const SizedBox(height: 10),
+              Text('Pacientes totales: ${_patients.length}'),
+              Text('Pacientes filtrados: ${_filteredPatients.length}'),
+              const SizedBox(height: 10),
+              const Text('Pacientes crudos:'),
+              for (var patient in _patients.take(5))
+                Text('- ${patient.fullName}: ${patient.chronicDisease ?? "Sin enfermedad"}'),
+              if (_patients.length > 5) const Text('... (más pacientes)'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _loadPatients();
+            },
+            child: const Text('Recargar'),
+          ),
+        ],
+      ),
+    );
+  }*/
 
   Widget _buildEmptyState() {
     return Center(
@@ -579,8 +659,8 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           const SizedBox(height: 16),
           Text(
             _searchController.text.isNotEmpty
-                ? 'No se encontraron pacientes'
-                : 'No hay pacientes con diabetes',
+                ? 'No hay pacientes con hipertensión'
+                : 'Agrega tu primer paciente hipertenso',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
@@ -605,7 +685,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                 _filterPatients();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: AppColors.backgroundHipertencion,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Limpiar búsqueda'),
@@ -736,7 +816,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
+  /*Widget _buildFilterChip(String label, bool isSelected) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -747,10 +827,9 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         decoration: BoxDecoration(
-          color:
-              isSelected ? Colors.orange.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors.backgroundHipertencion.withOpacity(0.2) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? Colors.orange : Colors.grey[300]!,
+            color: isSelected ? AppColors.backgroundHipertencion : Colors.grey[300]!,
             width: isSelected ? 1.5 : 0.7,
           ),
           borderRadius: BorderRadius.circular(15),
@@ -758,16 +837,16 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.orange : Colors.grey[600],
+            color: isSelected ? AppColors.backgroundHipertencion : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
     );
   }
-
+*/
   Widget _buildPatientCard(PatientProfile patient) {
-    final diabetesType = _getDiabetesType(patient.chronicDisease);
+    final diabetesType = _getHypertensionType(patient.chronicDisease);
     final statusColor = _getStatusColor(patient);
     final statusText = _getStatusText(patient);
 
@@ -778,8 +857,8 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
       typeColor = const Color(0xFF00A693);
       nextIconAsset = 'assets/images/next_icon.svg';
     } else if (diabetesType == 'T2') {
-      typeColor = const Color(0xFFFF6B35);
-      nextIconAsset = 'assets/images/next_orange.svg';
+      typeColor = AppColors.backgroundHipertencion;
+      nextIconAsset = 'assets/images/next_icon.svg';
     } else {
       typeColor = Colors.grey;
       nextIconAsset = 'assets/images/next_icon.svg';
@@ -801,7 +880,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // SECCIÓN DE IMAGEN - AHORA SE ADAPTA AL CONTENEDOR
                 Expanded(
                   flex: 70,
                   child: Container(
@@ -810,15 +888,14 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     child: Stack(
                       children: [
-                        // Avatar que se adapta al contenedor completo
                         Positioned.fill(
                           child: PatientAvatarWidget(
                             patient: patient,
-                            statusColor: statusColor,
+                            statusColor: AppColors.backgroundHipertencion,
                             token: _authToken ?? '',
-                            isCircular: false, // ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-                            borderRadius: 0, // Sin radio porque el contenedor ya tiene el suyo
-                            fit: BoxFit.cover, // Se ajusta para cubrir todo el espacio
+                            isCircular: false,
+                            borderRadius: 0,
+                            fit: BoxFit.cover,
                           ),
                         ),
                         // Badge del tipo de diabetes
@@ -829,7 +906,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                             padding: EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 3),
                             decoration: BoxDecoration(
-                              color: typeColor,
+                              color: AppColors.backgroundHipertencion,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -961,36 +1038,29 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   }
 
   Widget _buildPatientListItem(PatientProfile patient) {
-    final diabetesType = _getDiabetesType(patient.chronicDisease);
     final statusColor = _getStatusColor(patient);
     final statusText = _getStatusText(patient);
-
-    String nextIconAsset;
-    if (diabetesType == 'T1') {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    } else if (diabetesType == 'T2') {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    } else {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _navigateToPatientDetail(patient),
-        child: SizedBox( // 🔑 Asegura que el Stack tenga el tamaño completo
+        child: SizedBox( // 🔑 Forzar a ocupar todo el espacio
           width: double.infinity,
           height: 100,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // --------- Fondo principal ----------
+              // ---------- Fondo principal ----------
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(width: 0.2, color: AppColors.secondary),
+                  border: Border.all(
+                    width: 0.2,
+                    color: AppColors.backgroundHipertencion,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -1014,7 +1084,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                       ),
                       child: PatientAvatarWidget(
                         patient: patient,
-                        statusColor: statusColor,
+                        statusColor: AppColors.backgroundHipertencion,
                         token: _authToken ?? '',
                         isCircular: false,
                         customBorderRadius: const BorderRadius.only(
@@ -1025,7 +1095,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                       ),
                     ),
 
-                    // Datos del paciente
+                    // Info del paciente
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
@@ -1105,7 +1175,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                   ],
                 ),
               ),
-
               Positioned(
                 bottom: 2,
                 right: 2,
@@ -1118,7 +1187,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                   ),
                   child: Center(
                     child: SvgPicture.asset(
-                      nextIconAsset,
+                      'assets/images/next_icon.svg',
                       width: 26,
                       height: 26,
                     ),

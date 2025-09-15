@@ -133,6 +133,194 @@ class NutritionistService {
   static void removeFromImageCache(int userId) {
     _imageCache.remove(userId);
   }
+
+  // pacientes con hipertensión
+  Future<List<PatientProfile>> getHypertensionPatients({
+    String sortBy = 'fullName',
+    String order = 'asc',
+    required String token,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
+          .replace(queryParameters: queryParams);
+
+      print('🔍 Cargando pacientes con hipertensión...');
+
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final allPatients = data.map((json) => PatientProfile.fromJson(json)).toList();
+
+        print('📊 Total de pacientes obtenidos: ${allPatients.length}');
+
+        // Filtrado mejorado para hipertensión con más términos y flexibilidad
+        final hypertensionPatients = allPatients.where((p) {
+          if (p.chronicDisease == null) return false;
+
+          final disease = p.chronicDisease!.toLowerCase();
+
+          // Lista ampliada de términos relacionados con hipertensión
+          final hypertensionTerms = [
+            'hipertensión', 'hipertension', 'hipertensivo', 'hipertensiva',
+            'hipertenso', 'hipertensa', 'presión alta', 'presion alta',
+            'presión arterial alta', 'presion arterial alta', 'tensión alta',
+            'tension alta', 'hta', 'hipertension arterial', 'hipertensión arterial',
+            'grado 1', 'grado 2', 'grado 3', 'leve', 'moderada', 'severa',
+            'ht', 'hypertension', 'high blood pressure', 'hbpm'
+          ];
+
+          // También buscar por siglas y abreviaciones comunes
+          final hypertensionPatterns = [
+            RegExp(r'hipert', caseSensitive: false),
+            RegExp(r'presi[óo]n.*alta', caseSensitive: false),
+            RegExp(r'tensi[óo]n.*alta', caseSensitive: false),
+            RegExp(r'hta', caseSensitive: false),
+            RegExp(r'h\.t\.a', caseSensitive: false),
+          ];
+
+          // Verificar por términos exactos
+          final hasTerm = hypertensionTerms.any((term) => disease.contains(term));
+
+          // Verificar por patrones
+          final hasPattern = hypertensionPatterns.any((pattern) => pattern.hasMatch(disease));
+
+          return hasTerm || hasPattern;
+        }).toList();
+
+        print('🩺 Pacientes con hipertensión encontrados: ${hypertensionPatients.length}');
+
+        // Debug info
+        for (var patient in allPatients) {
+          print('👤 Paciente: ${patient.fullName} - Enfermedad: ${patient.chronicDisease}');
+        }
+
+        return hypertensionPatients;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar pacientes con hipertensión: $e');
+      throw Exception('Error al obtener pacientes con hipertensión: $e');
+    }
+  }
+
+  // Obtiene todos los pacientes con obesidad o sobrepeso
+  Future<List<PatientProfile>> getObesityPatients({
+    String sortBy = 'fullName',
+    String order = 'asc',
+    required String token,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
+          .replace(queryParameters: queryParams);
+
+      print('🔍 Cargando pacientes con obesidad/sobrepeso...');
+
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final allPatients = data.map((json) => PatientProfile.fromJson(json)).toList();
+
+        print('📊 Total de pacientes obtenidos: ${allPatients.length}');
+
+        // Filtrado para obesidad y sobrepeso
+        final obesityPatients = allPatients.where((p) {
+          // Filtrar por enfermedad crónica
+          bool hasObesityDisease = false;
+          if (p.chronicDisease != null) {
+            final disease = p.chronicDisease!.toLowerCase();
+
+            final obesityTerms = [
+              'obesidad', 'obeso', 'obesa', 'sobrepeso', 'sobre peso',
+              'exceso de peso', 'exceso peso', 'peso excesivo',
+              'obesidad grado', 'obesidad tipo', 'obesidad clase',
+              'grado i', 'grado ii', 'grado iii', 'grado 1', 'grado 2', 'grado 3',
+              'clase i', 'clase ii', 'clase iii', 'clase 1', 'clase 2', 'clase 3',
+              'obesidad leve', 'obesidad moderada', 'obesidad severa',
+              'obesidad mórbida', 'obesidad morbida', 'obesidad extrema',
+              'imc elevado', 'índice masa corporal elevado',
+              'overweight', 'obesity'
+            ];
+
+            final obesityPatterns = [
+              RegExp(r'obes', caseSensitive: false),
+              RegExp(r'sobrepeso', caseSensitive: false),
+              RegExp(r'sobre.*peso', caseSensitive: false),
+              RegExp(r'exceso.*peso', caseSensitive: false),
+              RegExp(r'imc.*alto|imc.*elevado', caseSensitive: false),
+            ];
+
+            hasObesityDisease = obesityTerms.any((term) => disease.contains(term)) ||
+                obesityPatterns.any((pattern) => pattern.hasMatch(disease));
+          }
+
+          // Filtrar por IMC (sobrepeso: IMC ≥ 25, obesidad: IMC ≥ 30)
+          bool hasHighBMI = false;
+          if (p.bmi != null && p.bmi! >= 25.0) {
+            hasHighBMI = true;
+          }
+
+          // Filtrar por categoría de IMC
+          bool hasObesityCategory = false;
+          if (p.bmiCategory != null) {
+            final category = p.bmiCategory!.toLowerCase();
+            final obesityCategories = [
+              'sobrepeso', 'sobre peso', 'overweight',
+              'obesidad', 'obeso', 'obesa', 'obesity',
+              'obesidad grado', 'obesidad clase',
+              'obesidad leve', 'obesidad moderada', 'obesidad severa'
+            ];
+            hasObesityCategory = obesityCategories.any((cat) => category.contains(cat));
+          }
+
+          return hasObesityDisease || hasHighBMI || hasObesityCategory;
+        }).toList();
+
+        print('⚖️ Pacientes con obesidad/sobrepeso encontrados: ${obesityPatients.length}');
+
+        // Debug info
+        for (var patient in obesityPatients) {
+          String reason = '';
+          if (patient.chronicDisease != null && patient.chronicDisease!.toLowerCase().contains('obes')) {
+            reason += 'Enfermedad: ${patient.chronicDisease} ';
+          }
+          if (patient.bmi != null && patient.bmi! >= 25.0) {
+            reason += 'IMC: ${patient.bmi} ';
+          }
+          if (patient.bmiCategory != null) {
+            reason += 'Categoría: ${patient.bmiCategory}';
+          }
+          print('👤 Paciente: ${patient.fullName} - $reason');
+        }
+
+        return obesityPatients;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar pacientes con obesidad/sobrepeso: $e');
+      throw Exception('Error al obtener pacientes con obesidad/sobrepeso: $e');
+    }
+  }
+
   // ================ HISTORIAL MÉDICO ================
 
   /// Obtiene el historial médico de un paciente

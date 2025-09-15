@@ -103,7 +103,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _password = password;
       _confirmPassword = confirmPassword;
       _phone = phone;
-      _emailExists = false; // Reset cuando cambia el email
+      _emailExists = false; 
     });
   }
 
@@ -121,7 +121,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _licenseFrontImage = licenseFront;
       _licenseBackImage = licenseBack;
 
-      // Si tienes código CNP de 4 dígitos y ambas imágenes, es válido
+     
       if (codeCNP.length == 4 && licenseFront != null && licenseBack != null) {
         _cnpIsValid = true;
         _cnpVerificationInProgress = false;
@@ -185,7 +185,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool get _isSmsAvailable => _phone.trim().isNotEmpty;
 
   // ========== NAVEGACIÓN ==========
-
   void _nextPage() {
     switch (_currentStep) {
       case 0:
@@ -545,7 +544,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       // Título
                       Row(
                         children: [
-                           Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
@@ -594,7 +593,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           description: 'Código de 6 dígitos',
                           isAvailable: true,
                           onTap: () {
-                            _selectedVerificationMethod = VerificationMethod.email;
+                            _selectedVerificationMethod =
+                                VerificationMethod.email;
                             _confirmVerificationMethod();
                           },
                         ),
@@ -615,9 +615,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           isAvailable: _isSmsAvailable,
                           onTap: _isSmsAvailable
                               ? () {
-                            _selectedVerificationMethod = VerificationMethod.sms;
-                            _confirmVerificationMethod();
-                          }
+                                  _selectedVerificationMethod =
+                                      VerificationMethod.sms;
+                                  _confirmVerificationMethod();
+                                }
                               : null,
                         ),
 
@@ -735,7 +736,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         color:
-                        isAvailable ? Colors.grey[500] : Colors.orange[600],
+                            isAvailable ? Colors.grey[500] : Colors.orange[600],
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -965,23 +966,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
       ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Mostrar método seleccionado si ya se eligió
             if (_verificationMethodSelected) ...[
               Container(
                 padding: const EdgeInsets.all(16),
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -1026,7 +1019,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ],
                       ),
                     ),
-                    // Botón para cambiar método
                     GestureDetector(
                       onTap: isLoading
                           ? null
@@ -1060,7 +1052,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                height: 56,
+                height: 50,
                 decoration: BoxDecoration(
                   gradient: (_canProceedToNext && !isLoading)
                       ? LinearGradient(
@@ -1122,6 +1114,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ],
                 ),

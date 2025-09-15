@@ -32,6 +32,7 @@ class AppColors {
   static const Color backgroundHipertencion = Color(0xFF00CEDC);
   static const Color backgroundDetail = Color(0xFF4CBFC7);
   static const Color backgroundObecidad = Color(0xFF679FD3);
+  static const Color backgroundObecidadIcon = Color(0xFF276DA6);
 
   //text
   static const Color textPrimary = Color(0xFF565656);

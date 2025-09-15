@@ -26,7 +26,7 @@ class ColegiaturaVerificationScreen extends StatefulWidget {
   final String email;
   final String contrasena;
   final Function(String codeCNP, File? licenseFront, File? licenseBack)?
-  onValidationComplete;
+      onValidationComplete;
   final VoidCallback? onVerificationStart;
   final VoidCallback? onCnpValidated;
 
@@ -48,7 +48,6 @@ class ColegiaturaVerificationScreen extends StatefulWidget {
 
 class ColegiaturaVerificationScreenState
     extends State<ColegiaturaVerificationScreen> {
-
   List<String> colegiaturaDigits = ['', '', '', ''];
   List<FocusNode> colegiaturaFocusNodes = [
     FocusNode(),
@@ -139,7 +138,6 @@ class ColegiaturaVerificationScreenState
   }
 
   void _initializeMLKit() {
-
     textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
     final options = ObjectDetectorOptions(
@@ -150,7 +148,6 @@ class ColegiaturaVerificationScreenState
     );
     objectDetector = ObjectDetector(options: options);
   }
-
 
   Future<void> _loadSavedData() async {
     try {
@@ -243,7 +240,6 @@ class ColegiaturaVerificationScreenState
     }
   }
 
-
   void _checkAutoValidation() {
     if (_isFormValid() && !isVerifying && !colegiaturaVerified) {
       // Validar coincidencia si fue autocompletado
@@ -251,15 +247,11 @@ class ColegiaturaVerificationScreenState
         String currentNumber = colegiaturaDigits.join('');
         if (currentNumber.length == 4 && currentNumber != _lastExtractedCNP) {
           // Mostrar snackbar de advertencia si no coincide
-          SnackBarManager.showWarning(
-              context,
-              'El número ingresado ($currentNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)'
-          );
+          SnackBarManager.showWarning(context,
+              'El número ingresado ($currentNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)');
         } else if (currentNumber == _lastExtractedCNP) {
           SnackBarManager.showSuccess(
-              context,
-              '✓ Número CNP verificado correctamente'
-          );
+              context, '✓ Número CNP verificado correctamente');
         }
       }
 
@@ -358,7 +350,7 @@ class ColegiaturaVerificationScreenState
     try {
       // Mostrar opciones disponibles
       final Map<String, dynamic>? selectedOption =
-      await showModalBottomSheet<Map<String, dynamic>>(
+          await showModalBottomSheet<Map<String, dynamic>>(
         context: context,
         builder: (BuildContext context) {
           return SafeArea(
@@ -398,7 +390,7 @@ class ColegiaturaVerificationScreenState
                     // Opciones
                     ListTile(
                       leading:
-                      Icon(Icons.photo_library, color: AppColors.primary),
+                          Icon(Icons.photo_library, color: AppColors.primary),
                       title: Text(
                         'Galería',
                         style: TextStyle(
@@ -416,7 +408,7 @@ class ColegiaturaVerificationScreenState
 
                     ListTile(
                       leading:
-                      Icon(Icons.photo_camera, color: AppColors.primary),
+                          Icon(Icons.photo_camera, color: AppColors.primary),
                       title: Text(
                         'Cámara',
                         style: TextStyle(
@@ -507,7 +499,7 @@ class ColegiaturaVerificationScreenState
           title: Text('Permiso requerido'),
           content: Text(
             'Para usar la $tipo, necesitas otorgar los permisos correspondientes. '
-                '¿Deseas ir a configuración para habilitarlos?',
+            '¿Deseas ir a configuración para habilitarlos?',
           ),
           actions: [
             TextButton(
@@ -550,9 +542,11 @@ class ColegiaturaVerificationScreenState
 
       // 6. Guardar la imagen procesada
       final directory = await getTemporaryDirectory();
-      final processedPath = '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final processedPath =
+          '${directory.path}/processed_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final processedFile = File(processedPath);
-      await processedFile.writeAsBytes(img.encodeJpg(contrastedImage, quality: 90));
+      await processedFile
+          .writeAsBytes(img.encodeJpg(contrastedImage, quality: 90));
 
       return processedFile;
     } catch (e) {
@@ -595,7 +589,8 @@ class ColegiaturaVerificationScreenState
         builder: (context) => ValidationScreen(
           imageFile: imageFile,
           existingSides: imageSides,
-          onValidationComplete: (bool isValid, Map<String, dynamic>? analysisData) async {
+          onValidationComplete:
+              (bool isValid, Map<String, dynamic>? analysisData) async {
             if (isValid && analysisData != null) {
               final String extractedCNP = analysisData['extracted_cnp'] ?? '';
               final bool hasCNP = analysisData['has_cnp'] ?? false;
@@ -637,7 +632,7 @@ class ColegiaturaVerificationScreenState
 
           String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
           String missingSide =
-          _getMissingSide() == 'front' ? 'frente' : 'reverso';
+              _getMissingSide() == 'front' ? 'frente' : 'reverso';
 
           SnackBarManager.showError(context,
               'Ya subiste el $sideText del carnet. Necesitas subir el $missingSide.');
@@ -666,7 +661,7 @@ class ColegiaturaVerificationScreenState
         });
 
         String missingSide =
-        _getMissingSide() == 'front' ? 'frente' : 'reverso';
+            _getMissingSide() == 'front' ? 'frente' : 'reverso';
         SnackBarManager.showInfo(context,
             'Ahora captura el $missingSide del carnet para completar la validación.');
       } else {
@@ -700,10 +695,8 @@ class ColegiaturaVerificationScreenState
       }
     });
 
-    SnackBarManager.showInfo(
-        context,
-        'Número CNP detectado: $cnpNumber. Verifica que sea correcto.'
-    );
+    SnackBarManager.showInfo(context,
+        'Número CNP detectado: $cnpNumber. Verifica que sea correcto.');
 
     _saveData();
     _validateColegiatura();
@@ -718,15 +711,11 @@ class ColegiaturaVerificationScreenState
         fullNumber.length == 4) {
       if (_lastExtractedCNP != fullNumber) {
         // Mostrar snackbar de advertencia
-        SnackBarManager.showWarning(
-            context,
-            'El número ingresado ($fullNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)'
-        );
+        SnackBarManager.showWarning(context,
+            'El número ingresado ($fullNumber) no coincide con el detectado en el carné ($_lastExtractedCNP)');
       } else {
         SnackBarManager.showSuccess(
-            context,
-            '✓ Número CNP verificado correctamente'
-        );
+            context, '✓ Número CNP verificado correctamente');
       }
     }
   }
@@ -1053,7 +1042,7 @@ class ColegiaturaVerificationScreenState
                       } else if (hasFocus || hasValue) {
                         borderColor = AppColors.primary;
                         backgroundColor =
-                        hasValue ? AppColors.primary : Colors.white;
+                            hasValue ? AppColors.primary : Colors.white;
                       } else {
                         borderColor = Colors.grey[400]!;
                         backgroundColor = Colors.white;
@@ -1075,7 +1064,7 @@ class ColegiaturaVerificationScreenState
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color:
-                              hasValue ? Colors.white : Colors.grey[600]!,
+                                  hasValue ? Colors.white : Colors.grey[600]!,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -1083,7 +1072,7 @@ class ColegiaturaVerificationScreenState
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             cursorColor:
-                            hasValue ? Colors.white : AppColors.primary,
+                                hasValue ? Colors.white : AppColors.primary,
                             decoration: const InputDecoration(
                               filled: true,
                               fillColor: Colors.transparent,
@@ -1100,25 +1089,30 @@ class ColegiaturaVerificationScreenState
                                 colegiaturaDigits[index] = value;
                                 colegiaturaControllers[index].text = value;
 
-                                if (_wasAutoFilled && _lastExtractedCNP != null) {
-                                  String currentNumber = colegiaturaDigits.join('');
+                                if (_wasAutoFilled &&
+                                    _lastExtractedCNP != null) {
+                                  String currentNumber =
+                                      colegiaturaDigits.join('');
 
                                   if (currentNumber.length == 4 &&
                                       currentNumber != _lastExtractedCNP &&
                                       !_mismatchAlertShown) {
                                     _mismatchAlertShown = true;
-                                    _showCNPMismatchDialog(_lastExtractedCNP!, currentNumber);
+                                    _showCNPMismatchDialog(
+                                        _lastExtractedCNP!, currentNumber);
                                   }
                                 }
 
                                 if (value.isNotEmpty) {
                                   if (index < 3) {
-                                    colegiaturaFocusNodes[index + 1].requestFocus();
+                                    colegiaturaFocusNodes[index + 1]
+                                        .requestFocus();
                                   } else {
                                     colegiaturaFocusNodes[index].unfocus();
                                   }
                                 } else if (value.isEmpty && index > 0) {
-                                  colegiaturaFocusNodes[index - 1].requestFocus();
+                                  colegiaturaFocusNodes[index - 1]
+                                      .requestFocus();
                                 }
 
                                 if (colegiaturaErrorMessage.isNotEmpty) {
@@ -1131,8 +1125,7 @@ class ColegiaturaVerificationScreenState
 
                               // Guardar datos después de cambiar
                               _saveData();
-                            }
-                        ),
+                            }),
                       );
                     }),
                   ),
@@ -1182,7 +1175,7 @@ class ColegiaturaVerificationScreenState
                   // Sección de carné
                   Container(
                     padding:
-                    EdgeInsets.only(left: 60, top: 4, right: 16, bottom: 1),
+                        EdgeInsets.only(left: 60, top: 4, right: 16, bottom: 1),
                     child: Column(
                       children: [
                         // Estructura principal con SVG
@@ -1191,42 +1184,42 @@ class ColegiaturaVerificationScreenState
                             Container(
                               child: carneImages.isNotEmpty
                                   ? Stack(
-                                children: [
-                                  // SVG con icono de respaldo cuando hay imágenes
-                                  SvgPicture.asset(
-                                    'assets/images/file_correct.svg',
-                                    placeholderBuilder: (context) => Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ],
-                              )
+                                      children: [
+                                        // SVG con icono de respaldo cuando hay imágenes
+                                        SvgPicture.asset(
+                                          'assets/images/file_correct.svg',
+                                          placeholderBuilder: (context) => Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green,
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    )
                                   : (isUploading
-                                  ? Container(
-                                width: 60,
-                                height: 60,
-                                child: Lottie.asset(
-                                  'assets/loading/palta_saltarina.json',
-                                  width: 60,
-                                  height: 60,
-                                ),
-                              )
-                                  : GestureDetector(
-                                onTap: carneImages.length < 2
-                                    ? _pickImage
-                                    : null,
-                                child: SvgPicture.asset(
-                                  'assets/images/gallery_icon.svg',
-                                  placeholderBuilder: (context) =>
-                                      Icon(
-                                        Icons.photo_library,
-                                        color: Colors.grey[600],
-                                        size: 24,
-                                      ),
-                                ),
-                              )),
+                                      ? Container(
+                                          width: 60,
+                                          height: 60,
+                                          child: Lottie.asset(
+                                            'assets/loading/palta_saltarina.json',
+                                            width: 60,
+                                            height: 60,
+                                          ),
+                                        )
+                                      : GestureDetector(
+                                          onTap: carneImages.length < 2
+                                              ? _pickImage
+                                              : null,
+                                          child: SvgPicture.asset(
+                                            'assets/images/gallery_icon.svg',
+                                            placeholderBuilder: (context) =>
+                                                Icon(
+                                              Icons.photo_library,
+                                              color: Colors.grey[600],
+                                              size: 24,
+                                            ),
+                                          ),
+                                        )),
                             ),
                             SizedBox(width: 16),
                             Expanded(
@@ -1281,76 +1274,191 @@ class ColegiaturaVerificationScreenState
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
-              SizedBox(width: 8),
-              Text(
-                'Diferencia detectada',
-                style: TextStyle(
-                  color: AppColors.textLDark,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'El número que ingresaste ($enteredCNP) no coincide con el detectado en el carné ($detectedCNP).',
-                style: TextStyle(
-                  color: AppColors.textLDark,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
-              ),
-              SizedBox(height: 12),
-              Text(
-                '¿Deseas conservar el número ingresado o volver al detectado?',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Botón para conservar el número ingresado
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Conservar $enteredCNP',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
-                ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 12,
+          contentPadding: EdgeInsets.zero,
+          titlePadding: EdgeInsets.zero,
+          title: Container(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
             ),
-
-            // Botón para restaurar el número detectado
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _autoFillCNPFields(detectedCNP);
-                });
-                Navigator.of(context).pop();
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-              ),
-              child: Text(
-                'Usar $detectedCNP',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.warning_amber_rounded,
+                      color: Colors.orange.shade700, size: 22),
                 ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Diferencia detectada',
+                    style: TextStyle(
+                      color: AppColors.textLDark,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          content: Container(
+            padding: EdgeInsets.fromLTRB(24, 8, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'El número que ingresaste ($enteredCNP) no coincide con el detectado en el carné ($detectedCNP).',
+                  style: TextStyle(
+                    color: AppColors.textLDark,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.edit, color: Colors.blue, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Ingresado:',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        enteredCNP,
+                        style: TextStyle(
+                          color: AppColors.textLDark,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.camera_alt, color: Colors.green, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            'Detectado:',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        detectedCNP,
+                        style: TextStyle(
+                          color: AppColors.textLDark,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '¿Qué número deseas utilizar?',
+                  style: TextStyle(
+                    color: AppColors.textLDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            Container(
+              padding: EdgeInsets.fromLTRB(15, 0, 15, 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                      child: Text(
+                        'Conservar',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _autoFillCNPFields(detectedCNP);
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text(
+                        'Usar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1415,7 +1523,6 @@ class ColegiaturaVerificationScreenState
             scrollDirection: Axis.horizontal,
             itemCount: carneImages.length + (carneImages.length < 2 ? 1 : 0),
             itemBuilder: (context, index) {
-
               if (index == carneImages.length && carneImages.length < 2) {
                 return _buildAddImageButton();
               }
@@ -1469,7 +1576,6 @@ class ColegiaturaVerificationScreenState
   }
 
   Widget _buildThumbnailItem(int index) {
-
     String sideText = 'DESCONOCIDO';
     Color backgroundColor = Colors.grey;
 

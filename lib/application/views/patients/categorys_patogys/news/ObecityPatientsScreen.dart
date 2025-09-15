@@ -9,15 +9,14 @@ import 'package:lottie/lottie.dart';
 import 'PatientAvatarWidget.dart';
 import 'PatientDetailScreen.dart';
 
-class DiabetesPatientsScreenn extends StatefulWidget {
-  const DiabetesPatientsScreenn({Key? key}) : super(key: key);
+class ObesityPatientsScreen extends StatefulWidget {
+  const ObesityPatientsScreen({Key? key}) : super(key: key);
 
   @override
-  State<DiabetesPatientsScreenn> createState() =>
-      _DiabetesPatientsScreenState();
+  State<ObesityPatientsScreen> createState() => _ObesityPatientsScreenState();
 }
 
-class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
+class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'Todos';
   String _sortBy = 'fullName';
@@ -28,8 +27,11 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   bool _isGridView = false;
 
   String? _errorMessage;
-
   String? _authToken;
+
+  // Colores específicos para obesidad
+  final Color _primaryColor = AppColors.backgroundObecidad;
+  final Color _secondaryColor = const Color(0xFFE8F5E9); // Verde claro
 
   @override
   void initState() {
@@ -47,7 +49,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     try {
       final nutritionistService = NutritionistService();
 
-      // Obtener y guardar el token
       String? token = await _getAuthToken();
 
       if (token == null || token.isEmpty) {
@@ -56,63 +57,24 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
 
       _authToken = token;
 
-      print('🔍 Cargando pacientes con token: ${token.substring(0, 10)}...');
+      print('🔍 Cargando pacientes con obesidad con token: ${token.substring(0, 10)}...');
 
-      final patients = await nutritionistService.getAllPatients(
-        chronicDisease: _selectedFilter == 'Todos' ? null : _selectedFilter,
+      // Llamada al método de obesidad
+      final obesityPatients = await nutritionistService.getObesityPatients(
         sortBy: _sortBy,
         order: _sortOrder,
         token: token,
       );
 
-      print('📊 Total de pacientes obtenidos: ${patients.length}');
-
-      // 🔧 SOLUCIÓN 2: Filtrado más flexible para diabetes
-      final diabetesPatients = patients.where((p) {
-        if (p.chronicDisease == null) return false;
-
-        final disease = p.chronicDisease!.toLowerCase();
-
-        // Lista de términos relacionados con diabetes
-        final diabetesTerms = [
-          'diabetes',
-          'diabético',
-          'diabética',
-          'diabetico',
-          'diabetica',
-          'tipo 1',
-          'tipo 2',
-          'type 1',
-          'type 2',
-          'dm1',
-          'dm2',
-          'dmt1',
-          'dmt2',
-          'diabetes mellitus',
-          'diabetes tipo',
-          'diabetes type'
-        ];
-
-        return diabetesTerms.any((term) => disease.contains(term));
-      }).toList();
-
-      print(
-          '🩺 Pacientes con diabetes encontrados: ${diabetesPatients.length}');
-
-      // Imprimir detalles para debug
-      for (var patient in diabetesPatients) {
-        print(
-            '👤 Paciente: ${patient.fullName} - Enfermedad: ${patient.chronicDisease}');
-      }
+      print('⚖️ Pacientes con obesidad encontrados: ${obesityPatients.length}');
 
       setState(() {
-        _patients = diabetesPatients;
-        _filteredPatients = diabetesPatients;
+        _patients = obesityPatients;
+        _filteredPatients = obesityPatients;
         _isLoading = false;
       });
 
-      if (diabetesPatients.isEmpty && patients.isNotEmpty) {
-        // Si no hay pacientes con diabetes pero sí hay pacientes en general
+      if (obesityPatients.isEmpty) {
         _showInfoDialog();
       }
     } catch (e) {
@@ -131,8 +93,8 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
       builder: (context) => AlertDialog(
         title: const Text('Información'),
         content: const Text(
-            'Se encontraron pacientes en el sistema, pero ninguno tiene diabetes registrada como enfermedad crónica.\n\n'
-            '¿Deseas ver todos los pacientes o crear un nuevo paciente con diabetes?'),
+            'Se encontraron pacientes en el sistema, pero ninguno tiene obesidad registrada.\n\n'
+                '¿Deseas ver todos los pacientes o crear un nuevo paciente con obesidad?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -147,15 +109,56 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           ),
           TextButton(
             onPressed: () {
-              /*Navigator.of(context).pop();
-              // Navegar a vista de todos los pacientes
-              _navigateToAllPatients();*/
+              Navigator.of(context).pop();
+              _loadAllPatientsAsFallback();
             },
             child: const Text('Ver Todos'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _loadAllPatientsAsFallback() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final nutritionistService = NutritionistService();
+      String? token = await _getAuthToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Token de autenticación no encontrado');
+      }
+
+      // Cargar todos los pacientes sin filtrar
+      final allPatients = await nutritionistService.getAllPatients(
+        sortBy: _sortBy,
+        order: _sortOrder,
+        token: token,
+      );
+
+      setState(() {
+        _patients = allPatients;
+        _filteredPatients = allPatients;
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mostrando todos los pacientes (modo fallback)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      print('❌ Error al cargar todos los pacientes: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar pacientes: ${e.toString()}';
+      });
+    }
   }
 
   Future<String?> _getAuthToken() async {
@@ -177,20 +180,12 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             (patient.phone?.toLowerCase().contains(query) ?? false);
 
         bool matchesFilter = true;
-        if (_selectedFilter != 'Todos') {
-          if (_selectedFilter == 'Tipo 1') {
-            matchesFilter =
-                patient.chronicDisease?.toLowerCase().contains('tipo 1') ==
-                        true ||
-                    patient.chronicDisease?.toLowerCase().contains('type 1') ==
-                        true;
-          } else if (_selectedFilter == 'Tipo 2') {
-            matchesFilter =
-                patient.chronicDisease?.toLowerCase().contains('tipo 2') ==
-                        true ||
-                    patient.chronicDisease?.toLowerCase().contains('type 2') ==
-                        true;
-          }
+        if (_selectedFilter == 'Sobrepeso') {
+          matchesFilter = patient.bmi != null && patient.bmi! >= 25.0 && patient.bmi! < 30.0;
+        } else if (_selectedFilter == 'Obesidad') {
+          matchesFilter = patient.bmi != null && patient.bmi! >= 30.0;
+        } else if (_selectedFilter == 'Obesidad Severa') {
+          matchesFilter = patient.bmi != null && patient.bmi! >= 35.0;
         }
 
         return matchesSearch && matchesFilter;
@@ -214,7 +209,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔹 Pequeña barra superior tipo "handle" para mejor UX
               Container(
                 width: 40,
                 height: 4,
@@ -234,7 +228,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
               ),
               const SizedBox(height: 6),
 
-              // 🔹 Opciones más compactas
               ...['fullName', 'age', 'bmi', 'createdAt'].map((field) {
                 final labels = {
                   'fullName': 'Nombre',
@@ -270,7 +263,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.orange.withOpacity(0.08) // 🔹 Resalta selección
+                          ? _primaryColor.withOpacity(0.08)
                           : Colors.grey[100],
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -283,13 +276,13 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                             fontSize: 14,
                             fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected ? Colors.orange : Colors.black87,
+                            color: isSelected ? _primaryColor : Colors.black87,
                           ),
                         ),
                         if (isSelected)
                           Icon(
                             isAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                            color: Colors.orange,
+                            color: _primaryColor,
                             size: 18,
                           ),
                       ],
@@ -330,34 +323,42 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   Color _getStatusColor(PatientProfile patient) {
     if (patient.bmi == null) return Colors.grey;
 
+    // Colores específicos para obesidad
     if (patient.bmi! < 18.5) return Colors.blue;
     if (patient.bmi! < 25) return Colors.green;
     if (patient.bmi! < 30) return Colors.orange;
-    return Colors.red;
+    if (patient.bmi! < 35) return Colors.deepOrange;
+    if (patient.bmi! < 40) return Colors.red;
+    return Colors.purple;
   }
 
   String _getStatusText(PatientProfile patient) {
     if (patient.bmi == null) return 'Sin datos';
 
     if (patient.bmi! < 18.5) return 'Bajo peso';
-    if (patient.bmi! < 25) return 'Controlado';
-    if (patient.bmi! < 30) return 'Atención';
-    return 'Crítico';
+    if (patient.bmi! < 25) return 'Normal';
+    if (patient.bmi! < 30) return 'Sobrepeso';
+    if (patient.bmi! < 35) return 'Obesidad G1';
+    if (patient.bmi! < 40) return 'Obesidad G2';
+    return 'Obesidad G3';
   }
 
-  String _getDiabetesType(String? chronicDisease) {
-    if (chronicDisease == null) return 'T?';
-    final disease = chronicDisease.toLowerCase();
-    if (disease.contains('tipo 1') || disease.contains('type 1')) return 'T1';
-    if (disease.contains('tipo 2') || disease.contains('type 2')) return 'T2';
-    return 'TD';
+  // Función para determinar el tipo de obesidad
+  String _getObesityType(PatientProfile patient) {
+    if (patient.bmi == null) return 'OB?';
+
+    if (patient.bmi! < 25) return 'NORM';
+    if (patient.bmi! < 30) return 'SOBRE';
+    if (patient.bmi! < 35) return 'OB1';
+    if (patient.bmi! < 40) return 'OB2';
+    return 'OB3';
   }
 
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: AppColors.secondary.withOpacity(0.6),
+        statusBarColor: _primaryColor.withOpacity(0.6),
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.light,
       ),
@@ -371,17 +372,17 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
               'assets/images/anterior_icon.svg',
               width: 21,
               height: 21,
-              color: AppColors.secondary,
+              color: _primaryColor,
             ),
             onPressed: () {
               Navigator.pop(context);
             },
           ),
           title: const Text(
-            'Pacientes con Diabetes',
+            'Pacientes con Obesidad',
             style: TextStyle(
-              color: Colors.orange,
-              fontSize: 21,
+              color: AppColors.backgroundObecidad,
+              fontSize: 19,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -389,178 +390,194 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             IconButton(
               icon: Icon(
                 _isGridView ? Icons.view_list : Icons.grid_view,
-                color: Colors.orange,
+                color: _primaryColor,
               ),
               onPressed: () => setState(() => _isGridView = !_isGridView),
             ),
           ],
         ),
-        body: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(12, 5, 12, 5),
-              child: Column(
-                children: [
-                  // Botones de filtro de tipo de diabetes
-                  Row(
-                    children: [
-                      _buildFilterChip('Todos', _selectedFilter == 'Todos'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Tipo 1', _selectedFilter == 'Tipo 1'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Tipo 2', _selectedFilter == 'Tipo 2'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Barra de búsqueda
-                  Container(
-                    height: 43,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: Center(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                        decoration: const InputDecoration(
-                          hintText: 'Buscar paciente...',
-                          hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                          prefixIcon: Icon(Icons.search, color: Colors.grey),
-                          suffixIcon: Icon(Icons.mic, color: Colors.grey),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${_filteredPatients.length} pacientes',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _showSortOptions,
-                            icon: Icon(
-                              _sortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward,
-                              size: 12,
-                            ),
-                            label: const Text(
-                              'Ordenar',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              foregroundColor: Colors.orange,
-                              side: const BorderSide(color: Colors.orange, width: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-
-                          /* const SizedBox(width: 8),
-                          Container(
-                            height: 30,
-                            width: 30,
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              iconSize: 18,
-                              icon: const Icon(Icons.tune, color: Colors.white),
-                              onPressed: _showAdvancedFilters,
-                            ),
-                          ),*/
-                        ],
-                      ),
-                    ],
-                  )
-
-                ],
-              ),
-            ),
-            // Lista de pacientes mejorada
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadPatients,
-                color: Colors.orange,
-                child: _isLoading
-                    ? Center(
-                        child: Lottie.asset(
-                            'assets/loading/palta_saltarina.json',
-                            width: 100,
-                            height: 100))
-                    : _filteredPatients.isEmpty
-                        ? _buildEmptyState()
-                        : Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: _isGridView
-                                ? GridView.builder(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 0.75,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                    ),
-                                    itemCount: _filteredPatients.length,
-                                    itemBuilder: (context, index) {
-                                      return _buildPatientCard(
-                                          _filteredPatients[index]);
-                                    },
-                                  )
-                                : ListView.builder(
-                                    itemCount: _filteredPatients.length,
-                                    itemBuilder: (context, index) {
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 8),
-                                        child: _buildPatientListItem(
-                                            _filteredPatients[
-                                                index]), // Nuevo método para lista
-                                      );
-                                    },
-                                  ),
-                          ),
-              ),
-            ),
-          ],
-        ),
-        /*floatingActionButton: FloatingActionButton.extended(
-          onPressed: _navigateToCreatePatient,
-          backgroundColor: const Color(0xFF00A693),
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            'Nuevo Paciente',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-        ),*/
+        body: _buildBodyContent(),
       ),
+    );
+  }
+
+  Widget _buildBodyContent() {
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Error al cargar pacientes',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _loadPatients,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                ),
+                child: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 5, 12, 5),
+          child: Column(
+            children: [
+              // Filtros para obesidad
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip('Todos', _selectedFilter == 'Todos'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Sobrepeso', _selectedFilter == 'Sobrepeso'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Obesidad', _selectedFilter == 'Obesidad'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Obesidad Severa', _selectedFilter == 'Obesidad Severa'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Barra de búsqueda
+              Container(
+                height: 43,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Center(
+                  child: TextField(
+                    controller: _searchController,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar paciente...',
+                      hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: Icon(Icons.mic, color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '${_filteredPatients.length} pacientes',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _showSortOptions,
+                        icon: Icon(
+                          _sortOrder == 'asc' ? Icons.arrow_upward : Icons.arrow_downward,
+                          size: 12,
+                        ),
+                        label: const Text(
+                          'Ordenar',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          foregroundColor: _primaryColor,
+                          side: BorderSide(color: _primaryColor, width: 1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+
+            ],
+          ),
+        ),
+        // Lista de pacientes
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadPatients,
+            color: _primaryColor,
+            backgroundColor: Colors.white,
+            child: _isLoading
+                ? Center(
+                child: Lottie.asset(
+                    'assets/loading/palta_saltarina.json',
+                    width: 100,
+                    height: 100))
+                : _filteredPatients.isEmpty
+                ? _buildEmptyState()
+                : Padding(
+              padding: const EdgeInsets.all(16),
+              child: _isGridView
+                  ? GridView.builder(
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _filteredPatients.length,
+                itemBuilder: (context, index) {
+                  return _buildPatientCard(
+                      _filteredPatients[index]);
+                },
+              )
+                  : ListView.builder(
+                itemCount: _filteredPatients.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding:
+                    const EdgeInsets.only(bottom: 8),
+                    child: _buildPatientListItem(
+                        _filteredPatients[index]),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -579,23 +596,25 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           const SizedBox(height: 16),
           Text(
             _searchController.text.isNotEmpty
-                ? 'No se encontraron pacientes'
-                : 'No hay pacientes con diabetes',
+                ? 'No hay pacientes \ncon obesidad'
+                : 'Agrega tu primer paciente \n con obesidad',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
               fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             _searchController.text.isNotEmpty
-                ? 'Intenta con otros términos de búsqueda'
-                : 'Agrega tu primer paciente diabético',
+                ? 'Intenta con otros términos \n de búsqueda'
+                : 'Agrega tu primer paciente \n con obesidad',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
             ),
+            textAlign: TextAlign.center,
           ),
           if (_searchController.text.isNotEmpty) ...[
             const SizedBox(height: 20),
@@ -605,133 +624,13 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                 _filterPatients();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: _primaryColor,
                 foregroundColor: Colors.white,
               ),
               child: const Text('Limpiar búsqueda'),
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  void _showAdvancedFilters() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.3,
-        expand: false,
-        builder: (context, scrollController) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Filtros Avanzados',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    children: [
-                      _buildFilterSection('Estado de Salud',
-                          ['Controlado', 'Atención', 'Crítico', 'Sin datos']),
-                      const SizedBox(height: 20),
-                      _buildFilterSection(
-                          'Género', ['Masculino', 'Femenino', 'Otro']),
-                      const SizedBox(height: 20),
-                      _buildFilterSection('Rango de Edad', [
-                        '18-30 años',
-                        '31-50 años',
-                        '51-70 años',
-                        '70+ años'
-                      ]),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _filterPatients();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Aplicar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterSection(String title, List<String> options) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: options.map((option) {
-            return FilterChip(
-              label: Text(option),
-              selected: false,
-              onSelected: (selected) {},
-              selectedColor: Colors.orange.withOpacity(0.2),
-              checkmarkColor: Colors.orange,
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  void _navigateToCreatePatient() {
-    // Navegar a crear nuevo paciente
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CreatePatientScreen(),
       ),
     );
   }
@@ -747,18 +646,14 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         decoration: BoxDecoration(
-          color:
-              isSelected ? Colors.orange.withOpacity(0.1) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? Colors.orange : Colors.grey[300]!,
-            width: isSelected ? 1.5 : 0.7,
-          ),
+          color: isSelected ? _primaryColor.withOpacity(0.2) : Colors.transparent,
+
           borderRadius: BorderRadius.circular(15),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.orange : Colors.grey[600],
+            color: isSelected ? _primaryColor : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -767,19 +662,29 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   }
 
   Widget _buildPatientCard(PatientProfile patient) {
-    final diabetesType = _getDiabetesType(patient.chronicDisease);
+    final obesityType = _getObesityType(patient);
     final statusColor = _getStatusColor(patient);
     final statusText = _getStatusText(patient);
 
     Color typeColor;
     String nextIconAsset;
 
-    if (diabetesType == 'T1') {
-      typeColor = const Color(0xFF00A693);
+    // Asignar colores según el tipo de obesidad
+    if (obesityType == 'NORM') {
+      typeColor = Colors.green;
       nextIconAsset = 'assets/images/next_icon.svg';
-    } else if (diabetesType == 'T2') {
-      typeColor = const Color(0xFFFF6B35);
-      nextIconAsset = 'assets/images/next_orange.svg';
+    } else if (obesityType == 'SOBRE') {
+      typeColor = Colors.orange;
+      nextIconAsset = 'assets/images/next_icon.svg';
+    } else if (obesityType == 'OB1') {
+      typeColor = Colors.deepOrange;
+      nextIconAsset = 'assets/images/next_icon.svg';
+    } else if (obesityType == 'OB2') {
+      typeColor = Colors.red;
+      nextIconAsset = 'assets/images/next_icon.svg';
+    } else if (obesityType == 'OB3') {
+      typeColor = Colors.purple;
+      nextIconAsset = 'assets/images/next_icon.svg';
     } else {
       typeColor = Colors.grey;
       nextIconAsset = 'assets/images/next_icon.svg';
@@ -801,7 +706,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // SECCIÓN DE IMAGEN - AHORA SE ADAPTA AL CONTENEDOR
                 Expanded(
                   flex: 70,
                   child: Container(
@@ -810,18 +714,17 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     child: Stack(
                       children: [
-                        // Avatar que se adapta al contenedor completo
                         Positioned.fill(
                           child: PatientAvatarWidget(
                             patient: patient,
-                            statusColor: statusColor,
+                            statusColor: _primaryColor,
                             token: _authToken ?? '',
-                            isCircular: false, // ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-                            borderRadius: 0, // Sin radio porque el contenedor ya tiene el suyo
-                            fit: BoxFit.cover, // Se ajusta para cubrir todo el espacio
+                            isCircular: false,
+                            borderRadius: 0,
+                            fit: BoxFit.cover,
                           ),
                         ),
-                        // Badge del tipo de diabetes
+                        // Badge del tipo de obesidad
                         Positioned(
                           top: 8,
                           left: 8,
@@ -833,7 +736,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              diabetesType,
+                              obesityType,
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.white,
@@ -847,7 +750,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                   ),
                 ),
 
-                // SECCIÓN DE INFORMACIÓN (sin cambios)
+                // SECCIÓN DE INFORMACIÓN
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -961,36 +864,30 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
   }
 
   Widget _buildPatientListItem(PatientProfile patient) {
-    final diabetesType = _getDiabetesType(patient.chronicDisease);
     final statusColor = _getStatusColor(patient);
     final statusText = _getStatusText(patient);
-
-    String nextIconAsset;
-    if (diabetesType == 'T1') {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    } else if (diabetesType == 'T2') {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    } else {
-      nextIconAsset = 'assets/images/next_orange.svg';
-    }
+    final obesityType = _getObesityType(patient);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _navigateToPatientDetail(patient),
-        child: SizedBox( // 🔑 Asegura que el Stack tenga el tamaño completo
+        child: SizedBox(
           width: double.infinity,
           height: 100,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // --------- Fondo principal ----------
+              // Fondo principal
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(width: 0.2, color: AppColors.secondary),
+                  border: Border.all(
+                    width: 0.2,
+                    color: _primaryColor,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -1001,31 +898,55 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                 ),
                 child: Row(
                   children: [
-                    // Avatar lateral
+                    // Avatar lateral con indicador de tipo de obesidad
                     Container(
                       width: 100,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           bottomLeft: Radius.circular(12),
                         ),
                       ),
-                      child: PatientAvatarWidget(
-                        patient: patient,
-                        statusColor: statusColor,
-                        token: _authToken ?? '',
-                        isCircular: false,
-                        customBorderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                        fit: BoxFit.cover,
+                      child: Stack(
+                        children: [
+                          PatientAvatarWidget(
+                            patient: patient,
+                            statusColor: AppColors.backgroundObecidadIcon,
+                            token: _authToken ?? '',
+                            isCircular: false,
+                            customBorderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              bottomLeft: Radius.circular(12),
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                obesityType,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    // Datos del paciente
+                    // Info del paciente
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
@@ -1105,7 +1026,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                   ],
                 ),
               ),
-
               Positioned(
                 bottom: 2,
                 right: 2,
@@ -1118,7 +1038,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                   ),
                   child: Center(
                     child: SvgPicture.asset(
-                      nextIconAsset,
+                      'assets/images/next_icon.svg',
                       width: 26,
                       height: 26,
                     ),
@@ -1132,6 +1052,15 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     );
   }
 
+  void _navigateToCreatePatient() {
+    // Navegar a crear nuevo paciente
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreatePatientScreen(),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -1139,7 +1068,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
     super.dispose();
   }
 }
-
 
 class CreatePatientScreen extends StatelessWidget {
   const CreatePatientScreen({Key? key}) : super(key: key);

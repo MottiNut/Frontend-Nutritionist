@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -6,6 +7,8 @@ import '../../../configuration/themes/app_colors.dart';
 import 'categorys_patogys/diabetes/diabetes_screen.dart';
 import 'categorys_patogys/hipertension/hipertencion_screen.dart';
 import 'categorys_patogys/news/DiabetesPatientsScreen.dart';
+import 'categorys_patogys/news/HypertensionPatientsScreen.dart';
+import 'categorys_patogys/news/ObecityPatientsScreen.dart';
 import 'categorys_patogys/obecidad/obecidad_screen.dart';
 
 class PatientScreen extends StatefulWidget {
@@ -200,7 +203,7 @@ class _PatientScreenState extends State<PatientScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HipertensionPatientsScreen(),
+            builder: (context) => HypertensionPatientsScreen(),
           ),
         );
         break;
@@ -208,7 +211,7 @@ class _PatientScreenState extends State<PatientScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ObesidadScreen(category: category),
+            builder: (context) => ObesityPatientsScreen(),
           ),
         );
         break;

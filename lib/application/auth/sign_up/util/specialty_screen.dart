@@ -445,54 +445,57 @@ class SpecialtyScreenState extends State<SpecialtyScreen>
   }
 
   Widget _buildStudyCard(Map<String, dynamic> item, bool isSelected) {
-    final hasSubSelections = _getSubSelectionCount(item['name']) > 0;
-    final isExpanded = _isExpanded(item['name']);
+  final hasSubSelections = _getSubSelectionCount(item['name']) > 0;
+  final isExpanded = _isExpanded(item['name']);
+  
+  // NUEVO: Determinar si tiene contenido para definir el color del borde
+  final hasContent = _getSubSelectionCount(item['name']) > 0;
+  final borderColor = hasContent ? AppColors.primary : Colors.grey[200]!;
+  final borderWidth = hasContent ? 2 : 1;
+  final shadowColor = hasContent ? AppColors.primary.withOpacity(0.1) : Colors.black.withOpacity(0.04);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (isSelected) {
-                // ✅ Si ya está seleccionado, toca para expandir/colapsar
-                toggleExpansion(item['name']);
-              } else {
-                // ✅ Si NO está seleccionado, primero lo selecciona
-                toggleStudy(item['name']);
-              }
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                  colors: [
-                    AppColors.primary.withOpacity(0.05),
-                    AppColors.primary.withOpacity(0.02),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-                    : null,
-                color: isSelected ? null : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : Colors.grey[200]!,
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isSelected
-                        ? AppColors.primary.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.04),
-                    blurRadius: isSelected ? 8 : 4,
-                    offset: Offset(0, isSelected ? 3 : 2),
-                  ),
-                ],
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () {
+            if (isSelected) {
+              toggleExpansion(item['name']);
+            } else {
+              toggleStudy(item['name']);
+            }
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: isSelected
+                  ? LinearGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.05),
+                        AppColors.primary.withOpacity(0.02),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isSelected ? null : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              // NUEVO: Borde condicional basado en contenido
+              border: Border.all(
+                color: borderColor,
+                width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: hasContent ? 8 : 4,
+                  offset: Offset(0, hasContent ? 3 : 2),
+                ),
+              ],
+            ),
               child: IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,

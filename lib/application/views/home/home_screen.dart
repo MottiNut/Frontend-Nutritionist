@@ -366,6 +366,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return RefreshIndicator(
       onRefresh: loadHomeData,
+      color: AppColors.primary,
+      backgroundColor: Colors.white,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
