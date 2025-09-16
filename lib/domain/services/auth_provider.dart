@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,6 +9,8 @@ import 'package:http_parser/http_parser.dart';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'firebase_auth_service.dart';
 
@@ -294,7 +297,23 @@ class AuthResponse {
   }
 }
 class AuthService {
+  // URLs base
   static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
+  static const String profileBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile';
+
+  // Endpoints específicos
+  static const String loginEndpoint = '$baseUrl/login';
+  static const String registerEndpoint = '$baseUrl/register/nutritionist';
+  static const String verificationSendEndpoint = '$baseUrl/verification/send';
+  static const String verificationVerifyEndpoint = '$baseUrl/verification/verify';
+  static const String verificationResendEndpoint = '$baseUrl/verification/resend';
+  static const String passwordResetRequestEndpoint = '$baseUrl/password/reset-request';
+  static const String passwordResetEndpoint = '$baseUrl/password/reset';
+  static const String passwordUpdateEndpoint = '$baseUrl/password/update';
+  static const String validateEndpoint = '$baseUrl/validate';
+  static const String logoutEndpoint = '$baseUrl/logout';
+  static const String nutritionistProfileEndpoint = '$profileBaseUrl/nutritionist';
+  static const String nutritionistImageEndpoint = '$profileBaseUrl/nutritionist';
 
   final http.Client _client = http.Client();
 
@@ -317,7 +336,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse(loginEndpoint),
         headers: _headers,
         body: json.encode({
           'email': email,
@@ -370,7 +389,7 @@ class AuthService {
       // Crear multipart request para archivos
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/register/nutritionist'),
+        Uri.parse(registerEndpoint),
       );
 
       // Agregar campos de texto
@@ -502,7 +521,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/verification/send'),
+        Uri.parse(verificationSendEndpoint),
         headers: _headers,
         body: json.encode({
           'email': email,
@@ -535,7 +554,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/verification/verify'),
+        Uri.parse(verificationVerifyEndpoint),
         headers: _headers,
         body: json.encode({
           'code': code,
@@ -568,7 +587,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/verification/resend'),
+        Uri.parse(verificationResendEndpoint),
         headers: _headers,
         body: json.encode({
           'email': email,
@@ -600,7 +619,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/password/reset-request'),
+        Uri.parse(passwordResetRequestEndpoint),
         headers: _headers,
         body: json.encode({
           'email': email,
@@ -632,7 +651,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/password/reset'),
+        Uri.parse(passwordResetEndpoint),
         headers: _headers,
         body: json.encode({
           'email': email,
@@ -666,7 +685,7 @@ class AuthService {
   }) async {
     try {
       final response = await _client.put(
-        Uri.parse('$baseUrl/password/update'),
+        Uri.parse(passwordUpdateEndpoint),
         headers: _headersWithAuth(token),
         body: json.encode({
           'currentPassword': currentPassword,
@@ -697,7 +716,7 @@ class AuthService {
   Future<AuthResponse> validateToken(String token) async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/validate'),
+        Uri.parse(validateEndpoint),
         headers: _headersWithAuth(token),
       );
 
@@ -721,18 +740,174 @@ class AuthService {
 
   // ========== OBTENER PERFIL DE USUARIO ==========
 
-  // Obtener perfil completo del nutricionista
+  // Cache manager para avatares de nutricionistas
+  static final CacheManager avatarCacheManager = CacheManager(
+    Config(
+      'nutritionist_avatar_cache',
+      stalePeriod: const Duration(days: 30),
+      maxNrOfCacheObjects: 50,
+      repo: JsonCacheInfoRepository(databaseName: 'avatar_cache'),
+    ),
+  );
+
+  // ========== MÉTODOS DE CACHÉ PARA IMÁGENES ==========
+
+  static Future<File> getCachedAvatarImage({
+    required String imageUrl,
+    required String? token,
+    String? userId,
+  }) async {
+    try {
+      final Map<String, String> headers = {};
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      // Verificar si la imagen ya está en caché
+      final FileInfo? cachedFile = await avatarCacheManager.getFileFromCache(imageUrl);
+
+      if (cachedFile != null) {
+        debugPrint('✅ Imagen encontrada en caché: $imageUrl');
+        return cachedFile.file;
+      }
+
+      // Si no está en caché, descargarla
+      debugPrint('⬇️ Descargando imagen: $imageUrl');
+      final File file = await avatarCacheManager.getSingleFile(
+        imageUrl,
+        headers: headers,
+      );
+
+      // Guardar copia local adicional para acceso rápido
+      await _saveImageToLocalStorage(file, userId);
+
+      return file;
+    } catch (e) {
+      debugPrint('❌ Error obteniendo imagen en caché: $e');
+      throw Exception('No se pudo cargar la imagen: $e');
+    }
+  }
+
+  /// Guarda la imagen en almacenamiento local
+  static Future<void> _saveImageToLocalStorage(File imageFile, String? userId) async {
+    try {
+      if (userId != null) {
+        final directory = await getApplicationDocumentsDirectory();
+        final localPath = '${directory.path}/nutritionist_avatar_$userId.jpg';
+
+        await imageFile.copy(localPath);
+        debugPrint('💾 Imagen guardada localmente: $localPath');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error guardando imagen localmente: $e');
+    }
+  }
+
+  /// Precarga la imagen del avatar
+  static Future<void> preloadAvatarImage({
+    required String imageUrl,
+    required String? token,
+    String? userId,
+  }) async {
+    try {
+      final Map<String, String> headers = {};
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      await avatarCacheManager.downloadFile(
+        imageUrl,
+        authHeaders: headers,
+      );
+
+      debugPrint('🚀 Imagen precargada: $imageUrl');
+
+      // También guardar localmente
+      final File file = await avatarCacheManager.getSingleFile(imageUrl, headers: headers);
+      await _saveImageToLocalStorage(file, userId);
+
+    } catch (e) {
+      debugPrint('⚠️ Error precargando imagen: $e');
+    }
+  }
+
+  /// Limpia el caché de avatares
+  static Future<void> clearAvatarCache() async {
+    try {
+      await avatarCacheManager.emptyCache();
+      debugPrint('🧹 Caché de avatares limpiado');
+    } catch (e) {
+      debugPrint('❌ Error limpiando caché: $e');
+    }
+  }
+
+  /// Obtiene la imagen local si existe
+  static Future<File?> getLocalAvatarImage(String userId) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final localPath = '${directory.path}/nutritionist_avatar_$userId.jpg';
+      final File localFile = File(localPath);
+
+      if (await localFile.exists()) {
+        debugPrint('📁 Imagen encontrada localmente para userId: $userId');
+        return localFile;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error obteniendo imagen local: $e');
+      return null;
+    }
+  }
+
+  // En tu AuthService, modifica el método getNutritionistProfile
   Future<AuthResponse> getNutritionistProfile(String token) async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/me'), // o crear endpoint específico
+        Uri.parse(nutritionistProfileEndpoint),
         headers: _headersWithAuth(token),
       );
 
+      debugPrint('🔍 Profile Response Status: ${response.statusCode}');
+      debugPrint('🔍 Profile Response Body: ${response.body}');
+
       final responseData = json.decode(response.body);
 
+      // DEBUG: Mostrar estructura completa de la respuesta
+      _debugResponseStructure(responseData);
+
       if (response.statusCode == 200) {
-        return AuthResponse.fromJson(responseData);
+        // Intentar diferentes estructuras de respuesta
+        Map<String, dynamic>? userData;
+
+        if (responseData['data'] != null && responseData['data'] is Map) {
+          userData = Map<String, dynamic>.from(responseData['data']);
+        } else if (responseData['user'] != null && responseData['user'] is Map) {
+          userData = Map<String, dynamic>.from(responseData['user']);
+        } else if (responseData is Map) {
+          userData = Map<String, dynamic>.from(responseData);
+        }
+
+        if (userData != null) {
+          final String? userId = userData['id']?.toString() ??
+              userData['userId']?.toString() ??
+              userData['_id']?.toString();
+
+          final String? imageUrl = _extractProfileImageUrl(userData);
+
+          if (imageUrl != null && userId != null) {
+            unawaited(preloadAvatarImage(
+              imageUrl: imageUrl,
+              token: token,
+              userId: userId,
+            ));
+          }
+        }
+
+        return AuthResponse(
+          success: true,
+          user: userData ?? responseData,
+          token: token,
+        );
       } else {
         return AuthResponse(
           success: false,
@@ -740,6 +915,7 @@ class AuthService {
         );
       }
     } catch (e) {
+      debugPrint('❌ Error getting profile: $e');
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -747,12 +923,52 @@ class AuthService {
     }
   }
 
+// Método mejorado para debug
+  void _debugResponseStructure(dynamic responseData) {
+    debugPrint('=== ESTRUCTURA DE LA RESPUESTA DEL PERFIL ===');
+
+    if (responseData is Map) {
+      responseData.forEach((key, value) {
+        if (value is Map) {
+          debugPrint('$key: [MAP] con ${value.length} campos');
+          value.forEach((subKey, subValue) {
+            debugPrint('  $subKey: $subValue (${subValue.runtimeType})');
+          });
+        } else if (value is List) {
+          debugPrint('$key: [LIST] con ${value.length} elementos');
+        } else {
+          debugPrint('$key: $value (${value.runtimeType})');
+        }
+      });
+    } else {
+      debugPrint('Tipo de respuesta: ${responseData.runtimeType}');
+      debugPrint('Contenido: $responseData');
+    }
+    debugPrint('============================================');
+  }
+
+  /// Método estático para construir URL de imagen de perfil
+  static String buildProfileImageUrl(String userId) {
+    return '$nutritionistImageEndpoint/$userId/image';
+  }
+
+  /// Extrae la URL de la imagen del perfil de los datos del usuario
+  String? _extractProfileImageUrl(Map<String, dynamic> userData) {
+    return userData['profileImageUrl'] ??
+        userData['profileImage'] ??
+        userData['profile_image'] ??
+        userData['avatar'] ??
+        userData['photo'] ??
+        userData['imageUrl'] ??
+        userData['image_url'];
+  }
+
   // ========== LOGOUT ==========
 
   Future<AuthResponse> logout(String token) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/logout'),
+        Uri.parse(logoutEndpoint),
         headers: _headersWithAuth(token),
       );
 
@@ -771,7 +987,6 @@ class AuthService {
       );
     }
   }
-
   // ========== CLEANUP ==========
 
   void dispose() {

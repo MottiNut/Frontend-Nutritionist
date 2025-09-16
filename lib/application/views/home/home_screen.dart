@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
@@ -38,6 +43,42 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     loadHomeData();
+    _precacheUserAvatar();
+  }
+
+  void _precacheUserAvatar() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      _preloadAvatarImage(authProvider);
+    });
+  }
+
+  void _preloadAvatarImage(AuthProvider authProvider) async {
+    if (authProvider.user != null) {
+      final userData = authProvider.user!;
+      final userId = userData['id'] ?? userData['userId'];
+
+      String? profileImageUrl = userData['profileImageUrl'] ??
+          userData['profileImage'] ??
+          userData['profile_image'] ??
+          userData['avatar'] ??
+          userData['photo'] ??
+          userData['imageUrl'] ??
+          userData['image_url'];
+
+      // Usar el método estático del AuthService para construir la URL
+      if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
+        profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
+      }
+
+      if (profileImageUrl != null && profileImageUrl.isNotEmpty && userId != null) {
+        unawaited(AuthService.preloadAvatarImage(
+          imageUrl: profileImageUrl,
+          token: authProvider.token,
+          userId: userId.toString(),
+        ));
+      }
+    }
   }
 
   @override
@@ -463,8 +504,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (authProvider.user != null) {
       final userData = authProvider.user!;
-
-      // Obtener el ID del usuario
       userId = userData['id'] ?? userData['userId'];
 
       // Buscar URL directa de imagen
@@ -476,50 +515,52 @@ class _HomeScreenState extends State<HomeScreen> {
           userData['imageUrl'] ??
           userData['image_url'];
 
-      // Si no hay URL directa pero hay userId, construir la URL del endpoint
+      // Usar el método del servicio para construir la URL si no hay una directa
       if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
-        // Usar el endpoint de tu backend para obtener la imagen
-        profileImageUrl = 'http://192.168.0.4:5000/api/bff/auth/profile/nutritionist/$userId/image';
+        profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
       }
     }
 
-    // Mostrar la imagen
-    if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
-      return Image.network(
-        profileImageUrl,
-        fit: BoxFit.cover,
-        headers: {
-          // Agregar headers de autorización si es necesario
-          if (authProvider.token != null)
-            'Authorization': 'Bearer ${authProvider.token}',
-        },
-        errorBuilder: (context, error, stackTrace) {
-          debugPrint('Error cargando imagen de perfil: $error');
-          // Si falla cargar la imagen de red, usar placeholder
-          return Image.asset(
-            'assets/images/placeholder_nutri.jpg',
+    // Mostrar la imagen con caché del servicio
+    if (profileImageUrl != null && profileImageUrl.isNotEmpty && userId != null) {
+      return FutureBuilder<File?>(
+        future: AuthService.getLocalAvatarImage(userId.toString()),
+        builder: (context, snapshot) {
+          if (snapshot.hasData && snapshot.data != null) {
+            return Image.file(
+              snapshot.data!,
+              fit: BoxFit.cover,
+            );
+          }
+
+          return CachedNetworkImage(
+            imageUrl: profileImageUrl!,
+            httpHeaders: {
+              if (authProvider.token != null)
+                'Authorization': 'Bearer ${authProvider.token}',
+            },
             fit: BoxFit.cover,
-          );
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: Colors.grey[200],
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                    loadingProgress.expectedTotalBytes!
-                    : null,
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            placeholder: (context, url) => Container(
+              color: Colors.grey[200],
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
               ),
             ),
+            errorWidget: (context, url, error) {
+              debugPrint('Error cargando imagen de perfil: $error');
+              return Image.asset(
+                'assets/images/placeholder_nutri.jpg',
+                fit: BoxFit.cover,
+              );
+            },
+            cacheManager: AuthService.avatarCacheManager,
           );
         },
       );
     } else {
-      // Usar imagen placeholder si no hay foto
       return Image.asset(
         'assets/images/placeholder_nutri.jpg',
         fit: BoxFit.cover,
@@ -571,7 +612,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               displayName,
               style: const TextStyle(
-                fontSize: 30,
+                fontSize: 25,
                 height: 1,
                 fontWeight: FontWeight.w300,
                 color: Colors.black87,

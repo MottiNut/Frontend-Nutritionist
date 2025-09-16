@@ -627,7 +627,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                 backgroundColor: _primaryColor,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Limpiar búsqueda'),
+              child: const Text('Limpiar búsqueda')
             ),
           ],
         ],
