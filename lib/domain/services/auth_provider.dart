@@ -324,8 +324,6 @@ class AuthResponse {
   }
 
 }
-
-
 class AuthService {
   // URLs base
   static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';

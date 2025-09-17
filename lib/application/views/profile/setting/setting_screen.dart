@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/location_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/payments_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/personal_information_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/privacy_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/schedule_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/verification_screen.dart';
 import '../../../../configuration/themes/app_colors.dart';
-import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
-import 'package:provider/provider.dart';
-import 'package:provider/provider.dart';
-import '../../../../domain/services/auth_provider.dart';
+import '../../../auth/terms and conditions/politica_privacidad_screen.dart';
+import '../../../auth/terms and conditions/terminos_condiciones_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -548,7 +552,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _navigateToPersonalInfo() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PersonalInfoScreen()),
+      MaterialPageRoute(builder: (_) => const PersonalInfoScreenn()),
     );
   }
   void _navigateToPrivacy() {
@@ -557,10 +561,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       MaterialPageRoute(builder: (_) => const PrivacyScreen()),
     );
   }
-  void _navigateToVerification() {}
-  void _navigateToSchedule() {}
-  void _navigateToPayments() {}
-  void _navigateToLocation() {}
+  void _navigateToVerification() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const VerificationScreen()),
+    );
+  }
+  void _navigateToSchedule() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ScheduleScreen()),
+    );
+  }
+
+  void _navigateToPayments() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+    );
+  }
+
+  void _navigateToLocation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LocationScreen()),
+    );
+  }
+
   void _navigateToGoals() {}
   void _navigateToWaterLog() {}
   void _navigateToUnits() {}
@@ -572,464 +599,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _navigateToSupport() {}
   void _navigateToRating() {}
   void _navigateToAbout() {}
-  void _navigateToTerms() {}
-  void _navigateToPrivacyPolicy() {}
+  void _navigateToTerms() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TerminosCondicionesScreen()),
+    );
+
+  }
+  void _navigateToPrivacyPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PoliticaPrivacidadScreen()),
+    );
+  }
   void _performLogout() {}
 }
 
 
-////////////////////////
-
-class PersonalInfoScreen extends StatelessWidget {
-  const PersonalInfoScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user ?? {}; // Datos en Map<String, dynamic>
-
-    // Datos básicos del usuario
-    final String name = user['fullName'] ??
-        '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'.trim();
-    final String email = user['email'] ?? 'No disponible';
-    final String phone = user['phone'] ?? 'No disponible';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Información Personal', style: TextStyle(color: Colors.white),),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-
-      body: authProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(context).padding.bottom,
-        ),
-        child: Card(
-          color: Colors.grey.shade100,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow(Icons.person, 'Nombre', name),
-                const Divider(height: 30, thickness: 0.3 ),
-                _buildInfoRow(Icons.email, 'Email', email),
-                const Divider(height: 30, thickness: 0.3,),
-                _buildInfoRow(Icons.phone, 'Teléfono', phone),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Widget reutilizable para cada fila de información
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.teal, size: 26),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(
-                value.isNotEmpty ? value : 'No disponible',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-////2
-class PrivacyScreen extends StatefulWidget {
-  const PrivacyScreen({super.key});
-
-  @override
-  State<PrivacyScreen> createState() => _PrivacyScreenState();
-}
-class _PrivacyScreenState extends State<PrivacyScreen> {
-  final LocalAuthentication auth = LocalAuthentication();
-  bool _isAuthenticated = false;
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkBiometrics();
-  }
-
-  Future<void> _checkBiometrics() async {
-    try {
-      final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
-      if (!canCheck) {
-        setState(() {
-          _error = 'Tu dispositivo no soporta autenticación biométrica.';
-          _loading = false;
-        });
-        return;
-      }
-
-      final didAuthenticate = await auth.authenticate(
-        localizedReason: 'Confirma tu identidad para acceder a Privacidad',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false, // permite PIN/patrón si no hay huella/face
-        ),
-      );
-
-      setState(() {
-        _isAuthenticated = didAuthenticate;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Error en la autenticación: $e';
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Privacidad y seguridad',
-            style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-          : !_isAuthenticated
-          ? const Center(child: Text('Autenticación fallida'))
-          : _buildPrivacyContent(authProvider),
-    );
-  }
-
-  Widget _buildPrivacyContent(AuthProvider authProvider) {
-    final user = authProvider.user ?? {};
-    final String email = user['email'] ?? 'No disponible';
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        color: Colors.grey.shade100,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Cuenta',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              Text('Correo: $email',
-                  style: const TextStyle(fontSize: 16, color: Colors.black87)),
-              const Divider(height: 40, thickness: 0.3),
-              const Text('Contraseña',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('********', style: TextStyle(fontSize: 18)),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                    icon: const Icon(Icons.edit, size: 18, color: Colors.white),
-                    label: const Text('Cambiar',
-                        style: TextStyle(color: Colors.white)),
-                    onPressed: () {
-                      // Aquí navegas a tu pantalla de cambio de contraseña
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ChangePasswordScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ChangePasswordScreen extends StatelessWidget {
-  const ChangePasswordScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final oldController = TextEditingController();
-    final newController = TextEditingController();
-    final confirmController = TextEditingController();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cambiar contraseña', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildPasswordField('Contraseña actual', oldController),
-            const SizedBox(height: 16),
-            _buildPasswordField('Nueva contraseña', newController),
-            const SizedBox(height: 16),
-            _buildPasswordField('Confirmar nueva contraseña', confirmController),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              onPressed: () {
-                // TODO: llamar al servicio para actualizar la contraseña
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Contraseña actualizada')),
-                );
-                Navigator.pop(context);
-              },
-              child: const Text('Guardar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-}
 
 
-class VerificationScreen extends StatelessWidget {
-  const VerificationScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-    final user = auth.user ?? {};
-
-    final bool emailVerified = user['emailVerified'] ?? false;
-    final bool phoneVerified = user['phoneVerified'] ?? false;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verificación de cuenta',
-            style: TextStyle(color: Colors.white)),
-        backgroundColor: AppColors.primary,
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 24),
-            Text(
-              'Estado de verificación',
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Email
-            _buildVerificationItem(
-              context,
-              label: 'Correo electrónico',
-              isVerified: emailVerified,
-              onVerify: () async {
-                final email = user['email'];
-                if (email != null && email.toString().isNotEmpty) {
-                  await auth.sendVerificationCode(
-
-                    method: VerificationMethod.email,
-                  );
-                  _showSnack(context, 'Código de verificación enviado a $email');
-                }
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Teléfono
-            _buildVerificationItem(
-              context,
-              label: 'Teléfono',
-              isVerified: phoneVerified,
-              onVerify: () async {
-                final phone = user['phone'];
-                if (phone != null && phone.toString().isNotEmpty) {
-                  await auth.sendVerificationCode(
-                    method: VerificationMethod.sms,
-                  );
-                  _showSnack(context, 'Código de verificación enviado al teléfono');
-                }
-              },
-            ),
-            const SizedBox(height: 40),
-
-            // Botón continuar
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: (emailVerified && phoneVerified)
-                  ? () {
-                Navigator.pop(context, true); // Vuelve a la app principal
-              }
-                  : null,
-              child: const Text(
-                'Continuar',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Widget reutilizable para cada item de verificación
-  Widget _buildVerificationItem(
-      BuildContext context, {
-        required String label,
-        required bool isVerified,
-        required VoidCallback onVerify,
-      }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isVerified ? Colors.green : Colors.grey.shade300,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isVerified ? Icons.check_circle : Icons.error_outline,
-            color: isVerified ? Colors.green : Colors.grey,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              isVerified ? '$label verificado' : '$label pendiente',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isVerified ? Colors.green[800] : Colors.black87,
-              ),
-            ),
-          ),
-          if (!isVerified)
-            TextButton(
-              onPressed: onVerify,
-              child: const Text('Verificar'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-}
-
-
-class ScheduleScreen extends StatelessWidget {
-  const ScheduleScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Horarios de consulta')),
-    );
-  }
-}
-
-class PaymentsScreen extends StatelessWidget {
-  const PaymentsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Tarifas y pagos')),
-    );
-  }
-}
-
-class LocationScreen extends StatelessWidget {
-  const LocationScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Ubicación del consultorio')),
-    );
-  }
-}
 
 class GoalsScreen extends StatelessWidget {
   const GoalsScreen({super.key});
