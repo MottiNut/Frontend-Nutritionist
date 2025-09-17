@@ -270,7 +270,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       // Crear el perfil actualizado
-      final updatedProfile = UserProfile(
+      /*final updatedProfile = UserProfile(
         id: widget.userProfile.id,
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
@@ -292,13 +292,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         verificationStatus: widget.userProfile.verificationStatus,
         createdAt: widget.userProfile.createdAt,
         updatedAt: DateTime.now(),
-      );
+      );*/
 
-      // Simular guardado (aquí harías la llamada a tu API)
       await Future.delayed(const Duration(seconds: 1));
 
-      // Llamar al callback con el perfil actualizado
-      widget.onProfileUpdated(updatedProfile);
+      /*widget.onProfileUpdated(updatedProfile);*/
 
       if (mounted) {
         Navigator.pop(context);

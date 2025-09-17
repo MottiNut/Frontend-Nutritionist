@@ -151,6 +151,28 @@ enum VerificationMethod {
     }
   }
 }
+class VerificationStatus1 {
+  final bool emailVerified;
+  final bool phoneVerified;
+  final bool fullyVerified;
+  final bool requiresVerification;
+
+  VerificationStatus1({
+    required this.emailVerified,
+    required this.phoneVerified,
+    required this.fullyVerified,
+    required this.requiresVerification,
+  });
+
+  factory VerificationStatus1.fromMap(Map<String, dynamic> map) {
+    return VerificationStatus1(
+      emailVerified: map['emailVerified'] ?? false,
+      phoneVerified: map['phoneVerified'] ?? false,
+      fullyVerified: map['fullyVerified'] ?? false,
+      requiresVerification: map['requiresVerification'] ?? false,
+    );
+  }
+}
 
 class UserModel {
   final String uid;
@@ -239,7 +261,7 @@ class AuthResponse {
   final String? userId;
   final String? email;
   final Map<String, dynamic>? user;
-  final Map<String, dynamic>? verificationStatus; // Nueva propiedad
+  final VerificationStatus1? verificationStatus;
 
   AuthResponse({
     required this.success,
@@ -252,15 +274,12 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    // Si hay token, entonces es success
-    bool isSuccess = json['success'] ?? (json['token'] != null);
+    final bool isSuccess = json['success'] ?? (json['token'] != null);
 
-    // Construir user data desde la respuesta directa si no hay campo 'user'
     Map<String, dynamic>? userData;
     if (json['user'] != null) {
       userData = Map<String, dynamic>.from(json['user']);
     } else if (json['token'] != null) {
-      // Construir userData desde los campos directos de la respuesta
       userData = {
         'userId': json['userId'],
         'email': json['email'],
@@ -280,7 +299,10 @@ class AuthResponse {
       userId: json['userId']?.toString(),
       email: json['email'],
       user: userData,
-      verificationStatus: json['verificationStatus'] as Map<String, dynamic>?, // Nueva propiedad
+      verificationStatus: json['verificationStatus'] != null
+          ? VerificationStatus1.fromMap(
+          Map<String, dynamic>.from(json['verificationStatus']))
+          : null,
     );
   }
 
@@ -292,10 +314,18 @@ class AuthResponse {
       'userId': userId,
       'email': email,
       'user': user,
-      'verificationStatus': verificationStatus, // Nueva propiedad
+      'verificationStatus': verificationStatus == null ? null : {
+        'emailVerified': verificationStatus!.emailVerified,
+        'phoneVerified': verificationStatus!.phoneVerified,
+        'fullyVerified': verificationStatus!.fullyVerified,
+        'requiresVerification': verificationStatus!.requiresVerification,
+      },
     };
   }
+
 }
+
+
 class AuthService {
   // URLs base
   static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
@@ -1270,6 +1300,10 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  bool get isFullyVerified => _user?['fullyVerified'] == true;
+  bool get isEmailVerified => _user?['emailVerified'] == true;
+  bool get isPhoneVerified => _user?['phoneVerified'] == true;
 
   // ========== VERIFICACIÓN ==========
 

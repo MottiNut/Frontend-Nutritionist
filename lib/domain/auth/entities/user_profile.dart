@@ -16,6 +16,8 @@ class UserProfile {
   final String? otherSpecialty;
   final String location;
   final String address;
+  final String? phone;
+  final String? experience;
   final VerificationStatus verificationStatus;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -33,6 +35,8 @@ class UserProfile {
     this.otherSpecialty,
     required this.location,
     required this.address,
+    this.phone,
+    this.experience,
     this.verificationStatus = VerificationStatus.pending,
     required this.createdAt,
     this.updatedAt,
@@ -53,6 +57,8 @@ class UserProfile {
     String? otherSpecialty,
     String? location,
     String? address,
+    String? phone,
+    String? experience,
     VerificationStatus? verificationStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -70,6 +76,8 @@ class UserProfile {
       otherSpecialty: otherSpecialty ?? this.otherSpecialty,
       location: location ?? this.location,
       address: address ?? this.address,
+      phone: phone ?? this.phone,
+      experience: experience ?? this.experience,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

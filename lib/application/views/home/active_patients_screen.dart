@@ -6,6 +6,7 @@ import '../../../configuration/themes/app_colors.dart';
 import '../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
 import '../../../domain/services/auth_provider.dart';
 import '../../skeletons/patients_list_skeleton.dart';
+import '../patients/categorys_patogys/news/PatientDetailScreen.dart';
 
 
 class ActivePatientsScreen extends StatefulWidget {
@@ -125,6 +126,8 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -136,7 +139,7 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
           style: TextStyle(
             color: AppColors.textPrimary1,
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
         centerTitle: true,
@@ -176,7 +179,7 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
 
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(12, 1, 12, 3),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -191,6 +194,7 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
         children: [
           // Barra de búsqueda
           Container(
+            height: 44,
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(12),
@@ -198,9 +202,16 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black,
+              ),
               decoration: InputDecoration(
                 hintText: 'Buscar pacientes...',
-                hintStyle: TextStyle(color: Colors.grey[500]),
+                hintStyle: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
                 prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
@@ -211,15 +222,20 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          // Filtros
-          Row(
-            children: [
-              _buildFilterChip('Todos', 'all'),
-              const SizedBox(width: 8),
-              _buildFilterChip('Con condiciones', 'chronic'),
-              const SizedBox(width: 8),
-              _buildFilterChip('Sin condiciones', 'no_chronic'),
-            ],
+
+          // 🔥 Scroll horizontal
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('Todos', 'all'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Con condiciones', 'chronic'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Sin condiciones', 'no_chronic'),
+
+              ],
+            ),
           ),
         ],
       ),
@@ -231,10 +247,10 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
     return GestureDetector(
       onTap: () => _onFilterChanged(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(25),
           border: Border.all(
             color: isSelected ? AppColors.primary : Colors.grey[300]!,
           ),
@@ -266,16 +282,26 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
 
     return RefreshIndicator(
       onRefresh: loadActivePatients,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+      color: AppColors.primary,
+      child: ListView.separated(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.of(context).padding.bottom,
+        ),
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: filteredPatients.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 6),
         itemBuilder: (context, index) {
           final patient = filteredPatients[index];
           return _buildPatientCard(patient);
         },
       ),
     );
+
   }
+
 
   Widget _buildErrorState() {
     return Center(
@@ -359,120 +385,119 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
   }
 
   Widget _buildPatientCard(PatientProfile patient) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final statusColor = AppColors.primary.withOpacity(0.1);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+        onTap: () => _navigateToPatientDetail(patient),
+        child: Container(
+          height: 110,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!, width: 0.4),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Avatar del paciente
-          _buildPatientAvatar(patient),
-          const SizedBox(width: 16),
-          // Información del paciente
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  patient.fullName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary1,
+          child: Row(
+            children: [
+
+              SizedBox(
+                width: 90,
+                height: double.infinity,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(12),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: _buildPatientAvatar(patient),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  patient.email,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textLDark,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    if (patient.age != null) ...[
-                      _buildInfoChip('${patient.age} años', Icons.cake),
-                      const SizedBox(width: 8),
+              ),
+
+              // ----------- Info paciente -----------
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        patient.fullName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        patient.email,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (patient.age != null)
+                            _buildInfoChip('${patient.age} años', Icons.cake),
+                          if (patient.chronicDisease != null)
+                            _buildInfoChip(patient.chronicDisease!, Icons.medical_services),
+                        ],
+                      ),
                     ],
-                    if (patient.chronicDisease != null)
-                      _buildInfoChip(patient.chronicDisease!, Icons.medical_services),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          // Indicador de acción
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: AppColors.textLDark,
-          ),
-        ],
+        ),
       ),
     );
   }
-
   Widget _buildPatientAvatar(PatientProfile patient) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey[300]!),
+    return FutureBuilder<Uint8List?>(
+      future: widget.nutritionistService.getPatientProfileImage(
+        patient.patientId,
+        Provider.of<AuthProvider>(context, listen: false).token!,
       ),
-      child: FutureBuilder<Uint8List?>(
-        future: widget.nutritionistService.getPatientProfileImage(
-          patient.patientId,
-          Provider.of<AuthProvider>(context, listen: false).token!,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.data != null) {
-            return ClipOval(
-              child: Image.memory(
-                snapshot.data!,
-                fit: BoxFit.cover,
-                width: 60,
-                height: 60,
-              ),
-            );
-          }
-
-          // Avatar con iniciales como fallback
-          return Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primary.withOpacity(0.1),
-            ),
-            child: Center(
-              child: Text(
-                _getInitials(patient.fullName),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          return Image.memory(
+            snapshot.data!,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
           );
-        },
-      ),
+        }
+
+        // Fallback con color plano y texto
+        return Container(
+          color: AppColors.primary.withOpacity(0.1),
+          child: Center(
+            child: Text(
+              _getInitials(patient.fullName),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -505,6 +530,16 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
     );
   }
 
+  void _navigateToPatientDetail(PatientProfile patient) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PatientDetailScreens(patient: patient),
+      ),
+    ).then((_) {
+     // _loadPatients();
+    });
+  }
   String _getInitials(String fullName) {
     final parts = fullName.trim().split(' ');
     if (parts.length >= 2) {
