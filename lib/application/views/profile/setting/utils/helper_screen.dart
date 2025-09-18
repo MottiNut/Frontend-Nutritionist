@@ -1,125 +1,144 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
-class HelpScreen extends StatefulWidget {
+class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
   @override
-  State<HelpScreen> createState() => _HelpScreenState();
-}
-
-class _HelpScreenState extends State<HelpScreen> {
-  String searchQuery = '';
-
-  // Preguntas frecuentes (ejemplo)
-  final List<Map<String, String>> faqs = [
-    {
-      'question': '¿Cómo funciona Mottinut?',
-      'answer': 'Mottinut te ayuda a llevar un control nutricional con planes personalizados y consejos de expertos.'
-    },
-    {
-      'question': '¿Puedo cambiar mi plan nutricional?',
-      'answer': 'Sí, en la sección de configuración puedes actualizar tus objetivos y preferencias.'
-    },
-    {
-      'question': '¿Cómo contacto a un nutricionista?',
-      'answer': 'Puedes chatear directamente con un nutricionista desde el menú principal de la app.'
-    },
-    {
-      'question': '¿Qué pasa si olvido registrar mis comidas?',
-      'answer': 'No te preocupes, puedes añadirlas después y el sistema recalculará tus métricas.'
-    },
-  ];
-
-  @override
   Widget build(BuildContext context) {
-    final filteredFaqs = faqs
-        .where((faq) =>
-        faq['question']!.toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
-
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Ayuda',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          'Asesoría Nutricional',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black87,
+          ),
         ),
-        centerTitle: true,
-        elevation: 1,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        elevation: 1,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Barra de búsqueda
-            TextField(
-              onChanged: (value) => setState(() => searchQuery = value),
+      body: Column(
+        children: [
+          // 🔎 Barra de búsqueda estilo TikTok
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
               decoration: InputDecoration(
-                hintText: 'Buscar preguntas...',
-                prefixIcon: const Icon(Icons.search),
+                hintText: 'Buscar consejos, recetas o preguntas...',
+                prefixIcon: const Icon(LucideIcons.search, color: Colors.black54),
                 filled: true,
                 fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+          ),
 
-            // Lista de FAQs
-            Expanded(
-              child: filteredFaqs.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No se encontraron resultados',
-                  style: TextStyle(color: Colors.grey),
+          // 📋 Contenido scrollable
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildTipCard(
+                  icon: LucideIcons.apple,
+                  title: "Plan de alimentación balanceado",
+                  description:
+                  "Aprende cómo equilibrar tus macronutrientes de manera efectiva para mejorar tu salud.",
                 ),
-              )
-                  : ListView.separated(
-                itemCount: filteredFaqs.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final faq = filteredFaqs[index];
-                  return Card(
-                    elevation: 0,
-                    color: Colors.grey.shade100,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ExpansionTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      title: Text(
-                        faq['question']!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: Text(
-                            faq['answer']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                _buildTipCard(
+                  icon: LucideIcons.droplet,
+                  title: "Importancia de la hidratación",
+                  description:
+                  "Descubre cuánta agua deberías tomar al día según tu peso y estilo de vida.",
+                ),
+                _buildTipCard(
+                  icon: LucideIcons.dumbbell,
+                  title: "Nutrición y ejercicio",
+                  description:
+                  "Cómo potenciar tu rendimiento físico a través de una dieta adecuada.",
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  "Preguntas frecuentes",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildFaqItem(
+                  question: "¿Es malo comer carbohidratos en la noche?",
+                  answer:
+                  "No necesariamente. Lo importante es la cantidad total diaria y la calidad del carbohidrato.",
+                ),
+                _buildFaqItem(
+                  question: "¿Qué suplementos necesito para ganar músculo?",
+                  answer:
+                  "La mayoría de nutrientes los obtienes de la comida. La proteína en polvo puede ayudar si no llegas con alimentos.",
+                ),
+                _buildFaqItem(
+                  question: "¿El ayuno intermitente funciona para bajar de peso?",
+                  answer:
+                  "Es una estrategia válida, pero no es la única. Lo clave es mantener un déficit calórico sostenible.",
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Tarjeta de consejos
+  Widget _buildTipCard({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.grey.shade50,
+      elevation: 0.5,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.green, size: 30),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          description,
+          style: const TextStyle(color: Colors.black54, fontSize: 14),
         ),
       ),
+    );
+  }
+
+  // ✅ Item de FAQ expandible
+  Widget _buildFaqItem({required String question, required String answer}) {
+    return ExpansionTile(
+      title: Text(
+        question,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            answer,
+            style: const TextStyle(color: Colors.black54),
+          ),
+        ),
+      ],
     );
   }
 }

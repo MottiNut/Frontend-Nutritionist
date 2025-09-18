@@ -11,6 +11,7 @@ import 'package:mottinutnutriotinist/application/views/profile/setting/utils/per
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/privacy_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/reminder_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/schedule_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/support_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/units_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/verification_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/water_log_screen.dart';
@@ -644,7 +645,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
   }
-  void _navigateToSupport() {}
+  void _navigateToSupport() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SupportScreen())
+    );
+
+  }
   void _navigateToRating() {}
   void _navigateToAbout() {}
   void _navigateToTerms() {
@@ -679,17 +686,6 @@ class GoalsScreen extends StatelessWidget {
 }
 
 
-
-class SupportScreen extends StatelessWidget {
-  const SupportScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Contactar soporte')),
-    );
-  }
-}
 
 class RatingScreen extends StatelessWidget {
   const RatingScreen({super.key});
