@@ -106,6 +106,8 @@ class _VerificationScreenState extends State<VerificationScreen>
             ),
           ),
           body: RefreshIndicator(
+            color: AppColors.backgroundHipertencion,
+            backgroundColor: Colors.white,
             onRefresh: _refreshVerificationStatus,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),

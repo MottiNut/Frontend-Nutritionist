@@ -14,126 +14,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'firebase_auth_service.dart';
 
-///pruebas de comprimir
-class ImageCompressionUtils {
-  /// Comprime una imagen y retorna un archivo temporal
-  /// [imageFile] - Archivo de imagen original
-  /// [quality] - Calidad de compresión (0-100, default: 85)
-  /// [maxWidth] - Ancho máximo en píxeles (default: 1200)
-  /// [maxHeight] - Alto máximo en píxeles (default: 1600)
-  static Future<File> compressImage(
-      File imageFile, {
-        int quality = 85,
-        int maxWidth = 1200,
-        int maxHeight = 1600,
-      }) async {
-    try {
-      debugPrint('=== COMPRIMIENDO IMAGEN ===');
-      debugPrint('Archivo original: ${imageFile.path}');
-      debugPrint('Tamaño original: ${imageFile.lengthSync()} bytes');
+import 'package:connectivity_plus/connectivity_plus.dart';
 
-      // Leer la imagen original
-      final Uint8List imageBytes = await imageFile.readAsBytes();
 
-      // Decodificar la imagen
-      img.Image? originalImage = img.decodeImage(imageBytes);
-
-      if (originalImage == null) {
-        throw Exception('No se pudo decodificar la imagen');
-      }
-
-      debugPrint('Dimensiones originales: ${originalImage.width}x${originalImage.height}');
-
-      // Calcular nuevas dimensiones manteniendo la proporción
-      int newWidth = originalImage.width;
-      int newHeight = originalImage.height;
-
-      if (newWidth > maxWidth || newHeight > maxHeight) {
-        double aspectRatio = newWidth / newHeight;
-
-        if (aspectRatio > 1) {
-          // Imagen horizontal
-          newWidth = maxWidth;
-          newHeight = (maxWidth / aspectRatio).round();
-        } else {
-          // Imagen vertical
-          newHeight = maxHeight;
-          newWidth = (maxHeight * aspectRatio).round();
-        }
-      }
-
-      // Redimensionar la imagen si es necesario
-      img.Image resizedImage = originalImage;
-      if (newWidth != originalImage.width || newHeight != originalImage.height) {
-        resizedImage = img.copyResize(
-          originalImage,
-          width: newWidth,
-          height: newHeight,
-          interpolation: img.Interpolation.cubic,
-        );
-        debugPrint('Nuevas dimensiones: ${newWidth}x${newHeight}');
-      }
-
-      // Comprimir la imagen
-      List<int> compressedBytes;
-      String extension = path.extension(imageFile.path).toLowerCase();
-
-      if (extension == '.png') {
-        // Para PNG, convertir a JPEG para mejor compresión
-        compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-        extension = '.jpg';
-      } else {
-        // Para JPEG y otros formatos
-        compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-        extension = '.jpg';
-      }
-
-      // Crear archivo temporal con la imagen comprimida
-      final String fileName = path.basenameWithoutExtension(imageFile.path);
-      final String tempPath = '${imageFile.parent.path}/${fileName}_compressed$extension';
-      final File compressedFile = File(tempPath);
-
-      await compressedFile.writeAsBytes(compressedBytes);
-
-      debugPrint('Archivo comprimido: ${compressedFile.path}');
-      debugPrint('Tamaño comprimido: ${compressedFile.lengthSync()} bytes');
-      debugPrint('Reducción: ${((1 - compressedFile.lengthSync() / imageFile.lengthSync()) * 100).toStringAsFixed(1)}%');
-
-      return compressedFile;
-    } catch (e) {
-      debugPrint('Error comprimiendo imagen: $e');
-      // Si hay error, retornar el archivo original
-      return imageFile;
-    }
-  }
-
-  /// Comprime múltiples imágenes de forma paralela
-  static Future<List<File>> compressMultipleImages(
-      List<File> imageFiles, {
-        int quality = 85,
-        int maxWidth = 1200,
-        int maxHeight = 1600,
-      }) async {
-    final List<Future<File>> compressionTasks = imageFiles.map((file) =>
-        compressImage(file, quality: quality, maxWidth: maxWidth, maxHeight: maxHeight)
-    ).toList();
-
-    return await Future.wait(compressionTasks);
-  }
-
-  /// Limpia archivos temporales de compresión
-  static Future<void> cleanupTempFiles(List<File> files) async {
-    for (File file in files) {
-      if (file.path.contains('_compressed') && file.existsSync()) {
-        try {
-          await file.delete();
-        } catch (e) {
-          debugPrint('Error eliminando archivo temporal: $e');
-        }
-      }
-    }
-  }
-}
 
 enum VerificationMethod {
   email,
@@ -324,6 +207,178 @@ class AuthResponse {
   }
 
 }
+
+class CacheService {
+  static final CacheService _instance = CacheService._internal();
+  factory CacheService() => _instance;
+  CacheService._internal();
+
+  static const String _userDataKey = 'cached_user_data';
+  static const String _cacheTimestampKey = 'cache_timestamp';
+  static const Duration _cacheDuration = Duration(hours: 1);
+
+  final DefaultCacheManager _cacheManager = DefaultCacheManager();
+  final Connectivity _connectivity = Connectivity();
+
+  // Guardar datos del usuario en caché
+  Future<void> cacheUserData(Map<String, dynamic> userData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userDataKey, json.encode(userData));
+      await prefs.setInt(_cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
+
+      // Precargar imagen de perfil si existe
+      final String? imageUrl = _extractProfileImageUrl(userData);
+      if (imageUrl != null) {
+        await preloadProfileImage(imageUrl);
+      }
+    } catch (e) {
+      debugPrint('Error caching user data: $e');
+    }
+  }
+
+  // Obtener datos del usuario desde caché
+  Future<Map<String, dynamic>?> getCachedUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cachedData = prefs.getString(_userDataKey);
+      final int? timestamp = prefs.getInt(_cacheTimestampKey);
+
+      if (cachedData != null && timestamp != null) {
+        final DateTime cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        final DateTime now = DateTime.now();
+
+        if (now.difference(cacheTime) < _cacheDuration) {
+          return Map<String, dynamic>.from(json.decode(cachedData));
+        } else {
+          // Caché expirado, limpiar
+          await clearUserCache();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting cached user data: $e');
+    }
+    return null;
+  }
+
+  // Verificar si hay caché válido
+  Future<bool> hasValidCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final int? timestamp = prefs.getInt(_cacheTimestampKey);
+    if (timestamp == null) return false;
+
+    final DateTime cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return DateTime.now().difference(cacheTime) < _cacheDuration;
+  }
+
+  // Precargar imagen de perfil
+  Future<void> preloadProfileImage(String imageUrl) async {
+    try {
+      await _cacheManager.downloadFile(
+        imageUrl,
+        key: 'profile_image_${_getUserIdFromUrl(imageUrl)}',
+        authHeaders: await _getAuthHeaders(),
+      );
+    } catch (e) {
+      debugPrint('Error preloading profile image: $e');
+    }
+  }
+
+  Future<File> getCachedProfileImage(String imageUrl) async {
+    try {
+      final FileInfo? cachedFile = await _cacheManager.getFileFromCache(imageUrl);
+
+      if (cachedFile != null) {
+        return cachedFile.file;
+      }
+
+      // Si no está en caché, descargar
+      final fileInfo = await _cacheManager.downloadFile(
+        imageUrl,
+        authHeaders: await _getAuthHeaders(),
+        key: 'profile_image_${_getUserIdFromUrl(imageUrl)}',
+      );
+      return fileInfo.file;
+    } catch (e) {
+      debugPrint('Error getting cached profile image: $e');
+      throw Exception('No se pudo cargar la imagen');
+    }
+  }
+
+  // Limpiar caché
+  Future<void> clearUserCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userDataKey);
+      await prefs.remove(_cacheTimestampKey);
+      await _cacheManager.emptyCache();
+    } catch (e) {
+      debugPrint('Error clearing cache: $e');
+    }
+  }
+
+  Future<bool> isConnected() async {
+    final List<ConnectivityResult> results = await _connectivity.checkConnectivity();
+    return results.any((result) => result != ConnectivityResult.none);
+  }
+
+  Future<Map<String, dynamic>> loadUserDataWithStrategy({
+    required Future<Map<String, dynamic>> Function() fetchFromNetwork,
+    bool forceRefresh = false,
+  }) async {
+    if (forceRefresh) {
+      final freshData = await fetchFromNetwork();
+      await cacheUserData(freshData);
+      return freshData;
+    }
+
+    // Primero intentar desde caché
+    final cachedData = await getCachedUserData();
+    if (cachedData != null) {
+      if (await isConnected()) {
+        _refreshInBackground(fetchFromNetwork);
+      }
+      return cachedData;
+    }
+
+    // Si no hay caché, cargar desde red
+    return await fetchFromNetwork();
+  }
+
+  // Actualizar en segundo plano
+  void _refreshInBackground(Future<Map<String, dynamic>> Function() fetchFromNetwork) async {
+    try {
+      final freshData = await fetchFromNetwork();
+      await cacheUserData(freshData);
+    } catch (e) {
+      debugPrint('Background refresh failed: $e');
+    }
+  }
+
+  // Headers de autenticación
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('auth_token');
+
+    if (token != null) {
+      return {'Authorization': 'Bearer $token'};
+    }
+    return {};
+  }
+
+  String? _extractProfileImageUrl(Map<String, dynamic> userData) {
+    return userData['profileImageUrl'] ??
+        userData['profileImage'] ??
+        userData['avatar'] ??
+        userData['imageUrl'];
+  }
+
+  String _getUserIdFromUrl(String url) {
+    // Extraer ID de usuario de la URL si es posible
+    final uri = Uri.parse(url);
+    return uri.pathSegments.lastWhere((segment) => segment.isNotEmpty, orElse: () => 'default');
+  }
+}
 class AuthService {
   // URLs base
   static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
@@ -345,6 +400,8 @@ class AuthService {
   static const String meEndpoint = '$baseUrl/me';
 
   final http.Client _client = http.Client();
+
+  final CacheService _cacheService = CacheService();
 
   // Headers comunes
   Map<String, String> get _headers => {
@@ -780,30 +837,29 @@ class AuthService {
   );
 
   // ========== MÉTODOS DE CACHÉ PARA IMÁGENES ==========
-  Future<AuthResponse> getCurrentUser(String token) async {
+  Future<AuthResponse> getCurrentUser(String token, {bool forceRefresh = false}) async {
     try {
-      final response = await _client.get(
-        Uri.parse(meEndpoint),
-        headers: _headersWithAuth(token),
+      final userData = await _cacheService.loadUserDataWithStrategy(
+        forceRefresh: forceRefresh,
+        fetchFromNetwork: () async {
+          final response = await _client.get(
+            Uri.parse(meEndpoint),
+            headers: _headersWithAuth(token),
+          );
+
+          if (response.statusCode == 200) {
+            final responseData = json.decode(response.body);
+            return Map<String, dynamic>.from(responseData);
+          }
+          throw Exception('Error obteniendo datos del usuario');
+        },
       );
 
-      debugPrint('Current User Response Status: ${response.statusCode}');
-      debugPrint('Current User Response Body: ${response.body}');
-
-      final responseData = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        return AuthResponse(
-          success: true,
-          user: Map<String, dynamic>.from(responseData),
-          token: token,
-        );
-      } else {
-        return AuthResponse(
-          success: false,
-          message: responseData['message'] ?? 'Error obteniendo datos del usuario',
-        );
-      }
+      return AuthResponse(
+        success: true,
+        user: userData,
+        token: token,
+      );
     } catch (e) {
       debugPrint('Error getting current user: $e');
       return AuthResponse(
@@ -921,62 +977,32 @@ class AuthService {
   }
 
   // En tu AuthService, modifica el método getNutritionistProfile
-  Future<AuthResponse> getNutritionistProfile(String token) async {
+  Future<AuthResponse> getNutritionistProfile(String token, {bool forceRefresh = false}) async {
     try {
-      final response = await _client.get(
-        Uri.parse(nutritionistProfileEndpoint),
-        headers: _headersWithAuth(token),
+      // Usar estrategia de caché
+      final userData = await _cacheService.loadUserDataWithStrategy(
+        forceRefresh: forceRefresh,
+        fetchFromNetwork: () async {
+          final response = await _client.get(
+            Uri.parse(nutritionistProfileEndpoint),
+            headers: _headersWithAuth(token),
+          );
+
+          if (response.statusCode == 200) {
+            final responseData = json.decode(response.body);
+            return _extractUserData(responseData);
+          }
+          throw Exception('Error obteniendo perfil');
+        },
       );
 
-      debugPrint('🔍 Profile Response Status: ${response.statusCode}');
-      debugPrint('🔍 Profile Response Body: ${response.body}');
-
-      final responseData = json.decode(response.body);
-
-      // DEBUG: Mostrar estructura completa de la respuesta
-      _debugResponseStructure(responseData);
-
-      if (response.statusCode == 200) {
-        // Intentar diferentes estructuras de respuesta
-        Map<String, dynamic>? userData;
-
-        if (responseData['data'] != null && responseData['data'] is Map) {
-          userData = Map<String, dynamic>.from(responseData['data']);
-        } else if (responseData['user'] != null && responseData['user'] is Map) {
-          userData = Map<String, dynamic>.from(responseData['user']);
-        } else if (responseData is Map) {
-          userData = Map<String, dynamic>.from(responseData);
-        }
-
-        if (userData != null) {
-          final String? userId = userData['id']?.toString() ??
-              userData['userId']?.toString() ??
-              userData['_id']?.toString();
-
-          final String? imageUrl = _extractProfileImageUrl(userData);
-
-          if (imageUrl != null && userId != null) {
-            unawaited(preloadAvatarImage(
-              imageUrl: imageUrl,
-              token: token,
-              userId: userId,
-            ));
-          }
-        }
-
-        return AuthResponse(
-          success: true,
-          user: userData ?? responseData,
-          token: token,
-        );
-      } else {
-        return AuthResponse(
-          success: false,
-          message: responseData['message'] ?? 'Error obteniendo perfil',
-        );
-      }
+      return AuthResponse(
+        success: true,
+        user: userData,
+        token: token,
+      );
     } catch (e) {
-      debugPrint('❌ Error getting profile: $e');
+      debugPrint('Error getting profile: $e');
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -984,31 +1010,18 @@ class AuthService {
     }
   }
 
-// Método mejorado para debug
-  void _debugResponseStructure(dynamic responseData) {
-    debugPrint('=== ESTRUCTURA DE LA RESPUESTA DEL PERFIL ===');
-
-    if (responseData is Map) {
-      responseData.forEach((key, value) {
-        if (value is Map) {
-          debugPrint('$key: [MAP] con ${value.length} campos');
-          value.forEach((subKey, subValue) {
-            debugPrint('  $subKey: $subValue (${subValue.runtimeType})');
-          });
-        } else if (value is List) {
-          debugPrint('$key: [LIST] con ${value.length} elementos');
-        } else {
-          debugPrint('$key: $value (${value.runtimeType})');
-        }
-      });
-    } else {
-      debugPrint('Tipo de respuesta: ${responseData.runtimeType}');
-      debugPrint('Contenido: $responseData');
+  Map<String, dynamic> _extractUserData(dynamic responseData) {
+    if (responseData['data'] != null && responseData['data'] is Map) {
+      return Map<String, dynamic>.from(responseData['data']);
+    } else if (responseData['user'] != null && responseData['user'] is Map) {
+      return Map<String, dynamic>.from(responseData['user']);
+    } else if (responseData is Map) {
+      return Map<String, dynamic>.from(responseData);
     }
-    debugPrint('============================================');
+    return {};
   }
 
-  /// Método estático para construir URL de imagen de perfil
+  // Método estático para construir URL de imagen de perfil
   static String buildProfileImageUrl(String userId) {
     return '$nutritionistImageEndpoint/$userId/image';
   }
@@ -1057,6 +1070,7 @@ class AuthService {
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
 
+  final CacheService _cacheService = CacheService();
   //final FirebaseAuthService _authServiceGogle = FirebaseAuthService();
 
   // Estado de autenticación
@@ -1338,13 +1352,16 @@ class AuthProvider with ChangeNotifier {
 
   // ========== VERIFICACIÓN ==========
 
-  Future<bool> loadUserProfile() async {
+  Future<bool> loadUserProfile({bool forceRefresh = false}) async {
     if (_token == null) return false;
 
     _setLoading(true);
 
     try {
-      final response = await _authService.getNutritionistProfile(_token!);
+      final response = await _authService.getNutritionistProfile(
+          _token!,
+          forceRefresh: forceRefresh
+      );
 
       if (response.success && response.user != null) {
         _user = response.user;
@@ -1358,6 +1375,10 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> refreshUserData() async {
+    await loadUserProfile(forceRefresh: true);
   }
 
   Future<bool> loadCurrentUser() async {
@@ -1613,6 +1634,8 @@ class AuthProvider with ChangeNotifier {
     if (_token != null) {
       await _authService.logout(_token!);
     }
+
+    await _cacheService.clearUserCache();
 
     _isAuthenticated = false;
     _token = null;

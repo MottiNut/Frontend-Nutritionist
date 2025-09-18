@@ -39,11 +39,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _hasAttemptedLoad = false;
 
+  bool _usingCachedData = false;
+
   @override
   void initState() {
     super.initState();
     _initializeProfile();
     _precacheUserAvatar();
+  }
+
+  void _initializeProfile() async {
+    final authProvider = context.read<AuthProvider>();
+    if (widget.userProfile != null) {
+      profile = widget.userProfile;
+      _isLoading = false;
+      if (mounted) setState(() {});
+      return;
+    }
+
+    if (authProvider.isAuthenticated) {
+      await _loadProfileData(authProvider);
+    } else {
+      _isLoading = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _loadProfileData(AuthProvider authProvider) async {
+    if (_hasAttemptedLoad) return;
+
+    if (authProvider.user != null) {
+      setState(() {
+        profile = _createProfileFromAuthProvider(authProvider);
+        _usingCachedData = true;
+        _isLoading = false;
+      });
+    }
+
+    setState(() {
+      _hasAttemptedLoad = true;
+    });
+
+    try {
+
+      final success = await authProvider.loadUserProfile();
+
+      if (success && authProvider.user != null && mounted) {
+        final newProfile = _createProfileFromAuthProvider(authProvider);
+
+        if (profile == null ||
+            newProfile.updatedAt != profile!.updatedAt ||
+            !_areProfilesEqual(profile!, newProfile)) {
+          setState(() {
+            profile = newProfile;
+            _usingCachedData = false;
+            _errorMessage = null;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Profile background refresh error: $e');
+
+    }
+  }
+
+  bool _areProfilesEqual(UserProfile a, UserProfile b) {
+    return a.id == b.id &&
+        a.firstName == b.firstName &&
+        a.lastName == b.lastName &&
+        a.email.value == b.email.value &&
+        a.photoUrl == b.photoUrl;
   }
 
   void _precacheUserAvatar() {
@@ -66,7 +131,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userData['imageUrl'] ??
           userData['image_url'];
 
-      // Usar el método estático del AuthService para construir la URL
       if ((profileImageUrl == null || profileImageUrl.isEmpty) &&
           userId != null) {
         profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
@@ -80,67 +144,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           token: authProvider.token,
           userId: userId.toString(),
         ));
-      }
-    }
-  }
-
-  void _initializeProfile() async {
-    final authProvider = context.read<AuthProvider>();
-
-    // Usar perfil pasado como parámetro si existe
-    if (widget.userProfile != null) {
-      profile = widget.userProfile;
-      _isLoading = false;
-      return;
-    }
-
-    // Si el usuario está autenticado, cargar datos
-    if (authProvider.isAuthenticated) {
-      await _loadProfileData(authProvider);
-    } else {
-      _isLoading = false;
-    }
-  }
-
-  Future<void> _loadProfileData(AuthProvider authProvider) async {
-    if (_hasAttemptedLoad) return;
-
-    setState(() {
-      _isLoading = true;
-      _hasAttemptedLoad = true;
-    });
-
-    try {
-      // Primero intentar cargar datos existentes del provider
-      if (authProvider.user != null) {
-        profile = _createProfileFromAuthProvider(authProvider);
-      }
-
-      // Luego intentar actualizar desde el servidor
-      final success = await authProvider.loadUserProfile();
-
-      if (success && authProvider.user != null && mounted) {
-        setState(() {
-          profile = _createProfileFromAuthProvider(authProvider);
-          _errorMessage = null;
-        });
-      } else if (!success && profile == null) {
-        throw Exception('No se pudo cargar el perfil');
-      }
-    } catch (e) {
-      debugPrint('Profile load error: $e');
-      setState(() {
-        _errorMessage = 'Error cargando perfil: ${e.toString()}';
-        // Si falla pero tenemos datos básicos, mantenerlos
-        if (profile == null && authProvider.user != null) {
-          profile = _createProfileFromAuthProvider(authProvider);
-        }
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -165,7 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userData['cnp']?.toString() ??
           userData['licenseNumber']?.toString() ??
           '0000'),
-      cnpPhotoUrls: _parseCnpPhotoUrls(userData, authProvider),
       specialty: _parseSpecialty(userData['specialty']?.toString()),
       masterDegree: userData['masterDegree']?.toString() ??
           userData['education']?.toString() ??
@@ -202,14 +204,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         userData['image']?.toString() ??
         userData['picture']?.toString();
 
-    // Si no hay URL directa, construir URL usando el ID del usuario
     if ((imageUrl == null || imageUrl.isEmpty) && userData['id'] != null) {
       final userId = userData['id'].toString();
       imageUrl =
           'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId/image';
     }
 
-    // Añadir token de autorización si es necesario
     if (imageUrl != null && authProvider.token != null) {
       // Verificar si la URL ya tiene parámetros de consulta
       final separator = imageUrl.contains('?') ? '&' : '?';
@@ -219,70 +219,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return imageUrl;
   }
 
-  List<String> _parseCnpPhotoUrls(
-      Map<String, dynamic> userData, AuthProvider authProvider) {
-    // Intentar múltiples campos para las imágenes del CNP
-    dynamic cnpUrls = userData['cnpPhotoUrls'] ??
-        userData['licenseImages'] ??
-        userData['cnpImages'] ??
-        userData['documentImages'];
-
-    if (cnpUrls == null) {
-      // Construir URLs usando campos individuales
-      List<String> urls = [];
-      final userId = userData['id']?.toString();
-
-      if (userData['licenseFrontImage'] != null) {
-        String frontUrl = userData['licenseFrontImage'].toString();
-        if (authProvider.token != null) {
-          final separator = frontUrl.contains('?') ? '&' : '?';
-          frontUrl = '$frontUrl${separator}token=${authProvider.token}';
-        }
-        urls.add(frontUrl);
-      }
-
-      if (userData['licenseBackImage'] != null) {
-        String backUrl = userData['licenseBackImage'].toString();
-        if (authProvider.token != null) {
-          final separator = backUrl.contains('?') ? '&' : '?';
-          backUrl = '$backUrl${separator}token=${authProvider.token}';
-        }
-        urls.add(backUrl);
-      }
-
-      // Si no hay URLs directas pero hay userId, construir URLs
-      if (urls.isEmpty && userId != null) {
-        final baseUrl =
-            'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId';
-        urls.add('$baseUrl/license-front?token=${authProvider.token}');
-        urls.add('$baseUrl/license-back?token=${authProvider.token}');
-      }
-
-      return urls;
-    }
-
-    if (cnpUrls is List) {
-      // Añadir token a cada URL
-      return cnpUrls.cast<String>().map((url) {
-        if (authProvider.token != null) {
-          final separator = url.contains('?') ? '&' : '?';
-          return '$url${separator}token=${authProvider.token}';
-        }
-        return url;
-      }).toList();
-    }
-
-    if (cnpUrls is String) {
-      String url = cnpUrls;
-      if (authProvider.token != null) {
-        final separator = url.contains('?') ? '&' : '?';
-        url = '$url${separator}token=${authProvider.token}';
-      }
-      return [url];
-    }
-
-    return [];
-  }
 
   // Métodos auxiliares sin cambios
   String _extractFirstName(String fullName) {
@@ -386,8 +322,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      _hasAttemptedLoad = false;
-      await _loadProfileData(authProvider);
+      await authProvider.loadUserProfile(forceRefresh: true);
+
+      if (authProvider.user != null && mounted) {
+        setState(() {
+          profile = _createProfileFromAuthProvider(authProvider);
+          _usingCachedData = false;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Error actualizando perfil: ${e.toString()}';
@@ -656,6 +599,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      /*if (_usingCachedData)
+                        _buildCacheIndicator(),*/
                       if (_errorMessage != null) ...[
                         _buildErrorMessage(),
                       ],
@@ -665,6 +610,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
+
+              if (_isLoading && profile != null)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

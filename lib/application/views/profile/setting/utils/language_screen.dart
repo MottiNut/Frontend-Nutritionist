@@ -5,7 +5,6 @@ import '../../../../../configuration/providers/app_languaje_provider.dart';
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../requestSnacbar/snackBar_manager.dart';
 
-
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
 
@@ -19,7 +18,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
   @override
   void initState() {
     super.initState();
-    // Seleccionar por defecto Perú
+
     final languageProvider = context.read<LanguageProvider>();
     if (languageProvider.currentLocale.languageCode != 'es' ||
         languageProvider.currentLocale.countryCode != 'PE') {
@@ -35,7 +34,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     final languages = [
       {
         'name': 'Español',
-        'enabled': true,
+        'enabled': true, // único habilitado
         'locale': const Locale('es', 'PE'),
         'countryCode': 'pe'
       },
@@ -69,9 +68,14 @@ class _LanguageScreenState extends State<LanguageScreen> {
         'locale': const Locale('pt', 'PT'),
         'countryCode': 'pt'
       },
+      {
+        'name': 'Quechua',
+        'enabled': false,
+        'locale': const Locale('qu', 'PE'),
+        'countryCode': 'pe'
+      },
     ];
 
-    // Filtrar idiomas según búsqueda en tiempo real
     final filteredLanguages = languages
         .where((lang) => lang['name']
         .toString()
@@ -82,7 +86,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -128,10 +132,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
                 itemCount: filteredLanguages.length,
                 gridDelegate:
                 const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                  crossAxisCount: 3, // tres por fila
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.3,
+                  childAspectRatio: 0.8, // bandera arriba, texto abajo
                 ),
                 itemBuilder: (context, index) {
                   final lang = filteredLanguages[index];
@@ -143,8 +147,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
                           languageProvider.currentLocale.countryCode ==
                               langLocale.countryCode;
 
+                  final isEnabled = lang['enabled'] == true;
+
                   return GestureDetector(
-                    onTap: lang['enabled'] == true
+                    onTap: isEnabled
                         ? () {
                       languageProvider.setLocale(langLocale);
                       SnackBarManager.showSuccess(
@@ -156,45 +162,59 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: lang['enabled'] == true && isSelected
+                        color: isEnabled && isSelected
                             ? AppColors.primary
-                            : Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(12),
-                        border: lang['enabled'] == true && isSelected
-                            ? Border.all(
-                          color: Colors.white,
-                          width: 2,
-                        )
-                            : null,
-                        boxShadow: lang['enabled'] == true && isSelected
-                            ? [
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isEnabled && isSelected
+                              ? AppColors.primary
+                              : Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           )
-                        ]
-                            : null,
+                        ],
                       ),
-                      child: Row(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Image.asset(
-                            'icons/flags/png/$countryCode.png',
-                            package: 'country_icons',
-                            width: 32,
-                            height: 24,
-                            fit: BoxFit.cover,
+                          ColorFiltered(
+                            colorFilter: isEnabled
+                                ? const ColorFilter.mode(
+                              Colors.transparent,
+                              BlendMode.multiply,
+                            )
+                                : const ColorFilter.matrix(<double>[
+                              0.5, 0.5, 0.5, 0, 0,
+                              0.5, 0.5, 0.5, 0, 0,
+                              0.5, 0.5, 0.5, 0, 0,
+                              0,   0,   0,   1, 0,
+                            ]),
+                            child: Image.asset(
+                              'icons/flags/png/$countryCode.png',
+                              package: 'country_icons',
+                              width: 45,
+                              height: 35,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(height: 8),
                           Text(
                             lang['name'] as String,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: lang['enabled'] == true && isSelected
+                              color: isEnabled
+                                  ? (isSelected
                                   ? Colors.white
-                                  : Colors.grey.shade700,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                                  : Colors.black87)
+                                  : Colors.grey, // texto gris si está deshabilitado
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
                             ),
                           ),
                         ],

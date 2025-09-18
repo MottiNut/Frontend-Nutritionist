@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/backup_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/food_search_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/helper_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/language_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/location_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/payments_screen.dart';
@@ -217,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.dark_mode_outlined,
                   title: 'Modo oscuro',
                   subtitle: 'Tema de la aplicación',
-                  value: true,
+                  value: false,
                   onChanged: (value) {},
                 ),
               ]),
@@ -237,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionHeader('Seguridad', Icons.security),
             const SizedBox(height: 4),
             _buildSettingsCard([
-              _buildSwitchItem(
+              /*_buildSwitchItem(
                 icon: Icons.fingerprint_outlined,
                 title: 'Autenticación biométrica',
                 subtitle: 'Huella dactilar o Face ID',
@@ -248,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   });
                 },
               ),
-              _buildDivider(),
+              _buildDivider(),*/
               _buildSettingItem(
                 icon: Icons.backup_outlined,
                 title: 'Copia de seguridad',
@@ -628,8 +630,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       MaterialPageRoute(builder: (_) => const LanguageScreen()),
     );
   }
-  void _navigateToBackup() {}
-  void _navigateToHelp() {}
+  void _navigateToBackup() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BackupScreen()),
+    );
+  }
+
+  void _navigateToHelp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HelpScreen())
+    );
+
+  }
   void _navigateToSupport() {}
   void _navigateToRating() {}
   void _navigateToAbout() {}
@@ -664,27 +678,7 @@ class GoalsScreen extends StatelessWidget {
   }
 }
 
-class BackupScreen extends StatelessWidget {
-  const BackupScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Copia de seguridad')),
-    );
-  }
-}
-
-class HelpScreen extends StatelessWidget {
-  const HelpScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Ayuda y preguntas frecuentes')),
-    );
-  }
-}
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
