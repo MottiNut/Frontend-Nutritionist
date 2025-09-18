@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mottinutnutriotinist/configuration/providers/fontsize_app_screen.dart';
 import 'package:provider/provider.dart';
+import 'configuration/providers/app_languaje_provider.dart';
 import 'configuration/providers/app_theme_provider.dart';
 import 'configuration/providers/speed_test_config.dart';
 import 'configuration/routes/mottinut_nutriotinist_app_screen.dart';
@@ -25,6 +26,7 @@ void main() async {
           ChangeNotifierProvider(create: (context) => AppThemeProvider()),
           ChangeNotifierProvider(create: (context) => AppState()),
           ChangeNotifierProvider(create: (context) => AuthProvider()),
+          ChangeNotifierProvider(create: (context) => LanguageProvider()),
         ],
         child: MottiNutNutriotinistApp(),
       )

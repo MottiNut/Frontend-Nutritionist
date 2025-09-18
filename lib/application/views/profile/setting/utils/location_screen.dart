@@ -277,9 +277,9 @@ class _LocationInfoScreenState extends State<LocationInfoScreen> {
   Widget _buildUpdateButton() {
     return Container(
       width: double.infinity,
-      height: 56,
+      height: 48,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.primary, width: 2),
       ),
       child: ElevatedButton.icon(
@@ -289,7 +289,7 @@ class _LocationInfoScreenState extends State<LocationInfoScreen> {
           'Actualizar Ubicación',
           style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -297,7 +297,7 @@ class _LocationInfoScreenState extends State<LocationInfoScreen> {
           foregroundColor: AppColors.primary,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
           ),
         ),
       ),

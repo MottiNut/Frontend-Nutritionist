@@ -15,9 +15,13 @@ dependencies:
 
   cupertino_icons: ^1.0.6
   provider: ^6.1.5
+  lucide_icons: ^0.257.0
+  country_icons: ^2.0.1
 
   geolocator: ^11.0.0
   geocoding: ^3.0.0
+
+  debounce_throttle: ^2.0.0
 
   http: ^1.4.0
   # JSON serialization

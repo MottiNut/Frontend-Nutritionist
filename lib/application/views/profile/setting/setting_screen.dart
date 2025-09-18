@@ -1,11 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/food_search_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/language_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/location_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/payments_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/personal_information_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/privacy_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/reminder_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/schedule_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/units_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/verification_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/water_log_screen.dart';
+import '../../../../configuration/providers/app_languaje_provider.dart';
 import '../../../../configuration/themes/app_colors.dart';
 import '../../../auth/terms and conditions/politica_privacidad_screen.dart';
 import '../../../auth/terms and conditions/terminos_condiciones_screen.dart';
@@ -19,7 +26,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
+  bool _darkModeEnabled = true;
   bool _biometricEnabled = false;
   bool _marketingEmails = false;
 
@@ -132,13 +139,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionHeader('Herramientas', Icons.restaurant_outlined),
             const SizedBox(height: 4),
             _buildSettingsCard([
-              _buildSettingItem(
+              /*_buildSettingItem(
                 icon: Icons.flag_outlined,
                 title: 'Mis objetivos',
                 subtitle: 'Metas profesionales',
                 onTap: () => _navigateToGoals(),
               ),
-              _buildDivider(),
+              _buildDivider(),*/
               _buildSettingItem(
                 icon: Icons.water_drop_outlined,
                 title: 'Diario y registro de agua',
@@ -205,24 +212,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionHeader('Apariencia', Icons.palette),
             const SizedBox(height: 4),
             _buildSettingsCard([
-              _buildSwitchItem(
-                icon: Icons.dark_mode_outlined,
-                title: 'Modo oscuro',
-                subtitle: 'Tema de la aplicación',
-                value: _darkModeEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _darkModeEnabled = value;
-                  });
-                },
-              ),
+              _buildSettingsCard([
+                _buildSwitchItem(
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Modo oscuro',
+                  subtitle: 'Tema de la aplicación',
+                  value: true,
+                  onChanged: (value) {},
+                ),
+              ]),
               _buildDivider(),
               _buildSettingItem(
                 icon: Icons.language_outlined,
                 title: 'Idioma',
-                subtitle: 'Español',
+                subtitle: context.watch<LanguageProvider>().languageName,
                 onTap: () => _navigateToLanguage(),
               ),
+
             ]),
 
             const SizedBox(height: 24),
@@ -589,11 +595,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _navigateToGoals() {}
-  void _navigateToWaterLog() {}
-  void _navigateToUnits() {}
-  void _navigateToFoodDatabase() {}
-  void _navigateToReminders() {}
-  void _navigateToLanguage() {}
+  void _navigateToWaterLog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WaterLogScreen()),
+    );
+
+  }
+  void _navigateToUnits() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UnitsScreen()),
+    );
+
+  }
+  void _navigateToFoodDatabase() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FoodDatabaseScreen()),
+    );
+  }
+  void _navigateToReminders() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RemindersScreen()),
+    );
+
+  }
+  void _navigateToLanguage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LanguageScreen()),
+    );
+  }
   void _navigateToBackup() {}
   void _navigateToHelp() {}
   void _navigateToSupport() {}
@@ -626,61 +660,6 @@ class GoalsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(child: Text('Mis objetivos')),
-    );
-  }
-}
-
-class WaterLogScreen extends StatelessWidget {
-  const WaterLogScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Diario y registro de agua')),
-    );
-  }
-}
-
-class UnitsScreen extends StatelessWidget {
-  const UnitsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Unidades de medida')),
-    );
-  }
-}
-
-class FoodDatabaseScreen extends StatelessWidget {
-  const FoodDatabaseScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Base de datos de alimentos')),
-    );
-  }
-}
-
-class RemindersScreen extends StatelessWidget {
-  const RemindersScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Recordatorios')),
-    );
-  }
-}
-
-class LanguageScreen extends StatelessWidget {
-  const LanguageScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Idioma')),
     );
   }
 }
@@ -740,24 +719,4 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
-class TermsScreen extends StatelessWidget {
-  const TermsScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Términos y condiciones')),
-    );
-  }
-}
-
-class PrivacyPolicyScreen extends StatelessWidget {
-  const PrivacyPolicyScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Política de privacidad')),
-    );
-  }
-}

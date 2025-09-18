@@ -16,22 +16,43 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  // Horarios disponibles por día de la semana
-  final Map<int, List<String>> _weeklySchedule = {
-    1: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-    2: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-    3: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-    4: ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'],
-    5: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-    6: [],
-    7: [],
+  // Lista de feriados (ejemplo para 2025)
+  final Set<String> _holidays = {
+    '2025-01-01', // Año Nuevo
+    '2025-04-17', // Jueves Santo
+    '2025-04-18', // Viernes Santo
+    '2025-05-01', // Día del Trabajo
+    '2025-06-29', // San Pedro y San Pablo
+    '2025-07-28', // Independencia del Perú
+    '2025-07-29', // Independencia del Perú
+    '2025-08-30', // Santa Rosa de Lima
+    '2025-10-08', // Combate de Angamos
+    '2025-11-01', // Todos los Santos
+    '2025-12-08', // Inmaculada Concepción
+    '2025-12-25', // Navidad
   };
 
-  // Citas ya reservadas (simuladas)
-  final Map<String, List<String>> _bookedAppointments = {
-    '2025-09-18': ['10:00', '15:00'],
-    '2025-09-19': ['09:00', '14:00', '16:00'],
-    '2025-09-22': ['11:00', '15:00'],
+  // Horario laboral base (de 8:00 AM a 5:00 PM, Lunes a Viernes)
+  final Map<int, List<String>> _baseWorkSchedule = {
+    1: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'], // Lunes (sin 12:00 por almuerzo)
+    2: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'], // Martes
+    3: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'], // Miércoles
+    4: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'], // Jueves
+    5: ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'], // Viernes
+    6: [], // Sábado
+    7: [], // Domingo
+  };
+
+  // Días libres o bloqueados por el nutricionista
+  final Set<String> _blockedDays = {
+    '2025-09-25', // Día libre
+    '2025-09-26', // Conferencia médica
+  };
+
+  // Horarios bloqueados específicos
+  final Map<String, Set<String>> _blockedSlots = {
+    '2025-09-20': {'12:00', '13:00'}, // Almuerzo extendido
+    '2025-09-23': {'08:00', '09:00'}, // Reunión administrativa
   };
 
   @override
@@ -43,20 +64,34 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<String> _getAvailableSlots(DateTime day) {
     final weekday = day.weekday;
     final dayKey = DateFormat('yyyy-MM-dd').format(day);
-    final allSlots = _weeklySchedule[weekday] ?? [];
-    final bookedSlots = _bookedAppointments[dayKey] ?? [];
 
-    return allSlots.where((slot) => !bookedSlots.contains(slot)).toList();
+    // Si es feriado o día bloqueado, no hay horarios disponibles
+    if (_holidays.contains(dayKey) || _blockedDays.contains(dayKey)) return [];
+
+    final baseSlots = _baseWorkSchedule[weekday] ?? [];
+    final blockedSlots = _blockedSlots[dayKey] ?? {};
+
+    return baseSlots.where((slot) => !blockedSlots.contains(slot)).toList();
   }
 
-  List<String> _getBookedSlots(DateTime day) {
+  Set<String> _getBlockedSlots(DateTime day) {
     final dayKey = DateFormat('yyyy-MM-dd').format(day);
-    return _bookedAppointments[dayKey] ?? [];
+    return _blockedSlots[dayKey] ?? {};
   }
 
-  bool _isDayAvailable(DateTime day) {
+  bool _isDayBlocked(DateTime day) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(day);
+    return _blockedDays.contains(dayKey);
+  }
+
+  bool _isHoliday(DateTime day) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(day);
+    return _holidays.contains(dayKey);
+  }
+
+  bool _isWorkDay(DateTime day) {
     final weekday = day.weekday;
-    return (_weeklySchedule[weekday] ?? []).isNotEmpty;
+    return (_baseWorkSchedule[weekday] ?? []).isNotEmpty;
   }
 
   @override
@@ -73,26 +108,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Horarios de Consulta',
+          'Mi Agenda',
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: Colors.black87),
-            onPressed: () => _showInfoDialog(),
-          ),
-        ],
       ),
       body: Column(
         children: [
-
+          // Header con información del nutricionista
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-
             child: Row(
               children: [
                 Container(
@@ -109,7 +137,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Horario de atención',
+                        'Horario Laboral',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
@@ -118,7 +146,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Lunes a Viernes: 9:00 AM - 6:00 PM\nDuración por consulta: 60 minutos',
+                        'Lunes a Viernes: 8:00 AM - 5:00 PM\nAlmuerzo: 12:00 PM - 1:00 PM\nDuración por consulta: 60 minutos',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
@@ -132,6 +160,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
 
+          // Calendario
           Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             decoration: BoxDecoration(
@@ -147,7 +176,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             child: TableCalendar<String>(
               firstDay: DateTime.now(),
-              lastDay: DateTime.now().add(const Duration(days: 90)),
+              lastDay: DateTime.now().add(const Duration(days: 365)),
               focusedDay: _focusedDay,
               calendarFormat: _calendarFormat,
               selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
@@ -165,7 +194,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   shape: BoxShape.circle,
                 ),
                 markerDecoration: const BoxDecoration(
-                  color: Colors.orange,
+                  color: Colors.blue,
                   shape: BoxShape.circle,
                 ),
                 markersMaxCount: 1,
@@ -198,7 +227,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
-                  if (!_isDayAvailable(day)) {
+                  if (_isHoliday(day)) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${day.day}',
+                        style: TextStyle(color: Colors.orange.shade800),
+                      ),
+                    );
+                  }
+                  if (!_isWorkDay(day)) {
                     return Container(
                       margin: const EdgeInsets.all(4),
                       alignment: Alignment.center,
@@ -212,19 +255,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                     );
                   }
-                  return null;
-                },
-                markerBuilder: (context, day, events) {
-                  if (_getBookedSlots(day).isNotEmpty) {
-                    return Positioned(
-                      bottom: 1,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.orange,
-                        ),
+                  if (_isDayBlocked(day)) {
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${day.day}',
+                        style: TextStyle(color: Colors.red.shade700),
                       ),
                     );
                   }
@@ -232,12 +273,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 },
               ),
               onDaySelected: (selectedDay, focusedDay) {
-                if (_isDayAvailable(selectedDay)) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                }
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
               },
               onFormatChanged: (format) {
                 setState(() {
@@ -250,7 +289,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
 
-          // Horarios disponibles
+          // Agenda del día
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -258,26 +297,41 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.access_time, color: AppColors.primary, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Horarios ${_selectedDay != null ? DateFormat('dd/MM/yyyy').format(_selectedDay!) : ''}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.event, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Agenda ${_selectedDay != null ? DateFormat('dd/MM/yyyy').format(_selectedDay!) : ''}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
                       ),
+                      if (_selectedDay != null && _isWorkDay(_selectedDay!) && !_isDayBlocked(_selectedDay!) && !_isHoliday(_selectedDay!))
+                        IconButton(
+                          icon: Icon(Icons.block, color: Colors.red.shade600),
+                          onPressed: () => _blockDay(_selectedDay!),
+                          tooltip: 'Bloquear día',
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Expanded(
                     child: _selectedDay == null
                         ? _buildEmptyState()
-                        : _isDayAvailable(_selectedDay!)
-                        ? _buildTimeSlots()
-                        : _buildUnavailableDay(),
+                        : _isHoliday(_selectedDay!)
+                        ? _buildHoliday()
+                        : _isDayBlocked(_selectedDay!)
+                        ? _buildBlockedDay()
+                        : !_isWorkDay(_selectedDay!)
+                        ? _buildNonWorkDay()
+                        : _buildScheduleContent(),
                   ),
                 ],
               ),
@@ -288,28 +342,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildTimeSlots() {
+  Widget _buildScheduleContent() {
     final availableSlots = _getAvailableSlots(_selectedDay!);
-    final bookedSlots = _getBookedSlots(_selectedDay!);
-
-    if (availableSlots.isEmpty && bookedSlots.isEmpty) {
-      return _buildNoSlotsDay();
-    }
+    final blockedSlots = _getBlockedSlots(_selectedDay!);
 
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (availableSlots.isNotEmpty) ...[
-            _buildSectionTitle('Horarios Disponibles', Colors.green, Icons.check_circle),
+          if (blockedSlots.isNotEmpty) ...[
+            _buildSectionTitle('Horarios Bloqueados', Colors.orange, Icons.block),
             const SizedBox(height: 8),
-            _buildSlotGrid(availableSlots, true),
+            _buildSlotGrid(blockedSlots.toList(), 'blocked'),
             const SizedBox(height: 16),
           ],
-          if (bookedSlots.isNotEmpty) ...[
-            _buildSectionTitle('Horarios Ocupados', Colors.red, Icons.cancel),
+          if (availableSlots.isNotEmpty) ...[
+            _buildSectionTitle('Horarios Disponibles', Colors.green, Icons.access_time),
             const SizedBox(height: 8),
-            _buildSlotGrid(bookedSlots, false),
-            const SizedBox(height: 8),
+            _buildSlotGrid(availableSlots, 'available'),
+          ],
+          if (availableSlots.isEmpty && blockedSlots.isEmpty) ...[
+            _buildEmptyScheduleDay(),
           ],
         ],
       ),
@@ -333,46 +386,68 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildSlotGrid(List<String> slots, bool isAvailable) {
+  Widget _buildSlotGrid(List<String> slots, String type) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 2.5,
+        crossAxisCount: 4,
+        childAspectRatio: 2.2,
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
       itemCount: slots.length,
       itemBuilder: (context, index) {
-        return _buildTimeSlot(slots[index], isAvailable);
+        return _buildTimeSlot(slots[index], type);
       },
     );
   }
 
-  Widget _buildTimeSlot(String time, bool isAvailable) {
+  Widget _buildTimeSlot(String time, String type) {
+    Color backgroundColor;
+    Color borderColor;
+    Color textColor;
+    VoidCallback? onTap;
+
+    switch (type) {
+      case 'available':
+        backgroundColor = Colors.green.shade50;
+        borderColor = Colors.green.shade300;
+        textColor = Colors.green.shade700;
+        onTap = () => _blockTimeSlot(time);
+        break;
+      case 'blocked':
+        backgroundColor = Colors.orange.shade50;
+        borderColor = Colors.orange.shade300;
+        textColor = Colors.orange.shade700;
+        onTap = () => _unblockTimeSlot(time);
+        break;
+      default:
+        backgroundColor = Colors.grey.shade50;
+        borderColor = Colors.grey.shade300;
+        textColor = Colors.grey.shade700;
+        onTap = null;
+    }
+
     return Container(
       decoration: BoxDecoration(
-        color: isAvailable ? Colors.green.shade50 : Colors.red.shade50,
-        border: Border.all(
-          color: isAvailable ? Colors.green.shade300 : Colors.red.shade300,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(8),
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 1),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: isAvailable ? () => _bookAppointment(time) : null,
+          borderRadius: BorderRadius.circular(6),
+          onTap: onTap,
           child: Container(
             alignment: Alignment.center,
             child: Text(
               time,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+                color: textColor,
               ),
             ),
           ),
@@ -402,7 +477,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Elige un día del calendario para ver\nlos horarios disponibles',
+            'Elige un día del calendario para ver\ntu agenda y horarios',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -414,52 +489,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  Widget _buildUnavailableDay() {
+  Widget _buildHoliday() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.event_busy,
+            Icons.celebration,
             size: 64,
-            color: Colors.red.shade300,
+            color: Colors.orange.shade400,
           ),
           const SizedBox(height: 16),
           Text(
-            'Sin atención',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.red.shade400,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Los fines de semana no hay\nconsultas programadas',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoSlotsDay() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.event_available,
-            size: 64,
-            color: Colors.orange.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Todos los horarios ocupados',
+            'Día Feriado',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -468,7 +510,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'No hay horarios disponibles\neste día. Intenta otro día.',
+            'Este día es feriado nacional.\nNo hay atención.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -480,128 +522,148 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  void _bookAppointment(String time) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+  Widget _buildBlockedDay() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.block,
+            size: 64,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Día Bloqueado',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.red.shade600,
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.event, color: AppColors.primary, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Reservar Cita',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${DateFormat('dd/MM/yyyy').format(_selectedDay!)} a las $time',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Has marcado este día como no disponible\npara consultas',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade500,
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Cancelar'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _confirmBooking(time);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Confirmar',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _unblockDay(_selectedDay!),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
             ),
-          ],
-        ),
+            child: const Text('Desbloquear día', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
-  void _confirmBooking(String time) {
-    final dayKey = DateFormat('yyyy-MM-dd').format(_selectedDay!);
+  Widget _buildNonWorkDay() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.weekend,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Día no laboral',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Los fines de semana no forman\nparte de tu horario laboral',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyScheduleDay() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.free_breakfast,
+            size: 64,
+            color: Colors.green.shade300,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Día libre de citas',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.green.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No tienes citas programadas este día.\nTodos los horarios están disponibles.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _blockDay(DateTime day) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(day);
     setState(() {
-      _bookedAppointments[dayKey] = (_bookedAppointments[dayKey] ?? [])..add(time);
+      _blockedDays.add(dayKey);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Text('Cita reservada para las $time'),
+            Icon(Icons.block, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Día bloqueado exitosamente'),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  void _unblockDay(DateTime day) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(day);
+    setState(() {
+      _blockedDays.remove(dayKey);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Día desbloqueado exitosamente'),
           ],
         ),
         backgroundColor: Colors.green,
@@ -611,39 +673,52 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  void _showInfoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+  void _blockTimeSlot(String time) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(_selectedDay!);
+    setState(() {
+      if (_blockedSlots[dayKey] == null) {
+        _blockedSlots[dayKey] = {};
+      }
+      _blockedSlots[dayKey]!.add(time);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
           children: [
-            Icon(Icons.info, color: AppColors.primary),
+            const Icon(Icons.block, color: Colors.white),
             const SizedBox(width: 8),
-            const Text('Información'),
+            Text('Horario $time bloqueado'),
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  void _unblockTimeSlot(String time) {
+    final dayKey = DateFormat('yyyy-MM-dd').format(_selectedDay!);
+    setState(() {
+      _blockedSlots[dayKey]?.remove(time);
+      if (_blockedSlots[dayKey]?.isEmpty == true) {
+        _blockedSlots.remove(dayKey);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
           children: [
-            Text('• Horario: Lunes a Viernes de 9:00 AM a 6:00 PM'),
-            SizedBox(height: 8),
-            Text('• Duración por consulta: 60 minutos'),
-            SizedBox(height: 8),
-            Text('• Los puntos naranjas indican días con citas'),
-            SizedBox(height: 8),
-            Text('• Días grises: Sin atención'),
-            SizedBox(height: 8),
-            Text('• Toca un horario verde para reservar'),
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Text('Horario $time desbloqueado'),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Entendido', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

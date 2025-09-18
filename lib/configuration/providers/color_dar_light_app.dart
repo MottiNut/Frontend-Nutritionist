@@ -23,4 +23,9 @@ class DarkModeProvider with ChangeNotifier {
 
   // Este método retorna el color del ícono basado en el modo oscuro o claro
   Color get iconColor => _isDarkMode ? Colors.white : Colors.black;
+
+  set isDarkMode(bool value) {
+    _isDarkMode = value;
+    notifyListeners();
+  }
 }

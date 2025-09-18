@@ -9,6 +9,7 @@ import '../../application/auth/sign_up/verification_code/code_verification_scree
 import '../../application/onbording/ombording_screen.dart';
 import '../../application/splash/splash_screen.dart';
 import '../../domain/services/auth_provider.dart';
+import '../providers/app_languaje_provider.dart';
 import '../providers/app_theme_provider.dart';
 import '../providers/color_dar_light_app.dart';
 import '../providers/fontsize_app_screen.dart';
@@ -19,8 +20,8 @@ import 'buttons_navigations.dart';
 class MottiNutNutriotinistApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
-    return Consumer4<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider>(
-      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, child) {
+    return Consumer5<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider>(
+      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, child) {
         final isDarkMode = darkModeProvider.isDarkMode;
         final typography = AppTypography();
 
@@ -43,16 +44,15 @@ class MottiNutNutriotinistApp extends StatelessWidget {
           title: 'MottiNut',
           debugShowCheckedModeBanner: false,
 
-          // CONFIGURACIÓN DE LOCALIZACIÓN - AGREGADO
-          locale: const Locale('es', 'ES'), // Español
+          locale: languageProvider.currentLocale,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [
-            Locale('es', 'ES'), // Español
-            Locale('en', 'US'), // Inglés (opcional)
+            Locale('es', 'ES'),
+            Locale('en', 'US'),
           ],
 
           // Tema claro

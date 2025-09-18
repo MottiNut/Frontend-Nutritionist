@@ -139,7 +139,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
           _buildStatsTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      /*floatingActionButton: FloatingActionButton.extended(
         onPressed: _showGeneratePaymentLinkSheet,
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.link, color: Colors.white),
@@ -147,7 +147,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
           'Generar Link',
           style: TextStyle(color: Colors.white),
         ),
-      ),
+      ),*/
     );
   }
 
@@ -225,7 +225,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
             ElevatedButton.icon(
               onPressed: _showAddPlanBottomSheet,
               icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Crear Primera Tarifa', style: TextStyle(color: Colors.white)),
+              label: const Text('Crear Primera Tarifa', style: TextStyle(color: Colors.white, fontSize: 15)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

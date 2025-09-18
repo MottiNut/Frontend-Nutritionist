@@ -17,6 +17,7 @@ import '../../../domain/services/auth_provider.dart';
 import '../home/active_patients_screen.dart';
 import 'editProfile/edit_profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:math' as math;
 
 class ProfileScreen extends StatefulWidget {
   final UserProfile? userProfile;
@@ -466,7 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: CustomScrollView(
             slivers: [
               SliverAppBar(
-                expandedHeight: 320,
+                expandedHeight: MediaQuery.of(context).size.height * 0.35,
                 floating: false,
                 pinned: true,
                 backgroundColor: AppColors.primary,
@@ -484,28 +485,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 actions: [
                   IconButton(
                     icon: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                      child: Transform.rotate(
-                        angle: 3.14159, // 180 grados
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
                         child: const Icon(
-                          Icons.share,
+                          Icons.reply,
                           color: Colors.white,
-                          size: 24,
+                          size: 26,
                         ),
-                      ),
+                      )
                     ),
                     onPressed: _shareProfile,
                   ),
                   IconButton(
                     icon: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: const Icon(
                         Icons.settings,
@@ -539,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 80),
+                        const SizedBox(height: 60),
                         // FOTO DE PERFIL con authProvider
                         Stack(
                           children: [
@@ -550,19 +552,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: Colors.white,
-                                  width: 4,
+                                  width: 2,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
+
                               ),
                               child: ClipOval(
                                 child: _buildProfileImage(
-                                    authProvider), // ✅ usa authProvider
+                                    authProvider),
                               ),
                             ),
                             Positioned(
@@ -600,7 +596,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
 
                         // Nombre y verificación
                         Row(
@@ -619,8 +615,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (_isVerified()) ...[
-                              const SizedBox(width: 8),
+                            /*if (_isVerified()) ...[
+                              const SizedBox(width: 5),
                               Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
@@ -630,13 +626,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     color: Colors.white,
                                     width: 2,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+
                                 ),
                                 child: const Icon(
                                   Icons.verified,
@@ -644,7 +634,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   size: 18,
                                 ),
                               ),
-                            ],
+                            ],*/
                           ],
                         ),
 
@@ -1079,6 +1069,7 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(width: 0.3, color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -1261,10 +1252,10 @@ class StatsService {
     // En una app real, tendrías un endpoint específico para ratings
     try {
       // Simular obtención de rating - reemplazar con llamada real a tu API
-      return 4.9; // Valor por defecto
+      return 0; // Valor por defecto
     } catch (e) {
       print('Error obteniendo rating: $e');
-      return 4.9; // Valor por defecto en caso de error
+      return 0; // Valor por defecto en caso de error
     }
   }
 }
