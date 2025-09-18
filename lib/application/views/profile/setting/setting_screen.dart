@@ -584,7 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _navigateToLocation() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LocationScreen()),
+      MaterialPageRoute(builder: (_) => const LocationInfoScreen()),
     );
   }
 

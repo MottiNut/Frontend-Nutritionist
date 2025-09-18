@@ -86,23 +86,24 @@ class _VerificationScreenState extends State<VerificationScreen>
         final double progress = _calculateProgress(emailVerified, phoneVerified);
 
         return Scaffold(
+          backgroundColor: Colors.grey.shade100,
           appBar: AppBar(
+            backgroundColor: Colors.grey.shade100,
+            elevation: 0,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.black87),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+              onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
               'Verificación de cuenta',
               style: TextStyle(
-                color: Colors.white, fontSize: 20,
+                color: Colors.black87,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            backgroundColor: AppColors.primary,
-            centerTitle: true,
-            elevation: 0,
           ),
           body: RefreshIndicator(
             onRefresh: _refreshVerificationStatus,
@@ -284,18 +285,21 @@ class _VerificationScreenState extends State<VerificationScreen>
           context,
           icon: Icons.email_outlined,
           label: 'Correo electrónico',
-          value: user['email']?.toString() ?? 'No configurado',
+          value: user['email'] != null && user['email'].toString().isNotEmpty
+              ? _maskEmail(user['email'].toString())
+              : 'No configurado',
           isVerified: emailVerified,
           onVerify: () => _handleEmailVerification(context, user),
         ),
         const SizedBox(height: 16),
 
-        // Teléfono
         _buildVerificationItem(
           context,
           icon: Icons.phone_outlined,
           label: 'Teléfono',
-          value: user['phone']?.toString() ?? 'No configurado',
+          value: user['phone'] != null && user['phone'].toString().isNotEmpty
+              ? _maskPhone(user['phone'].toString())
+              : 'No configurado',
           isVerified: phoneVerified,
           onVerify: () => _handlePhoneVerification(context, user),
         ),
@@ -631,6 +635,25 @@ class _VerificationScreenState extends State<VerificationScreen>
       ),
     );
   }
+
+  String _maskEmail(String email) {
+    if (!email.contains('@')) return email;
+    final parts = email.split('@');
+    final name = parts[0];
+    final domain = parts[1];
+
+    if (name.length <= 2) return '${name[0]}*****@$domain';
+    return '${name[0]}*******${name[name.length - 1]}@$domain';
+  }
+
+  String _maskPhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return 'No configurado';
+
+    final last3 = digits.length >= 3 ? digits.substring(digits.length - 3) : digits;
+    return '+51 ******$last3';
+  }
+
 }
 
 class _TrianglePainter extends CustomPainter {

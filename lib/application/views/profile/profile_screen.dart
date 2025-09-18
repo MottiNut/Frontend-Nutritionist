@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/setting_screen.dart';
 import '../../../configuration/themes/app_colors.dart';
@@ -64,11 +66,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userData['image_url'];
 
       // Usar el método estático del AuthService para construir la URL
-      if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
+      if ((profileImageUrl == null || profileImageUrl.isEmpty) &&
+          userId != null) {
         profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
       }
 
-      if (profileImageUrl != null && profileImageUrl.isNotEmpty && userId != null) {
+      if (profileImageUrl != null &&
+          profileImageUrl.isNotEmpty &&
+          userId != null) {
         unawaited(AuthService.preloadAvatarImage(
           imageUrl: profileImageUrl,
           token: authProvider.token,
@@ -185,7 +190,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String? _extractProfileImageUrl(Map<String, dynamic> userData, AuthProvider authProvider) {
+  String? _extractProfileImageUrl(
+      Map<String, dynamic> userData, AuthProvider authProvider) {
     // Intentar múltiples campos para la imagen
     String? imageUrl = userData['profileImageUrl']?.toString() ??
         userData['profileImage']?.toString() ??
@@ -199,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if ((imageUrl == null || imageUrl.isEmpty) && userData['id'] != null) {
       final userId = userData['id'].toString();
       imageUrl =
-      'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId/image';
+          'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId/image';
     }
 
     // Añadir token de autorización si es necesario
@@ -212,7 +218,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return imageUrl;
   }
 
-  List<String> _parseCnpPhotoUrls(Map<String, dynamic> userData, AuthProvider authProvider) {
+  List<String> _parseCnpPhotoUrls(
+      Map<String, dynamic> userData, AuthProvider authProvider) {
     // Intentar múltiples campos para las imágenes del CNP
     dynamic cnpUrls = userData['cnpPhotoUrls'] ??
         userData['licenseImages'] ??
@@ -431,9 +438,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5,),
-          SizedBox(height: 16),
-          Text('Cargando perfil...', style: TextStyle(color: Colors.grey[600])),
+          Lottie.asset(
+            "assets/loading/palta_saltarina.json",
+            width: 80,
+            height: 80,
+            fit: BoxFit.cover,
+          ),
         ],
       ),
     );
@@ -551,7 +561,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ],
                               ),
                               child: ClipOval(
-                                child: _buildProfileImage(authProvider), // ✅ usa authProvider
+                                child: _buildProfileImage(
+                                    authProvider), // ✅ usa authProvider
                               ),
                             ),
                             Positioned(
@@ -660,10 +671,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                       _buildStatsRow(),
                       const SizedBox(height: 24),
-                      _buildInfoSection(),
-                      const SizedBox(height: 24),
-                      _buildContactSection(),
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -674,7 +681,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-
 
   Future<void> _shareProfile() async {
     try {
@@ -741,13 +747,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userData['image_url'];
 
       // Usar el método del servicio para construir la URL si no hay una directa
-      if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
+      if ((profileImageUrl == null || profileImageUrl.isEmpty) &&
+          userId != null) {
         profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
       }
     }
 
     // Mostrar la imagen con caché del servicio
-    if (profileImageUrl != null && profileImageUrl.isNotEmpty && userId != null) {
+    if (profileImageUrl != null &&
+        profileImageUrl.isNotEmpty &&
+        userId != null) {
       return FutureBuilder<File?>(
         future: AuthService.getLocalAvatarImage(userId.toString()),
         builder: (context, snapshot) {
@@ -826,7 +835,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _refreshProfile,
-              icon: const Icon(Icons.refresh,),
+              icon: const Icon(
+                Icons.refresh,
+              ),
               label: const Text('Reintentar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -880,76 +891,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoSection() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.work_outline,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Información Profesional',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildInfoRow(
-              Icons.badge_outlined, 'CNP', profile!.cnpCode.toString()),
-          const SizedBox(height: 16),
-          if (profile!.masterDegree != null &&
-              profile!.masterDegree!.isNotEmpty) ...[
-            _buildInfoRow(
-                Icons.school_outlined, 'Título', profile!.masterDegree!),
-            const SizedBox(height: 16),
-          ],
-          _buildInfoRow(
-              Icons.schedule_outlined,
-              'Experiencia',
-              profile!.experience ?? 'No especificada' // Nuevo campo experiencia
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            Icons.verified_user_outlined,
-            'Estado',
-            _getVerificationStatusText(),
-            textColor:
-            _isVerified() ? AppColors.checkValidation : AppColors.secondary,
-          ),
-        ],
-      ),
-    );
-  }
-
   String _getVerificationStatusText() {
     if (profile == null) return 'Sin verificar';
 
@@ -964,111 +905,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return 'Sin verificar';
     }
   }
-
-  Widget _buildContactSection() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.contact_mail_outlined,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Contacto y Ubicación',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildInfoRow(
-              Icons.email_outlined, 'Email', profile!.email.toString()),
-          const SizedBox(height: 16),
-          if (profile!.phone != null && profile!.phone!.isNotEmpty) ...[
-            _buildInfoRow(Icons.phone_outlined, 'Teléfono', profile!.phone!),
-            const SizedBox(height: 16),
-          ],
-          _buildInfoRow(
-              Icons.location_on_outlined, 'Ubicación', profile!.location),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.home_outlined, 'Dirección', profile!.address),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value,
-      {Color? textColor}) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: textColor ?? Colors.black87,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
 }
-
-
-// Agrega estas clases en tu archivo o en uno separado para las estadísticas
 
 class NutritionistStats {
   final int consultationCount;
@@ -1089,6 +926,7 @@ class NutritionistStats {
     );
   }
 }
+
 class DynamicStatsRow extends StatefulWidget {
   final String token;
   final NutritionistService nutritionistService;
@@ -1102,6 +940,7 @@ class DynamicStatsRow extends StatefulWidget {
   @override
   _DynamicStatsRowState createState() => _DynamicStatsRowState();
 }
+
 class _DynamicStatsRowState extends State<DynamicStatsRow> {
   late Future<NutritionistStats> _statsFuture;
   late StatsService _statsService;
@@ -1340,6 +1179,7 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
     return number.toString();
   }
 }
+
 class StatsCache {
   static NutritionistStats? _cachedStats;
   static DateTime? _lastUpdate;
@@ -1364,6 +1204,7 @@ class StatsCache {
     _lastUpdate = null;
   }
 }
+
 class StatsService {
   final NutritionistService _nutritionistService;
 
@@ -1385,12 +1226,11 @@ class StatsService {
       for (var patient in patients) {
         try {
           final history = await _nutritionistService.getPatientHistory(
-              patient.patientId,
-              token
-          );
+              patient.patientId, token);
           consultationCount += history.length;
         } catch (e) {
-          print('Error obteniendo historial para paciente ${patient.patientId}: $e');
+          print(
+              'Error obteniendo historial para paciente ${patient.patientId}: $e');
           // Continuar con el siguiente paciente
         }
       }

@@ -204,8 +204,8 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(widget.statusColor),
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
         ),

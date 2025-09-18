@@ -93,26 +93,28 @@ class _PrivacyScreenState extends State<PrivacyScreen> with TickerProviderStateM
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text(
-            'Privacidad y seguridad',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500
-            )
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.grey.shade100,
         elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        title: const Text(
+          'Privacidad y seguridad',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 22),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: _buildBody(authProvider),
     );
+
   }
 
   Widget _buildBody(AuthProvider authProvider) {
@@ -255,22 +257,19 @@ class _PrivacyScreenState extends State<PrivacyScreen> with TickerProviderStateM
     final String email = user['email'] ?? 'No disponible';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        7,
+        1,
+        7,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // Información de la cuenta
           _buildSectionCard(
             title: 'INFORMACIÓN DE LA CUENTA',
             children: [
-              _buildInfoRow(
-                label: 'Correo electrónico',
-                value: email,
-                icon: Icons.email_outlined,
-              ),
-              const SizedBox(height: 20),
               _buildInfoRow(
                 label: 'Estado de la cuenta',
                 value: 'Activa',
@@ -279,9 +278,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> with TickerProviderStateM
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
-          // Configuración de contraseña
           _buildSectionCard(
             title: 'SEGURIDAD',
             children: [
@@ -303,7 +301,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> with TickerProviderStateM
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200, width: 0.5),
+        border: Border.all(color: Colors.grey.shade300, width: 0.3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,6 +441,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> with TickerProviderStateM
     );
   }
 }
+
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -552,38 +551,43 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text(
-            'Cambiar contraseña',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500
-            )
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.grey.shade100,
         elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        title: const Text(
+          'Cambiar contraseña',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 22),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          10,
+          1,
+          10,
+          16 + MediaQuery.of(context).padding.bottom,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.shade200, width: 0.5),
                 ),
@@ -610,7 +614,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           'Nueva contraseña',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             color: Colors.black87,
                           ),
                         ),
@@ -788,11 +792,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 0.8),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 0.8),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

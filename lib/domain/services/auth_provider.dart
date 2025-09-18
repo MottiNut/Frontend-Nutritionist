@@ -342,6 +342,7 @@ class AuthService {
   static const String logoutEndpoint = '$baseUrl/logout';
   static const String nutritionistProfileEndpoint = '$profileBaseUrl/nutritionist';
   static const String nutritionistImageEndpoint = '$profileBaseUrl/nutritionist';
+  static const String meEndpoint = '$baseUrl/me';
 
   final http.Client _client = http.Client();
 
@@ -779,6 +780,38 @@ class AuthService {
   );
 
   // ========== MÉTODOS DE CACHÉ PARA IMÁGENES ==========
+  Future<AuthResponse> getCurrentUser(String token) async {
+    try {
+      final response = await _client.get(
+        Uri.parse(meEndpoint),
+        headers: _headersWithAuth(token),
+      );
+
+      debugPrint('Current User Response Status: ${response.statusCode}');
+      debugPrint('Current User Response Body: ${response.body}');
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return AuthResponse(
+          success: true,
+          user: Map<String, dynamic>.from(responseData),
+          token: token,
+        );
+      } else {
+        return AuthResponse(
+          success: false,
+          message: responseData['message'] ?? 'Error obteniendo datos del usuario',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error getting current user: $e');
+      return AuthResponse(
+        success: false,
+        message: 'Error de conexión: ${e.toString()}',
+      );
+    }
+  }
 
   static Future<File> getCachedAvatarImage({
     required String imageUrl,
@@ -1321,6 +1354,28 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       debugPrint('Error loading profile: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> loadCurrentUser() async {
+    if (_token == null) return false;
+
+    _setLoading(true);
+
+    try {
+      final response = await _authService.getCurrentUser(_token!);
+
+      if (response.success && response.user != null) {
+        _user = response.user;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error loading current user: $e');
       return false;
     } finally {
       _setLoading(false);

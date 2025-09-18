@@ -724,27 +724,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                             fit: BoxFit.cover,
                           ),
                         ),
-                        // Badge del tipo de obesidad
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: typeColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              obesityType,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
+
                       ],
                     ),
                   ),
@@ -921,26 +901,6 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                               bottomLeft: Radius.circular(12),
                             ),
                             fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: statusColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                obesityType,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),
