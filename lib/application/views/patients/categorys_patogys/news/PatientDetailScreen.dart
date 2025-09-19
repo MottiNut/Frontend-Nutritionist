@@ -131,35 +131,45 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: Colors.grey.shade100,
         appBar: _buildFixedAppBar(),
         body: _isLoading
             ? Center(
-                child: Lottie.asset(
-                  'assets/loading/palta_saltarina.json',
-                  width: 100,
-                  height: 100,
-                ),
-              )
+          child: Lottie.asset(
+            'assets/loading/palta_saltarina.json',
+            width: 100,
+            height: 100,
+          ),
+        )
             : _errorMessage != null
-                ? _buildErrorState()
-                : Stack(
-                    children: [
-                      CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
-                          _buildTabBar(),
-                          _buildTabContent(),
-                          // Espaciado adicional para los botones fijos
-                          const SliverToBoxAdapter(
-                            child: SizedBox(height: 120),
-                          ),
-                        ],
+            ? _buildErrorState()
+            : Column(
+          children: [
+            // 🔥 TabBar fijo arriba
+            Material(
+              color: Colors.white,
+              elevation: 2,
+              child: _buildTabBar(),
+            ),
+            // 👇 El contenido ocupa el resto de la pantalla
+            Expanded(
+              child: Stack(
+                children: [
+                  CustomScrollView(
+                    controller: _scrollController,
+                    slivers: [
+                      _buildTabContent(),
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: 120),
                       ),
-                      // Botones fijos en la parte inferior
-                      _buildFixedActionButtons(),
                     ],
                   ),
+                  _buildFixedActionButtons(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -173,7 +183,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     return AppBar(
       backgroundColor: AppColors.secondary,
       elevation: 4,
-      toolbarHeight: 225,
+      toolbarHeight: 165,
       // Altura final aumentada
       automaticallyImplyLeading: false,
       flexibleSpace: Container(
@@ -219,20 +229,11 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     const SizedBox(width: 8),
 
                     // Avatar
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.grey,
-                          width: 2,
-                        ),
-                      ),
-                      child: PatientAvatarWidget(
-                        patient: widget.patient,
-                        statusColor: statusColor,
-                        token: _authToken ?? '',
-                        size: 45,
-                      ),
+                    PatientAvatarWidget(
+                      patient: widget.patient,
+                      statusColor: statusColor,
+                      token: _authToken ?? '',
+                      size: 55,
                     ),
                     const SizedBox(width: 12),
 
@@ -244,8 +245,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                           Text(
                             widget.patient.fullName,
                             style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w500,
                               color: Colors.white,
                               letterSpacing: 0.3,
                             ),
@@ -255,8 +256,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                           Text(
                             widget.patient.chronicDisease ?? 'Sin enfermedad',
                             style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                               color: Colors.white70,
                             ),
                             maxLines: 1,
@@ -297,7 +298,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                   ],
                 ),
 
-                const SizedBox(height: 8),
+                /*const SizedBox(height: 8),
 
                 // Segunda fila: Email, teléfono y status
                 Padding(
@@ -395,13 +396,13 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                       ),
                     ],
                   ),
-                ),
+                ),*/
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
 
-                // Tercera fila: Información médica con fondo y bordes (diseño original)
+
                 Padding(
-                  padding: const EdgeInsets.only(left: 25, right: 25),
+                  padding: const EdgeInsets.only(left: 20, right: 20),
                   // Alineado con el nombre
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -788,18 +789,29 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildTabBar() {
-    List<Tab> tabs = [
-      const Tab(text: 'Información'),
-      const Tab(text: 'Historial'),
-      const Tab(text: 'Progreso'),
+    List<Tab> tabs = const [
+      Tab(text: 'Información'),
+      Tab(text: 'Historial'),
+      Tab(text: 'Progreso'),
     ];
 
-    return SliverToBoxAdapter(
-      child: TabBar(
-        controller: _tabController,
-        tabs: tabs,
-        isScrollable: true,
+    return TabBar(
+      controller: _tabController,
+      tabs: tabs,
+      isScrollable: false,
+      labelColor: AppColors.secondary,
+      unselectedLabelColor: Colors.grey[400],
+      labelStyle: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.bold,
       ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      ),
+      indicatorColor: AppColors.secondary,
+      indicatorWeight: 2.5,
+      indicatorSize: TabBarIndicatorSize.tab,
     );
   }
 
@@ -915,20 +927,48 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(11),
       itemCount: _patientWithHistory!.medicalHistories.length,
       itemBuilder: (context, index) {
         final history = _patientWithHistory!.medicalHistories[index];
-        return _buildHistoryCard(history);
+        final isRecent = index == 0;
+        return _buildHistoryCard(history, isRecent: isRecent);
       },
     );
   }
 
   Widget _buildProgressTab() {
-    return const Center(
-      child: Text('Gráficos de progreso aquí'),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.insert_chart_outlined_rounded,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Aún no hay gráficos disponibles',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Cuando tengas datos, verás tu progreso aquí',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
     );
   }
+
 
   Widget _buildSectionCard(String title, List<Widget> children) {
     return Container(
@@ -996,7 +1036,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     );
   }
 
-  Widget _buildHistoryCard(MedicalHistory history) {
+  Widget _buildHistoryCard(MedicalHistory history, {bool isRecent = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -1018,12 +1058,35 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Consulta',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      'Consulta',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (isRecent) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF24CD4A),
+                          borderRadius: BorderRadius.circular(12),
+
+                        ),
+                        child: Text(
+                          'Reciente',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   history.consultationDate.toString().substring(0, 10),
@@ -1065,8 +1128,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     'Objetivos Nutricionales:',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1089,8 +1152,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     'Notas Profesionales:',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),

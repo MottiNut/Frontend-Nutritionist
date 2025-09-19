@@ -365,6 +365,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           backgroundColor: Colors.white,
+          scrolledUnderElevation: 0,
           elevation: 0,
           leading: IconButton(
             icon: SvgPicture.asset(
@@ -612,87 +613,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  void _showAdvancedFilters() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        minChildSize: 0.3,
-        expand: false,
-        builder: (context, scrollController) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Filtros Avanzados',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    children: [
-                      _buildFilterSection('Estado de Salud',
-                          ['Controlado', 'Atención', 'Crítico', 'Sin datos']),
-                      const SizedBox(height: 20),
-                      _buildFilterSection(
-                          'Género', ['Masculino', 'Femenino', 'Otro']),
-                      const SizedBox(height: 20),
-                      _buildFilterSection('Rango de Edad', [
-                        '18-30 años',
-                        '31-50 años',
-                        '51-70 años',
-                        '70+ años'
-                      ]),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _filterPatients();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Aplicar'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -979,7 +899,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _navigateToPatientDetail(patient),
-        child: SizedBox( // 🔑 Asegura que el Stack tenga el tamaño completo
+        child: SizedBox(
           width: double.infinity,
           height: 100,
           child: Stack(
@@ -1001,12 +921,11 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                 ),
                 child: Row(
                   children: [
-                    // Avatar lateral
                     Container(
                       width: 100,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        border: Border.all(width: 0.7, color: Colors.grey.shade100),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           bottomLeft: Radius.circular(12),
