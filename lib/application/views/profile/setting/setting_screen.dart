@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/about_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/backup_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/food_search_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/helper_screen.dart';
@@ -9,6 +10,7 @@ import 'package:mottinutnutriotinist/application/views/profile/setting/utils/loc
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/payments_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/personal_information_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/privacy_screen.dart';
+import 'package:mottinutnutriotinist/application/views/profile/setting/utils/rating_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/reminder_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/schedule_screen.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/support_screen.dart';
@@ -17,6 +19,7 @@ import 'package:mottinutnutriotinist/application/views/profile/setting/utils/ver
 import 'package:mottinutnutriotinist/application/views/profile/setting/utils/water_log_screen.dart';
 import '../../../../configuration/providers/app_languaje_provider.dart';
 import '../../../../configuration/themes/app_colors.dart';
+import '../../../../domain/services/auth_provider.dart';
 import '../../../auth/terms and conditions/politica_privacidad_screen.dart';
 import '../../../auth/terms and conditions/terminos_condiciones_screen.dart';
 
@@ -33,298 +36,316 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
   bool _marketingEmails = false;
 
+  bool _isLoggingOut = false;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        backgroundColor: AppColors.backgroundLigth,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(10),
-            child: Icon(
-              Icons.arrow_back_ios,
-              color: AppColors.iconDark,
-              size: 22,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.grey.shade100,
+          appBar: AppBar(
+            backgroundColor: AppColors.backgroundLigth,
+            elevation: 0,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(10),
+                child: Icon(Icons.arrow_back_ios,
+                    color: AppColors.iconDark, size: 22),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Configuración',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Sección: Mi Cuenta
-            _buildSectionHeader('Mi Cuenta', Icons.person),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSettingItem(
-                icon: Icons.account_circle_outlined,
-                title: 'Información personal',
-                subtitle: 'Nombre, email, teléfono',
-                onTap: () => _navigateToPersonalInfo(),
+            title: const Text(
+              'Configuración',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.lock_outline,
-                title: 'Privacidad y seguridad',
-                subtitle: 'Contraseña, autenticación',
-                onTap: () => _navigateToPrivacy(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.verified_user_outlined,
-                title: 'Verificación profesional',
-                subtitle: 'Estado de verificación CNP',
-                onTap: () => _navigateToVerification(),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(width: 0.3, color: AppColors.primary)
+            ),
+            centerTitle: true,
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Sección: Mi Cuenta
+                _buildSectionHeader('Mi Cuenta', Icons.person),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSettingItem(
+                    icon: Icons.account_circle_outlined,
+                    title: 'Información personal',
+                    subtitle: 'Nombre, email, teléfono',
+                    onTap: () => _navigateToPersonalInfo(),
                   ),
-                  child: Text(
-                    'Verificado',
-                    style: TextStyle(
-                      color: AppColors.checkValidation,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.lock_outline,
+                    title: 'Privacidad y seguridad',
+                    subtitle: 'Contraseña, autenticación',
+                    onTap: () => _navigateToPrivacy(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Verificación profesional',
+                    subtitle: 'Estado de verificación CNP',
+                    onTap: () => _navigateToVerification(),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(width: 0.3, color: AppColors.primary),
+                      ),
+                      child: Text(
+                        'Verificado',
+                        style: TextStyle(
+                          color: AppColors.checkValidation,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
+                ]),
+                const SizedBox(height: 24),
+
+                // Sección: Práctica Profesional
+                _buildSectionHeader('Práctica Profesional', Icons.medical_services),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSettingItem(
+                    icon: Icons.calendar_today_outlined,
+                    title: 'Horarios de consulta',
+                    subtitle: 'Disponibilidad y citas',
+                    onTap: () => _navigateToSchedule(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.monetization_on_outlined,
+                    title: 'Tarifas y pagos',
+                    subtitle: 'Precios de consultas',
+                    onTap: () => _navigateToPayments(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.location_on_outlined,
+                    title: 'Ubicación del consultorio',
+                    subtitle: 'Dirección y contacto',
+                    onTap: () => _navigateToLocation(),
+                  ),
+                ]),
+                const SizedBox(height: 24),
+
+                // Sección: Herramientas Nutricionales
+                _buildSectionHeader('Herramientas', Icons.restaurant_outlined),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  /*_buildSettingItem(
+                  icon: Icons.flag_outlined,
+                  title: 'Mis objetivos',
+                  subtitle: 'Metas profesionales',
+                  onTap: () => _navigateToGoals(),
                 ),
-              ),
-            ]),
+                _buildDivider(),*/
+                  _buildSettingItem(
+                    icon: Icons.water_drop_outlined,
+                    title: 'Diario y registro de agua',
+                    subtitle: 'Seguimiento diario',
+                    onTap: () => _navigateToWaterLog(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.scale_outlined,
+                    title: 'Unidades de medida',
+                    subtitle: 'Sistema métrico, imperial',
+                    onTap: () => _navigateToUnits(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.restaurant_menu_outlined,
+                    title: 'Base de datos de alimentos',
+                    subtitle: 'Personalizar alimentos',
+                    onTap: () => _navigateToFoodDatabase(),
+                  ),
+                ]),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
+                // Sección: Notificaciones
+                _buildSectionHeader('Notificaciones', Icons.notifications),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSwitchItem(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Notificaciones push',
+                    subtitle: 'Recordatorios y alertas',
+                    value: _notificationsEnabled,
+                    onChanged: (value) {
+                      setState(() {
+                        _notificationsEnabled = value;
+                      });
+                    },
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.alarm_outlined,
+                    title: 'Recordatorios',
+                    subtitle: 'Personalizar alarmas',
+                    onTap: () => _navigateToReminders(),
+                  ),
+                  _buildDivider(),
+                  _buildSwitchItem(
+                    icon: Icons.email_outlined,
+                    title: 'Emails promocionales',
+                    subtitle: 'Noticias y actualizaciones',
+                    value: _marketingEmails,
+                    onChanged: (value) {
+                      setState(() {
+                        _marketingEmails = value;
+                      });
+                    },
+                  ),
+                ]),
+                const SizedBox(height: 24),
 
-            // Sección: Práctica Profesional
-            _buildSectionHeader('Práctica Profesional', Icons.medical_services),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSettingItem(
-                icon: Icons.calendar_today_outlined,
-                title: 'Horarios de consulta',
-                subtitle: 'Disponibilidad y citas',
-                onTap: () => _navigateToSchedule(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.monetization_on_outlined,
-                title: 'Tarifas y pagos',
-                subtitle: 'Precios de consultas',
-                onTap: () => _navigateToPayments(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.location_on_outlined,
-                title: 'Ubicación del consultorio',
-                subtitle: 'Dirección y contacto',
-                onTap: () => _navigateToLocation(),
-              ),
-            ]),
+                // Sección: Apariencia
+                _buildSectionHeader('Apariencia', Icons.palette),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSwitchItem(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Modo oscuro',
+                    subtitle: 'Tema de la aplicación',
+                    value: false,
+                    onChanged: (value) {},
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.language_outlined,
+                    title: 'Idioma',
+                    subtitle: context.watch<LanguageProvider>().languageName,
+                    onTap: () => _navigateToLanguage(),
+                  ),
+                ]),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 6),
-
-            // Sección: Herramientas Nutricionales
-            _buildSectionHeader('Herramientas', Icons.restaurant_outlined),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              /*_buildSettingItem(
-                icon: Icons.flag_outlined,
-                title: 'Mis objetivos',
-                subtitle: 'Metas profesionales',
-                onTap: () => _navigateToGoals(),
-              ),
-              _buildDivider(),*/
-              _buildSettingItem(
-                icon: Icons.water_drop_outlined,
-                title: 'Diario y registro de agua',
-                subtitle: 'Seguimiento diario',
-                onTap: () => _navigateToWaterLog(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.scale_outlined,
-                title: 'Unidades de medida',
-                subtitle: 'Sistema métrico, imperial',
-                onTap: () => _navigateToUnits(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.restaurant_menu_outlined,
-                title: 'Base de datos de alimentos',
-                subtitle: 'Personalizar alimentos',
-                onTap: () => _navigateToFoodDatabase(),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
-            // Sección: Notificaciones
-            _buildSectionHeader('Notificaciones', Icons.notifications),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSwitchItem(
-                icon: Icons.notifications_active_outlined,
-                title: 'Notificaciones push',
-                subtitle: 'Recordatorios y alertas',
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                  });
-                },
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.alarm_outlined,
-                title: 'Recordatorios',
-                subtitle: 'Personalizar alarmas',
-                onTap: () => _navigateToReminders(),
-              ),
-              _buildDivider(),
-              _buildSwitchItem(
-                icon: Icons.email_outlined,
-                title: 'Emails promocionales',
-                subtitle: 'Noticias y actualizaciones',
-                value: _marketingEmails,
-                onChanged: (value) {
-                  setState(() {
-                    _marketingEmails = value;
-                  });
-                },
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
-            // Sección: Apariencia
-            _buildSectionHeader('Apariencia', Icons.palette),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSettingsCard([
-                _buildSwitchItem(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Modo oscuro',
-                  subtitle: 'Tema de la aplicación',
-                  value: false,
-                  onChanged: (value) {},
+                // Sección: Seguridad
+                _buildSectionHeader('Seguridad', Icons.security),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  /*_buildSwitchItem(
+                  icon: Icons.fingerprint_outlined,
+                  title: 'Autenticación biométrica',
+                  subtitle: 'Huella dactilar o Face ID',
+                  value: _biometricEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _biometricEnabled = value;
+                    });
+                  },
                 ),
-              ]),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.language_outlined,
-                title: 'Idioma',
-                subtitle: context.watch<LanguageProvider>().languageName,
-                onTap: () => _navigateToLanguage(),
-              ),
+                _buildDivider(),*/
+                  _buildSettingItem(
+                    icon: Icons.backup_outlined,
+                    title: 'Copia de seguridad',
+                    subtitle: 'Respaldo de datos',
+                    onTap: () => _navigateToBackup(),
+                  ),
+                ]),
+                const SizedBox(height: 24),
 
-            ]),
+                // Sección: Soporte
+                _buildSectionHeader('Soporte', Icons.help_outline),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSettingItem(
+                    icon: Icons.quiz_outlined,
+                    title: 'Ayuda y preguntas frecuentes',
+                    subtitle: 'Centro de ayuda',
+                    onTap: () => _navigateToHelp(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.contact_support_outlined,
+                    title: 'Contactar soporte',
+                    subtitle: 'Asistencia técnica',
+                    onTap: () => _navigateToSupport(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.star_outline,
+                    title: 'Calificar MottiNut',
+                    subtitle: 'Valorar en la tienda',
+                    onTap: () => showRatingDialog(context),
+                  ),
+                ]),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 24),
-
-            // Sección: Seguridad
-            _buildSectionHeader('Seguridad', Icons.security),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              /*_buildSwitchItem(
-                icon: Icons.fingerprint_outlined,
-                title: 'Autenticación biométrica',
-                subtitle: 'Huella dactilar o Face ID',
-                value: _biometricEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _biometricEnabled = value;
-                  });
-                },
-              ),
-              _buildDivider(),*/
-              _buildSettingItem(
-                icon: Icons.backup_outlined,
-                title: 'Copia de seguridad',
-                subtitle: 'Respaldo de datos',
-                onTap: () => _navigateToBackup(),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
-            // Sección: Soporte
-            _buildSectionHeader('Soporte', Icons.help_outline),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSettingItem(
-                icon: Icons.quiz_outlined,
-                title: 'Ayuda y preguntas frecuentes',
-                subtitle: 'Centro de ayuda',
-                onTap: () => _navigateToHelp(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.contact_support_outlined,
-                title: 'Contactar soporte',
-                subtitle: 'Asistencia técnica',
-                onTap: () => _navigateToSupport(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.star_outline,
-                title: 'Calificar MottiNut',
-                subtitle: 'Valorar en la tienda',
-                onTap: () => _navigateToRating(),
-              ),
-            ]),
-
-            const SizedBox(height: 24),
-
-            // Sección: Acerca de
-            _buildSectionHeader('Acerca de', Icons.info),
-            const SizedBox(height: 4),
-            _buildSettingsCard([
-              _buildSettingItem(
-                icon: Icons.info_outlined,
-                title: 'Sobre MottiNut',
-                subtitle: 'Versión 2.1.0',
-                onTap: () => _navigateToAbout(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.description_outlined,
-                title: 'Términos y condiciones',
-                subtitle: 'Política de uso',
-                onTap: () => _navigateToTerms(),
-              ),
-              _buildDivider(),
-              _buildSettingItem(
-                icon: Icons.privacy_tip_outlined,
-                title: 'Política de privacidad',
-                subtitle: 'Protección de datos',
-                onTap: () => _navigateToPrivacyPolicy(),
-              ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            // Botón de Cerrar Sesión
-            _buildLogoutButton(),
-
-            const SizedBox(height: 50),
-          ],
+                // Sección: Acerca de
+                _buildSectionHeader('Acerca de', Icons.info),
+                const SizedBox(height: 4),
+                _buildSettingsCard([
+                  _buildSettingItem(
+                    icon: Icons.info_outlined,
+                    title: 'Sobre MottiNut',
+                    subtitle: 'Versión 2.1.0',
+                    onTap: () => _navigateToAbout(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.description_outlined,
+                    title: 'Términos y condiciones',
+                    subtitle: 'Política de uso',
+                    onTap: () => _navigateToTerms(),
+                  ),
+                  _buildDivider(),
+                  _buildSettingItem(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Política de privacidad',
+                    subtitle: 'Protección de datos',
+                    onTap: () => _navigateToPrivacyPolicy(),
+                  ),
+                ]),
+                const SizedBox(height: 20),
+                _buildLogoutButton(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
         ),
-      ),
+
+        if (_isLoggingOut)
+          Material(
+            color: Colors.white,
+            child: SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'Cerrando sesión...',
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -452,10 +473,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.white, // Círculo blanco cuando está activo
-          activeTrackColor: AppColors.primary, // Fondo del switch cuando está activo
-          inactiveThumbColor: Colors.grey, // Círculo blanco cuando está inactivo
-          inactiveTrackColor: AppColors.iconPrimary.withOpacity(0.3), // Fondo cuando está apagado
+          activeColor: Colors.white,
+          activeTrackColor: AppColors.primary,
+          inactiveThumbColor: Colors.grey,
+          inactiveTrackColor: AppColors.iconPrimary.withOpacity(0.3),
         ),
       ),
     );
@@ -488,14 +509,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       child: ListTile(
-        onTap: () => _showLogoutDialog(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        onTap: _isLoggingOut ? null : () => _showLogoutDialog(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: AppColors.textInput.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
+          /*_isLoggingOut
+              ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.iconDark),
+            ),
+          )
+              : */
           child: const Icon(
             Icons.logout,
             color: AppColors.iconDark,
@@ -505,17 +536,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(
           'Cerrar sesión',
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textLDark,
-            letterSpacing: 0.5
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: _isLoggingOut ? Colors.grey : AppColors.textLDark,
+              letterSpacing: 0.5
           ),
         ),
-        subtitle: const Text(
-          'Salir de la aplicación',
+        subtitle: Text(
+          _isLoggingOut ? 'Cerrando sesión...' : 'Salir de la aplicación',
           style: TextStyle(
             fontSize: 13,
-            color: AppColors.textInput,
+            color: _isLoggingOut ? Colors.grey : AppColors.textInput,
           ),
         ),
       ),
@@ -525,37 +556,137 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.grey[600]),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.logout,
+              color: Colors.red,
+              size: 24,
             ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Implementar logout
-              _performLogout();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            const SizedBox(width: 8),
+            const Text(
+              'Cerrar sesión',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            child: const Text('Cerrar sesión'),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que quieres cerrar sesión?',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isLoggingOut ? null : () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: _isLoggingOut ? Colors.grey : Colors.grey, // Borde gris
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      color: _isLoggingOut ? Colors.grey : Colors.grey[700],
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoggingOut
+                      ? null
+                      : () {
+                    Navigator.of(context).pop();
+                    _performLogout();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.errorIcon,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: _isLoggingOut
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                      : const Text(
+                    'Cerrar sesión',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
+
       ),
     );
   }
+
+
+  Future<void> _performLogout() async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.logout();
+
+      // 🔹 Pausa breve para que se vea el overlay antes de navegar
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+              (route) => false,
+          arguments: {
+            'message': 'Sesión cerrada. Por favor, inicia sesión nuevamente.',
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoggingOut = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar sesión: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
 
   // Métodos de navegación (implementar según necesidades)
   void _navigateToPersonalInfo() {
@@ -652,8 +783,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
   }
-  void _navigateToRating() {}
-  void _navigateToAbout() {}
+
+  void _navigateToAbout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AboutScreen()),
+    );
+
+  }
   void _navigateToTerms() {
     Navigator.push(
       context,
@@ -667,46 +804,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       MaterialPageRoute(builder: (_) => const PoliticaPrivacidadScreen()),
     );
   }
-  void _performLogout() {}
+
 }
 
-
-
-
-
-class GoalsScreen extends StatelessWidget {
-  const GoalsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Mis objetivos')),
-    );
-  }
-}
-
-
-
-class RatingScreen extends StatelessWidget {
-  const RatingScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Calificar MottiNut')),
-    );
-  }
-}
-
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Sobre MottiNut')),
-    );
-  }
-}
 
 

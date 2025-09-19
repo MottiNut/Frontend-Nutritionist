@@ -1,51 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../../../../configuration/themes/app_colors.dart';
+
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text(
-          'Asesoría Nutricional',
+          'Preguntas Frecuentes',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             fontSize: 20,
             color: Colors.black87,
           ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: Colors.grey.shade100,
+        elevation: 0.8,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
-          // 🔎 Barra de búsqueda estilo TikTok
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Buscar consejos, recetas o preguntas...',
-                prefixIcon: const Icon(LucideIcons.search, color: Colors.black54),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SizedBox(
+              height: 43,
+              child: TextField(
+                style: TextStyle(fontSize: 14, ),
+                decoration: InputDecoration(
+                  suffixIcon: Icon(
+                    LucideIcons.search,
+                    color: Colors.grey.shade400,
+                  ),
+                  hintText: 'Buscar consejos o preguntas...',
+                  hintStyle: const TextStyle(fontSize: 14),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), // 🔹 Padding interno del texto
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
           ),
 
-          // 📋 Contenido scrollable
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 5, 16, 6),
               children: [
                 _buildTipCard(
                   icon: LucideIcons.apple,
@@ -65,31 +76,80 @@ class HelpScreen extends StatelessWidget {
                   description:
                   "Cómo potenciar tu rendimiento físico a través de una dieta adecuada.",
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 15),
+
                 Text(
-                  "Preguntas frecuentes",
+                  "Respuestas Rápidas",
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+
                 _buildFaqItem(
-                  question: "¿Es malo comer carbohidratos en la noche?",
+                  context: context,
+                  question: "¿Cómo puedo agendar una cita con mi nutricionista?",
                   answer:
-                  "No necesariamente. Lo importante es la cantidad total diaria y la calidad del carbohidrato.",
+                  "Ingresa a la sección 'Citas' de la app, elige el profesional disponible, selecciona la fecha y confirma el horario.",
                 ),
                 _buildFaqItem(
-                  question: "¿Qué suplementos necesito para ganar músculo?",
+                  context: context,
+                  question: "¿Puedo modificar mi plan de alimentación después de recibirlo?",
                   answer:
-                  "La mayoría de nutrientes los obtienes de la comida. La proteína en polvo puede ayudar si no llegas con alimentos.",
+                  "Sí, puedes solicitar cambios enviando un mensaje directo a tu nutricionista o agendando una nueva consulta.",
                 ),
                 _buildFaqItem(
-                  question: "¿El ayuno intermitente funciona para bajar de peso?",
+                  context: context,
+                  question: "¿La app genera recordatorios para mis comidas?",
                   answer:
-                  "Es una estrategia válida, pero no es la única. Lo clave es mantener un déficit calórico sostenible.",
+                  "Sí, puedes activar notificaciones en tu perfil para recibir alertas en los horarios indicados en tu plan.",
                 ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Qué debo hacer si olvidé mi contraseña?",
+                  answer:
+                  "En la pantalla de inicio de sesión, toca en '¿Olvidaste tu contraseña?' y sigue las instrucciones para restablecerla.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Cómo actualizo mi peso y mis medidas?",
+                  answer:
+                  "Ve a tu perfil, selecciona 'Datos de salud' y actualiza tu información para que el plan se ajuste automáticamente.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Puedo compartir mi progreso con mi nutricionista?",
+                  answer:
+                  "Sí, todos los registros de peso, fotos y mediciones son visibles para tu nutricionista en tiempo real.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Qué pasa si tengo alergias o restricciones alimentarias?",
+                  answer:
+                  "Al completar tu formulario inicial, indica tus alergias o restricciones para que el plan sea 100% personalizado.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿La app funciona sin conexión a internet?",
+                  answer:
+                  "Puedes consultar tu plan guardado sin conexión, pero para sincronizar cambios necesitas conexión a internet.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Los planes son generados por IA o por un nutricionista?",
+                  answer:
+                  "El plan es creado por un nutricionista, pero la IA sugiere opciones personalizadas según tus datos clínicos.",
+                ),
+                _buildFaqItem(
+                  context: context,
+                  question: "¿Cómo elimino mi cuenta?",
+                  answer:
+                  "Ve a 'Configuración' → 'Privacidad y seguridad' → 'Eliminar cuenta'. Recuerda que esta acción es irreversible.",
+                ),
+                SizedBox(height: 33,)
               ],
             ),
           ),
@@ -98,7 +158,6 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  // ✅ Tarjeta de consejos
   Widget _buildTipCard({
     required IconData icon,
     required String title,
@@ -107,38 +166,59 @@ class HelpScreen extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.grey.shade50,
-      elevation: 0.5,
-      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0.6,
+      margin: EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: Icon(icon, color: Colors.green, size: 30),
+        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+        leading: Icon(icon, color: AppColors.primary, size: 30),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style:  TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
         ),
-        subtitle: Text(
-          description,
-          style: const TextStyle(color: Colors.black54, fontSize: 14),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            description,
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
+          ),
         ),
       ),
     );
   }
 
-  // ✅ Item de FAQ expandible
-  Widget _buildFaqItem({required String question, required String answer}) {
-    return ExpansionTile(
-      title: Text(
-        question,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            answer,
-            style: const TextStyle(color: Colors.black54),
+  Widget _buildFaqItem({
+    required BuildContext context,
+    required String question,
+    required String answer,
+  }) {
+    return Card(
+      color: Colors.white,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0.4,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          backgroundColor: Colors.white,
+          collapsedBackgroundColor: Colors.white,
+          title: Text(
+            question,
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
           ),
+          children: [
+            Text(
+              answer,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                height: 1.2,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

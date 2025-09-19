@@ -390,7 +390,7 @@ class _TerminosCondicionesScreenState extends State<TerminosCondicionesScreen> {
           'Conforme al artículo 18° de la Ley N° 29733, usted puede ejercer sus derechos de Acceso, Rectificación, Cancelación y Oposición contactando a:',
         ),
         const SizedBox(height: 8),
-        _buildContactoOficial('privacidad@mottinut.pe'),
+        _buildContactoOficial('mottinutsoporte@gmail.com'),
         const SizedBox(height: 12),
         _buildParrafoLegal(
           'Plazo de respuesta: 10 días hábiles conforme a la normativa vigente.',
@@ -528,9 +528,9 @@ class _TerminosCondicionesScreenState extends State<TerminosCondicionesScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSubtituloLegal('Contactos Oficiales:'),
-        _buildContactoOficial('Protección de Datos: privacidad@mottinut.pe'),
-        _buildContactoOficial('Soporte Legal: legal@mottinut.pe'),
-        _buildContactoOficial('Soporte Técnico: soporte@mottinut.pe'),
+        _buildContactoOficial('Protección de Datos: mottinutsoporte@gmail.com'),
+        _buildContactoOficial('Soporte Legal: mottinutsoporte@gmail.com'),
+        _buildContactoOficial('Soporte Técnico: mottinutsoporte@gmail.com'),
         const SizedBox(height: 16),
         _buildSubtituloLegal('Autoridades de Control:'),
         _buildContactoOficial(

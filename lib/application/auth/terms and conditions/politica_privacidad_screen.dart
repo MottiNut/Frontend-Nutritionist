@@ -92,7 +92,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                         ),
                       ),
                       Text(
-                        'Actualizado: Junio 30, 2025',
+                        'Actualizado: 30 de Julio, 2025',
                         style: TextStyle(
                           color: Colors.grey,
                           fontSize: 11,
@@ -205,7 +205,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                       'Tu privacidad es nuestra prioridad',
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: Colors.black87,
                       ),
                     ),
@@ -262,7 +262,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
             titulo,
             style: const TextStyle(
               fontSize: 17,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
           ),
@@ -304,7 +304,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
         ),
         _buildInfoCard(
           'RUC',
-          '20XXXXXXXXX',
+          '20**********',
           Icons.receipt_long,
 
         ),
@@ -540,7 +540,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
         const SizedBox(height: 16),
         _buildContactButton(
           'Ejercer mis Derechos',
-          'mailto:derechos@mottinut.pe',
+          'mailto:mottinutsoporte@gmail.com',
           'Formulario de solicitud ARCO',
         ),
       ],
@@ -600,7 +600,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                     'En caso de brecha de seguridad',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.errorIcon,
                     ),
                   ),
@@ -671,7 +671,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                     'Control de Cookies',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color:  AppColors.primary,
                     ),
                   ),
@@ -698,14 +698,14 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
       children: [
         _buildContactCard(
           'Oficial de Protección de Datos (DPO)',
-          'dpo@mottinut.pe',
+          'mottinutsoporte@gmail.com',
           '+51 902 411 155',
           'Lun-Vie: 9:00 AM - 6:00 PM',
           Icons.person,
         ),
         _buildContactCard(
           'Soporte General',
-          'soporte@mottinut.pe',
+          'mottinutsoporte@gmail.com',
           '+51 902 411 155',
           '24/7 disponible',
           Icons.support_agent,
@@ -713,7 +713,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
         ),
         _buildContactCard(
           'Emergencias de Privacidad',
-          'emergencia@mottinut.pe',
+          'mottinutsoporte@gmail.com',
           '+51 902 411 155',
           'Respuesta inmediata',
           Icons.emergency,
@@ -724,7 +724,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
           'Autoridades de Control:',
           style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             color: Colors.black87,
           ),
         ),
@@ -823,7 +823,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                 categoria,
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.primary,
                 ),
               ),
@@ -895,7 +895,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                   titulo,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: color,
                   ),
                 ),
@@ -957,7 +957,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                         titulo,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: permitido ? AppColors.primary  : AppColors.errorIcon ,
                         ),
                       ),
@@ -973,7 +973,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                         permitido ? 'SÍ' : 'NO',
                         style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
                       ),
@@ -1020,7 +1020,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                 letra,
                 style: const TextStyle(
                   fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w500,
                   color: Colors.white,
                 ),
               ),
@@ -1035,7 +1035,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                   derecho,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: AppColors.primary ,
                   ),
                 ),
@@ -1079,7 +1079,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
             'Plazos de Respuesta',
             style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               color: AppColors.secondary ,
             ),
           ),
@@ -1121,7 +1121,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
             tiempo,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
               color: color,
             ),
           ),
@@ -1160,7 +1160,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                   titulo,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color:  AppColors.primary,
                   ),
                 ),
@@ -1200,7 +1200,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                   tipo,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color:  AppColors.primary,
                   ),
                 ),
@@ -1293,7 +1293,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                   titulo,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color:  AppColors.primary,
                   ),
                 ),
@@ -1372,7 +1372,7 @@ class _PoliticaPrivacidadScreenState extends State<PoliticaPrivacidadScreen>
                         titulo,
                         style: const TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.primary,
                         ),
                       ),

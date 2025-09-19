@@ -639,50 +639,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _shareProfile() async {
-    try {
-      final shareText = _buildShareText();
+    final profileLink = 'https://mottinut.com/u/${profile!.firstName}';
+    final shareText = '¡Mira mi perfil de nutricionista en Mottinut! $profileLink';
 
-      await Share.share(
-        shareText,
-        subject: 'Perfil de ${profile?.fullName ?? 'Nutricionista'}',
-      );
-    } catch (e) {
-      debugPrint('Error al compartir: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al compartir: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  String _buildShareText() {
-    if (profile == null) {
-      return '¡Mira mi perfil de nutricionista en Mottinut!';
-    }
-
-    final buffer = StringBuffer();
-    buffer.writeln('👨‍⚕️ Perfil de ${profile!.fullName}');
-    buffer.writeln('📋 Especialidad: ${_getSpecialtyText()}');
-    buffer.writeln('🎓 CNP: ${profile!.cnpCode}');
-
-    if (profile!.masterDegree != null && profile!.masterDegree!.isNotEmpty) {
-      buffer.writeln('📚 ${profile!.masterDegree}');
-    }
-
-    buffer.writeln('📍 ${profile!.location}');
-    buffer.writeln('🏠 ${profile!.address}');
-
-    if (profile!.experience != null && profile!.experience!.isNotEmpty) {
-      buffer.writeln('⏰ Experiencia: ${profile!.experience}');
-    }
-
-    buffer.writeln('');
-    buffer.writeln('📱 Descarga Mottinut para más información:');
-    buffer.writeln('https://mottinut.com'); // Cambia por tu URL real
-
-    return buffer.toString();
+    await Share.share(
+      shareText,
+      subject: 'Perfil de ${profile!.fullName}',
+    );
   }
 
   Widget _buildProfileImage(AuthProvider authProvider) {

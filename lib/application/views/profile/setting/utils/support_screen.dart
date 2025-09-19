@@ -3,23 +3,33 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../configuration/themes/app_colors.dart';
+import '../../../../requestSnacbar/snackBar_manager.dart';
 
-class SupportScreen extends StatelessWidget {
+class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
 
-  // 📞 WhatsApp
+  @override
+  State<SupportScreen> createState() => _SupportScreenState();
+}
+
+class _SupportScreenState extends State<SupportScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _msgCtrl = TextEditingController();
+  bool _isSending = false;
+
   Future<void> _openWhatsApp() async {
-    final url = Uri.parse("https://wa.me/51902411155"); // Perú (+51)
+    final url = Uri.parse("https://wa.me/51902411155");
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
-  // 📧 Email
   Future<void> _openEmail() async {
     final url = Uri(
       scheme: 'mailto',
-      path: 'mottinut@gmail.com',
+      path: 'mottinutsoporte@gmail.com',
       query: 'subject=Soporte Mottinut&body=Hola equipo, necesito ayuda con...',
     );
     if (await canLaunchUrl(url)) {
@@ -27,7 +37,6 @@ class SupportScreen extends StatelessWidget {
     }
   }
 
-  // 📱 Teléfono
   Future<void> _callPhone() async {
     final url = Uri.parse("tel:902411155");
     if (await canLaunchUrl(url)) {
@@ -35,15 +44,34 @@ class SupportScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _simulateSend() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSending = true);
+    await Future.delayed(const Duration(seconds: 2)); // simulación de envío
+
+    setState(() {
+      _isSending = false;
+      _nameCtrl.clear();
+      _emailCtrl.clear();
+      _msgCtrl.clear();
+    });
+
+    if (mounted) {
+      SnackBarManager.showSuccess(context, "Mensaje enviado correctamente");
+
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text(
           'Soporte y ayuda',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             fontSize: 20,
             color: Colors.black87,
           ),
@@ -51,17 +79,22 @@ class SupportScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 1,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(
+          15,
+          5,
+          15,
+          MediaQuery.of(context).padding.bottom + 16,
+        ),
         children: [
           const Text(
             "¿Necesitas ayuda?",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -70,7 +103,6 @@ class SupportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // WhatsApp
           _buildSupportOption(
             icon: LucideIcons.messageCircle,
             color: AppColors.primary,
@@ -78,8 +110,6 @@ class SupportScreen extends StatelessWidget {
             subtitle: "Atención rápida y personalizada",
             onTap: _openWhatsApp,
           ),
-
-          // Email
           _buildSupportOption(
             icon: LucideIcons.mail,
             color: AppColors.primary,
@@ -87,87 +117,111 @@ class SupportScreen extends StatelessWidget {
             subtitle: "Respondemos en menos de 24 horas",
             onTap: _openEmail,
           ),
-
-          // Teléfono
           _buildSupportOption(
             icon: LucideIcons.phone,
             color: AppColors.primary,
             title: "Llamar al soporte",
-            subtitle: "Horario: Lunes a Viernes, 9:00 - 18:00",
+            subtitle: "Todos los días las 24h",
             onTap: _callPhone,
-          ),
-
-          const SizedBox(height: 30),
-          const Text(
-            "Formulario de contacto",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          TextField(
-            decoration: InputDecoration(
-              hintText: "Escribe tu nombre",
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            decoration: InputDecoration(
-              hintText: "Tu correo electrónico",
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: "Escribe tu mensaje...",
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
           ),
           const SizedBox(height: 20),
 
-          ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Mensaje enviado ✅")),
-              );
-            },
-            icon: const Icon(LucideIcons.send),
-            label: Text("Enviar mensaje", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Text(
+            "Formulario de contacto",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          Card(
+            elevation: 3,
+            color: Colors.grey.shade200,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      style: TextStyle(fontSize: 14),
+                      controller: _nameCtrl,
+                      decoration: _inputDecoration("Escribe tu nombre"),
+                      validator: (v) => v!.trim().isEmpty ? "Ingresa tu nombre" : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      style: TextStyle(fontSize: 14),
+                      controller: _emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: _inputDecoration("Tu correo electrónico"),
+                      validator: (v) {
+                        if (v!.trim().isEmpty) return "Ingresa tu correo";
+                        final emailReg = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                        return emailReg.hasMatch(v) ? null : "Correo inválido";
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      style: TextStyle(fontSize: 14),
+                      controller: _msgCtrl,
+                      maxLines: 4,
+                      decoration: _inputDecoration("Escribe tu mensaje..."),
+                      validator: (v) => v!.trim().isEmpty ? "Ingresa un mensaje" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSending ? null : _simulateSend,
+                        icon: _isSending
+                            ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : const Icon(LucideIcons.send),
+                        label: Text(
+                          _isSending ? "Enviando..." : "Enviar mensaje",
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-
-          const SizedBox(height: 30),
         ],
       ),
     );
   }
+
+  InputDecoration _inputDecoration(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+    filled: true,
+    fillColor: Colors.grey.shade50,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+  );
 
   Widget _buildSupportOption({
     required IconData icon,
@@ -176,21 +230,52 @@ class SupportScreen extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: color.withOpacity(0.1),
-          child: Icon(icon, color: color, size: 28),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 27),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w500, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                      style: TextStyle(
+                          color: Colors.grey.shade600, fontSize: 13)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 25),
+          ],
         ),
-        subtitle: Text(subtitle),
-        onTap: onTap,
       ),
     );
   }

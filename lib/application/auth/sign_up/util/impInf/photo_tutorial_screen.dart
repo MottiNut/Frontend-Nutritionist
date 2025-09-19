@@ -6,8 +6,11 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mottinutnutriotinist/application/auth/sign_up/util/impInf/photo_validator_service_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../../../../../configuration/themes/app_colors.dart';
+import 'package:flutter/gestures.dart';
+
 
 class PhotoTutorialScreen extends StatefulWidget {
   const PhotoTutorialScreen({Key? key}) : super(key: key);
@@ -580,33 +583,106 @@ class _PhotoTutorialScreenState extends State<PhotoTutorialScreen> {
     );
   }
 
+
   void _showHelpDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Consejos para una buena foto'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('• Use luz natural cuando sea posible'),
-              Text('• Mantenga el teléfono estable'),
-              Text('• Mire directamente a la cámara'),
-              Text('• Use un fondo neutro'),
-              Text('• Mantenga una expresión neutral'),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Entendido'),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '¿Necesitas ayuda?',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[800],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 7),
+
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                    children: [
+                      const TextSpan(
+                        text:
+                        'Si tienes problemas para subir tu foto o cualquier otra duda, puedes escribirnos a:\n\n📧 ',
+                      ),
+                      TextSpan(
+                        text: 'mottinutsoporte@gmail.com',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final Uri emailUri = Uri(
+                              scheme: 'mailto',
+                              path: 'mottinutsoporte@gmail.com',
+                              query: Uri.encodeFull('subject=Consulta de soporte'),
+                            );
+                            if (await canLaunchUrl(emailUri)) {
+                              await launchUrl(emailUri);
+                            } else {
+                              // Manejar error si no se puede abrir
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('No se pudo abrir el correo')),
+                              );
+                            }
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ✅ BOTÓN DE CIERRE
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
   }
+
+
 
   Widget _buildCompactTip(String text, {bool isLast = false}) {
     return Container(

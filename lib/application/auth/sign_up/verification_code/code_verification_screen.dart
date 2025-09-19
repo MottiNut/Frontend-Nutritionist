@@ -38,6 +38,7 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
 
+  int _attempts = 0;
   @override
   void initState() {
     super.initState();
@@ -118,7 +119,6 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
       bool isSuccess = verificationResult['success'] == true;
       String? message = verificationResult['message'];
 
-      // Verificación adicional por mensaje si success es false
       if (!isSuccess && message != null) {
         String lowerMessage = message.toLowerCase();
         if (lowerMessage.contains('verificado exitosamente') ||
@@ -135,7 +135,6 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
 
         SnackBarManager.showSuccess(context, successMessage);
 
-        // Esperar para mostrar el mensaje
         await Future.delayed(const Duration(milliseconds: 1500));
 
         if (mounted) {
@@ -149,10 +148,18 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
           );
         }
       } else {
-        String errorMessage = _getErrorMessage(message);
-        SnackBarManager.showError(context, errorMessage);
-        _shakeFields();
-        _clearCode();
+        _attempts++; // incremento de intentos
+        if (_attempts >= 3) {
+          SnackBarManager.showError(context, 'Has excedido 3 intentos. La pantalla se cerrará.');
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) Navigator.of(context).pop(); // cierra la pantalla
+          });
+        } else {
+          String errorMessage = _getErrorMessage(message);
+          SnackBarManager.showError(context, '$errorMessage\nIntento $_attempts de 3');
+          _shakeFields();
+          _clearCode();
+        }
       }
     } catch (e) {
       SnackBarManager.showError(context, 'Algo salió mal. Inténtalo de nuevo');
@@ -345,12 +352,13 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
                             maxLength: 1,
                             style: const TextStyle(
                               fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w500, // Cambiado de bold a w500
                               color: Colors.black87,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               counterText: '',
                               border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), // Padding interno
                             ),
                             onChanged: (value) {
                               if (value.isNotEmpty) {
@@ -522,7 +530,7 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
 
   String _getVerificationMessage() {
     final contact = widget.verificationMethod == VerificationMethod.email
-        ? widget.email
+        ? _getMaskedEmail(widget.email)
         : widget.phone;
 
     switch (widget.verificationMethod) {
@@ -545,4 +553,17 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
         return '• Asegúrate de tener WhatsApp instalado\n• El código es válido por 10 minutos\n• Revisa los mensajes de WhatsApp Business';
     }
   }
+
+  String _getMaskedEmail(String email) {
+    if (email.isEmpty) return '';
+    int visibleChars = 3;
+    int atIndex = email.indexOf('@');
+    if (atIndex <= visibleChars) {
+      visibleChars = atIndex;
+    }
+    String masked = email.substring(0, visibleChars) + '*******';
+    String domain = email.substring(atIndex);
+    return masked + domain;
+  }
+
 }
