@@ -104,8 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Cargar datos de forma secuencial para mejor debugging
       await loadActivePatients();
-      await loadTodayAppointments();
-      await loadUrgentPatients();
+      //await loadTodayAppointments();
+      //await loadUrgentPatients();
 
       setState(() {
         isLoading = false;
@@ -138,29 +138,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> loadTodayAppointments() async {
     try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
+      // Temporalmente desactivado - no cargar citas
+      // Solo inicializar lista vacía
+      todayAppointments = [];
 
-      // Intenta obtener citas, pero maneja el caso donde el endpoint no existe
-      try {
-        final appointments = await appointmentService.getAppointmentsByDate(startOfDay);
+      Logger.info('Appointments service temporarily disabled - showing empty list');
 
-        todayAppointments = appointments
-            .where((apt) =>
-        apt.status == AppointmentStatus.confirmada ||
-            apt.status == AppointmentStatus.programada)
-            .toList()
-          ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
+      /* CÓDIGO COMENTADO - Descomenta cuando quieras volver a usar el servicio
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
 
-        Logger.info('Loaded ${todayAppointments.length} appointments for today');
-      } catch (e) {
-        // Si el endpoint no existe, usa datos mock o lista vacía
-        Logger.warning('Appointments endpoint not available, using empty list');
-        todayAppointments = [];
+    // Intenta obtener citas, pero maneja el caso donde el endpoint no existe
+    try {
+      final appointments = await appointmentService.getAppointmentsByDate(startOfDay);
 
-        // Opcional: usar datos de prueba
-        // todayAppointments = _getMockAppointments();
-      }
+      todayAppointments = appointments
+          .where((apt) =>
+      apt.status == AppointmentStatus.confirmada ||
+          apt.status == AppointmentStatus.programada)
+          .toList()
+        ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
+
+      Logger.info('Loaded ${todayAppointments.length} appointments for today');
+    } catch (e) {
+      // Si el endpoint no existe, usa datos mock o lista vacía
+      Logger.warning('Appointments endpoint not available, using empty list');
+      todayAppointments = [];
+
+      // Opcional: usar datos de prueba
+      // todayAppointments = _getMockAppointments();
+    }
+    */
     } catch (e) {
       Logger.error('Error loading today appointments', e);
       todayAppointments = [];
@@ -750,14 +758,15 @@ class _HomeScreenState extends State<HomeScreen> {
             clipBehavior: Clip.none,
             children: [
               Container(
+                width: double.infinity,
                 margin: const EdgeInsets.only(right: 14),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                      color: AppColors.primary.withOpacity(0.5),
-                      width: 0.2
+                    color: AppColors.primary.withOpacity(0.5),
+                    width: 0.2,
                   ),
                 ),
                 child: todayAppointments.isEmpty
@@ -816,13 +825,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      // Obtener citas de la semana
-      final weeklyAppointments = await appointmentService.getWeeklyAppointments();
+      // Temporalmente usar lista vacía en lugar de cargar del servicio
+      final weeklyAppointments = <AppointmentEnhanced>[];
+
+      /* CÓDIGO COMENTADO - Descomenta cuando quieras volver a usar el servicio
+    // Obtener citas de la semana
+    final weeklyAppointments = await appointmentService.getWeeklyAppointments();
+    */
 
       // Cerrar indicador de carga
       Navigator.pop(context);
 
-      // Navegar a la pantalla de agenda semanal
+      // Navegar a la pantalla de agenda semanal con lista vacía
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -840,11 +854,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Mostrar error
       SnackBarManager.showWithAction(
-        context,
-        message: 'Error al cargar la agenda semanal: ${_getErrorMessage(e)}',
-        actionText: 'DESHACER',
-        onAction: _navigateToWeeklyAgenda,
-        duration: Duration(seconds: 3)
+          context,
+          message: 'Error al cargar la agenda semanal: ${_getErrorMessage(e)}',
+          actionText: 'DESHACER',
+          onAction: _navigateToWeeklyAgenda,
+          duration: Duration(seconds: 3)
       );
 
       Logger.error('Error navigating to weekly agenda', e);
@@ -853,17 +867,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNoAppointments() {
     return Container(
-      height: 80,
-      child: Center(
-        child: Text(
-          'No hay citas programadas para hoy',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColors.textLDark,
-            fontWeight: FontWeight.w400,
+      height: 120,
+
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 40,
+            color: AppColors.primary.withOpacity(0.4),
           ),
-          textAlign: TextAlign.center,
-        ),
+          const SizedBox(height: 6),
+          // Mensaje principal
+          Text(
+            'No hay citas pendiente',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textHomeLabel.withOpacity(0.4),
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+        ],
       ),
     );
   }
@@ -1151,40 +1179,38 @@ class _HomeScreenState extends State<HomeScreen> {
                       letterSpacing: 0.4,
                     ),
                   ),
-                  SizedBox(
-                    height: 32,
-                    child: Text(
-                      'Pacientes sin registro en 72h',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textPrimary1,
-                        letterSpacing: 0.28,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+
                   Expanded(
                     child: urgentPatients.isEmpty
                         ? Center(
-                      child: Text(
-                        'No hay pacientes urgentes',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textLDark,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        textAlign: TextAlign.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.medical_services_outlined,
+                            size: 40,
+                            color: AppColors.errorText.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No hay pacientes con urgencias',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textInput.withOpacity(0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
                         : Column(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: urgentPatients.map((patient) {
                         final daysSinceVisit = patient.lastVisitDate != null
-                            ? DateTime.now().difference(patient.lastVisitDate!).inDays
+                            ? DateTime.now()
+                            .difference(patient.lastVisitDate!)
+                            .inDays
                             : 999;
 
                         return _buildUrgenteItem(
@@ -1216,6 +1242,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   Widget _buildUrgenteItem(String title, String subtitle) {
     return Container(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:launch_review/launch_review.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../requestSnacbar/snackBar_manager.dart';
@@ -229,12 +229,23 @@ Future<void> _handleRatingSubmission(
 }
 
 Future<void> _openPlayStore(BuildContext context) async {
+  final inAppReview = InAppReview.instance;
   try {
-    await LaunchReview.launch(androidAppId: RatingConfig.playStoreId);
+    if (await inAppReview.isAvailable()) {
+      // Muestra el pop-up nativo de reseña
+      await inAppReview.requestReview();
+    } else {
+      // Como fallback, abre la ficha de la app en la store
+      await inAppReview.openStoreListing(
+        appStoreId: '644XXXXXXX', // <-- SOLO en iOS, si la publicas allí
+        // microsoftStoreId: 'XXXXXXXX' // si lo necesitaras
+      );
+    }
   } catch (_) {
     _showErrorMessage(context);
   }
 }
+
 
 void _showThankYouMessage(BuildContext context, double rating) {
   final msg = rating <= 2

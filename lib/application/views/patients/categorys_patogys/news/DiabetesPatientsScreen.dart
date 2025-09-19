@@ -748,7 +748,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         decoration: BoxDecoration(
           color:
-              isSelected ? Colors.orange.withOpacity(0.1) : Colors.transparent,
+              isSelected ? Colors.orange : Colors.transparent,
           border: Border.all(
             color: isSelected ? Colors.orange : Colors.grey[300]!,
             width: isSelected ? 1.5 : 0.7,
@@ -758,7 +758,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.orange : Colors.grey[600],
+            color: isSelected ? Colors.white : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

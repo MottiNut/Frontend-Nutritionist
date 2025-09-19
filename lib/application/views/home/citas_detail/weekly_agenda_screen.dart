@@ -121,17 +121,15 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade200,
-      // Cambiar color de la barra de estado del sistema
-      appBar: PreferredSize(
-        preferredSize: Size.zero,
-        child: AppBar(
-          elevation: 0,
-          systemOverlayStyle: const SystemUiOverlayStyle(
-            statusBarColor: AppColors.backgroundDia,
-            statusBarIconBrightness: Brightness.light,
-            statusBarBrightness: Brightness.dark,
-          ),
+      backgroundColor: Colors.white, 
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        toolbarHeight: 0, 
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
         ),
       ),
       body: SafeArea(
@@ -153,7 +151,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
   Widget _buildModernHeaderWithDaySelector() {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.backgroundDia,
+        color: AppColors.primary,
       ),
       child: Column(
         children: [
@@ -169,9 +167,9 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
 
           // Información del mes y contador de citas
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(16),
@@ -187,7 +185,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -196,7 +194,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
@@ -205,8 +203,8 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                           '${_getAppointmentsForSelectedDay().length}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -228,7 +226,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
 
           // Day Selector integrado en el header
           Container(
-            height: 85,
+            height: 70,
             margin: const EdgeInsets.only(bottom: 15),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -259,10 +257,10 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                           ? Colors.white
                           : Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(16),
-                      border: isSelected ? Border.all(width: 1, color: AppColors.primary) : Border.all(width: 0.4, color: Colors.grey.shade400)
+                      border: isSelected ? Border.all(width: 1, color: AppColors.backgroundHipertencion) : Border.all(width: 0.4, color: AppColors.primary)
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 7),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -270,7 +268,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                             dayNames[day.weekday - 1],
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                               color: isSelected
                                   ? AppColors.primary
                                   : Colors.grey.shade300,
@@ -282,13 +280,13 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                             '${day.day}',
                             style: TextStyle(
                               fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: isSelected
                                   ? AppColors.primary
                                   : Colors.grey.shade300,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          /*const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -315,7 +313,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                                   ),
                                 ),
                             ],
-                          ),
+                          ),*/
                         ],
                       ),
                     ),
@@ -332,14 +330,9 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
   Widget _buildCollapsedHeader() {
     return Row(
       children: [
-        // Botón de retroceso
-        Container(
+        SizedBox(
           width: 40,
           height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
             onPressed: () => Navigator.pop(context),
@@ -354,8 +347,8 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
             'Próximas Citas',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
+              fontSize: 22,
+              fontWeight: FontWeight.w500,
               letterSpacing: -0.5,
             ),
           ),
@@ -858,8 +851,8 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
           Text(
             isToday ? 'Sin citas para hoy' : 'Sin citas programadas',
             style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontSize: 19,
+              fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
             ),
           ),
