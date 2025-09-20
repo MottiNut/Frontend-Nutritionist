@@ -134,7 +134,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
       }
 
       // Cargar todos los pacientes sin filtrar
-      final allPatients = await nutritionistService.getAllPatients(
+      final allPatients = await nutritionistService.getObesityPatients(
         sortBy: _sortBy,
         order: _sortOrder,
         token: token,
@@ -644,10 +644,12 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
         _filterPatients();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 5),
         decoration: BoxDecoration(
           color: isSelected ? _primaryColor.withOpacity(0.2) : Colors.transparent,
-
+          border: isSelected
+              ? Border.all(color: Colors.transparent, width: 0)
+              : Border.all(color: Colors.grey, width: 0.5),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Text(
@@ -880,10 +882,11 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                   children: [
                     // Avatar lateral con indicador de tipo de obesidad
                     Container(
-                      width: 100,
+                      width: 90,
                       height: double.infinity,
                       decoration: BoxDecoration(
                         color: statusColor,
+                        border: Border.all(color: Colors.grey.shade100, width: 0.8),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           bottomLeft: Radius.circular(12),
@@ -955,17 +958,12 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                               ],
                             ),
 
-                            // Estado
                             Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
+                                color: statusColor.withOpacity(0.13),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  width: 1,
-                                  color: statusColor.withOpacity(0.3),
-                                ),
                               ),
                               child: Text(
                                 statusText,

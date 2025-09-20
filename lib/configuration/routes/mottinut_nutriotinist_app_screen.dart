@@ -19,6 +19,7 @@ import 'buttons_navigations.dart';
 
 class MottiNutNutriotinistApp extends StatelessWidget {
 
+  @override
   Widget build(BuildContext context) {
     return Consumer5<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider>(
       builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, child) {

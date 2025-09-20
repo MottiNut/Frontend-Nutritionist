@@ -19,7 +19,7 @@ void main() async {
   runApp(
       MultiBlocProvider(
         providers: [
-          // Providers existentes
+
           ChangeNotifierProvider(create: (context) => DarkModeProvider()),
           ChangeNotifierProvider(create: (context) => FontSizeProvider()),
           ChangeNotifierProvider(create: (context) => NetworkProvider()),
@@ -32,4 +32,3 @@ void main() async {
       )
   );
 }
-

@@ -25,14 +25,13 @@ class NutritionPlanGenerator {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildPlanTypeSelector(),
+      builder: (context) => _buildPlanTypeSelector(context),
     );
   }
 
-  /// Construye el widget del selector de tipo de plan
-  Widget _buildPlanTypeSelector() {
+  Widget _buildPlanTypeSelector(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.57,
+
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -40,75 +39,90 @@ class NutritionPlanGenerator {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
-            ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-
-          const SizedBox(height: 20),
-
-          const Text(
-            'Selecciona el tipo de plan',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          Text(
-            'Elige cuántas comidas incluir en el plan nutricional',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 15),
-
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                _buildPlanTypeCard(
-                  title: 'Plan Básico - 3 Comidas',
-                  subtitle: 'Desayuno • Almuerzo • Cena',
-                  imagePath: 'assets/plan/des.png',
-                  color: Colors.green,
-                  mealCount: 3,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 10),
-                _buildPlanTypeCard(
-                  title: 'Plan Completo - 4 Comidas',
-                  subtitle: 'Desayuno • Almuerzo • Snack • Cena',
-                  imagePath: 'assets/plan/alm.png',
-                  color: Colors.orange,
-                  mealCount: 4,
-                ),
-                const SizedBox(height: 10),
-                _buildPlanTypeCard(
-                  title: 'Plan Premium - 5 Comidas',
-                  subtitle: 'Desayuno • Media Mañana • Almuerzo • Merienda • Cena',
-                  imagePath: 'assets/plan/cen.png',
-                  color: Colors.purple,
-                  mealCount: 5,
-                ),
+              ),
 
-              ],
-            ),
+              const SizedBox(height: 20),
+
+              const Text(
+                'Selecciona el tipo de plan',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                'Elige cuántas comidas incluir en el plan nutricional',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 15),
+
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    bottom: 20,
+                  ),
+                  children: [
+                    _buildPlanTypeCard(
+                      title: 'Plan Básico - 3 Comidas',
+                      subtitle: 'Desayuno • Almuerzo • Cena',
+                      imagePath: 'assets/plan/des.png',
+                      color: Colors.green,
+                      mealCount: 3,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildPlanTypeCard(
+                      title: 'Plan Completo - 4 Comidas',
+                      subtitle: 'Desayuno • Almuerzo • Snack • Cena',
+                      imagePath: 'assets/plan/alm.png',
+                      color: Colors.orange,
+                      mealCount: 4,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildPlanTypeCard(
+                      title: 'Plan Premium - 5 Comidas',
+                      subtitle: 'Desayuno • Media Mañana • Almuerzo • Merienda • Cena',
+                      imagePath: 'assets/plan/cen.png',
+                      color: Colors.purple,
+                      mealCount: 5,
+                    ),
+
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+
 
   Widget _buildPlanTypeCard({
     required String title,
@@ -279,80 +293,138 @@ class NutritionPlanGenerator {
     );
   }
 
-  /// Muestra advertencia sobre datos faltantes
   void _showMissingDataWarning(int mealCount, List<String> missingFields) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white, // fondo blanco limpio
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
-            const Text('Datos Incompletos'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Algunos datos del paciente no están disponibles:',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            ...missingFields.map((field) => Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 4),
-              child: Row(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Título con ícono
+              Row(
                 children: [
-                  Icon(Icons.circle, size: 6, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(field, style: TextStyle(fontSize: 14, color: Colors.grey[700]))),
-                ],
-              ),
-            )),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'El plan se creará con la información disponible. Podrás completar los datos restantes más tarde.',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary),
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Datos Incompletos',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 15),
+
+              // Mensaje principal
+              Text(
+                'Algunos datos del paciente no están disponibles:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Lista de campos faltantes
+              ...missingFields.map((field) => Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.circle, size: 6, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        field,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+
+              const SizedBox(height: 15),
+
+              // Información adicional
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'El plan se creará con la información disponible. Podrás completar los datos restantes más tarde.',
+                        style: TextStyle(fontSize: 13, color: AppColors.primary, height: 1.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Botones al final, mismos tamaños
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey[400]!, width: 0.7),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showGeneratePlanDialog(mealCount);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Continuar',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showGeneratePlanDialog(mealCount);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Continuar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
 
-  /// Muestra el diálogo principal de generación del plan
   void _showGeneratePlanDialog(int mealCount) {
     bool isGeneratingPlan = false;
     NutritionPlanResponse? generatedPlan;
@@ -363,95 +435,120 @@ class NutritionPlanGenerator {
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          return AlertDialog(
+          return Dialog(
+            backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            contentPadding: EdgeInsets.zero,
-            content: Container(
-              width: MediaQuery.of(context).size.width * 0.85,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header con icono
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: _getHeaderColor(isGeneratingPlan, generatedPlan, errorMessage).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Icon(
-                      _getHeaderIcon(isGeneratingPlan, generatedPlan, errorMessage),
-                      color: _getHeaderColor(isGeneratingPlan, generatedPlan, errorMessage),
-                      size: 30,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 20), // espacio para la X
+
+                        // Header con icono
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: _getHeaderColor(isGeneratingPlan, generatedPlan, errorMessage)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Icon(
+                            _getHeaderIcon(isGeneratingPlan, generatedPlan, errorMessage),
+                            color: _getHeaderColor(isGeneratingPlan, generatedPlan, errorMessage),
+                            size: 30,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Título
+                        Text(
+                          _getDialogTitle(isGeneratingPlan, generatedPlan, errorMessage),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // Descripción
+                        Text(
+                          _getDialogDescription(isGeneratingPlan, generatedPlan, errorMessage, mealCount),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Indicador de progreso o resultado
+                        if (isGeneratingPlan) ...[
+                          Lottie.asset(
+                            'assets/loading/palta_saltarina.json',
+                            width: 80,
+                            height: 80,
+                          ),
+                          const SizedBox(height: 12),
+                          const LinearProgressIndicator(
+                            backgroundColor: Color(0xFFE0E0E0),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                          ),
+                        ] else if (generatedPlan != null) ...[
+                          _buildSuccessContainer(generatedPlan!),
+                        ] else if (errorMessage != null) ...[
+                          _buildErrorContainer(errorMessage),
+                        ],
+
+                        const SizedBox(height: 20),
+
+                        // Botón principal
+                        _buildDialogButtons(
+                          isGeneratingPlan,
+                          generatedPlan,
+                          errorMessage,
+                          mealCount,
+                          setDialogState,
+                        ),
+                      ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 16),
-
-                  // Título
-                  Text(
-                    _getDialogTitle(isGeneratingPlan, generatedPlan, errorMessage),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                // Botón "X" arriba a la derecha
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[300],
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.close, size: 20, color: Colors.black87),
                     ),
-                    textAlign: TextAlign.center,
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Descripción
-                  Text(
-                    _getDialogDescription(isGeneratingPlan, generatedPlan, errorMessage, mealCount),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Indicador de progreso o resultado
-                  if (isGeneratingPlan) ...[
-                    Lottie.asset(
-                      'assets/loading/palta_saltarina.json',
-                      width: 80,
-                      height: 80,
-                    ),
-                    const SizedBox(height: 12),
-                    const LinearProgressIndicator(
-                      backgroundColor: Color(0xFFE0E0E0),
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
-                    ),
-                  ] else if (generatedPlan != null) ...[
-                    // Mostrar resultado exitoso
-                    _buildSuccessContainer(generatedPlan!),
-                  ] else if (errorMessage != null) ...[
-                    // Mostrar error
-                    _buildErrorContainer(errorMessage),
-                  ],
-
-                  const SizedBox(height: 20),
-
-                  // Botones
-                  _buildDialogButtons(
-                    isGeneratingPlan,
-                    generatedPlan,
-                    errorMessage,
-                    mealCount,
-                    setDialogState,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
       ),
     );
   }
+
 
   /// Obtiene el color del header según el estado
   Color _getHeaderColor(bool isGenerating, NutritionPlanResponse? plan, String? error) {
@@ -558,7 +655,6 @@ class NutritionPlanGenerator {
     );
   }
 
-  /// Construye los botones del diálogo
   Widget _buildDialogButtons(
       bool isGeneratingPlan,
       NutritionPlanResponse? generatedPlan,
@@ -566,54 +662,34 @@ class NutritionPlanGenerator {
       int mealCount,
       StateSetter setDialogState,
       ) {
-    return Row(
-      children: [
-        if (!isGeneratingPlan) ...[
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.grey),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Cancelar',
-                style: TextStyle(fontSize: 14,
-                color: Colors.black
-                ),),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
-
-        Expanded(
-          child: ElevatedButton(
-            onPressed: isGeneratingPlan
-                ? null
-                : (generatedPlan != null
-                ? () {
-              Navigator.pop(context);
-              _showPlanDetailsDialog(generatedPlan);
-            }
-                : (errorMessage != null
-                ? () => _startPlanGenerationWithLoading(mealCount)
-                : () => _startPlanGenerationWithLoading(mealCount))),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _getButtonColor(generatedPlan, errorMessage),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              _getButtonText(isGeneratingPlan, generatedPlan, errorMessage),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isGeneratingPlan
+            ? null
+            : (generatedPlan != null
+            ? () {
+          Navigator.pop(context);
+          _showPlanDetailsDialog(generatedPlan);
+        }
+            : () => _startPlanGenerationWithLoading(mealCount)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _getButtonColor(generatedPlan, errorMessage),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        child: Text(
+          _getButtonText(isGeneratingPlan, generatedPlan, errorMessage),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      ],
+      ),
     );
   }
+
 
   void _startPlanGenerationWithLoading(int mealCount) {
     // Cerrar el diálogo actual
@@ -871,10 +947,10 @@ class NutritionPlanGenerator {
         throw Exception('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       }
 
-      // ✅ CORRECCIÓN: Preparar request de edición correctamente
       final editRequest = EditPlanRequest(
-        planContent: plan.planContent, // Usar el contenido actual del plan
+        planContent: plan.planContent ?? {},
         reviewNotes: notes.isNotEmpty ? notes : 'Plan editado por el nutricionista',
+        planContentValid: true,
       );
 
       print('🔄 Editando plan ${plan.planId}...');

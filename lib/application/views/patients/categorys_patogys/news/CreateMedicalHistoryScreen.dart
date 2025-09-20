@@ -7,6 +7,8 @@ import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
 import 'package:lottie/lottie.dart';
 
+import 'PatientDetailScreen.dart';
+
 class CreateMedicalHistoryScreen extends StatefulWidget {
   final PatientProfile patient;
   final VoidCallback? onHistoryCreated;
@@ -25,6 +27,9 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   String? _authToken;
+
+  late PatientDisease _patientDisease;
+  late Color _diseaseColor;
 
   // Controllers para los campos del formulario
   final _bloodGlucoseController = TextEditingController();
@@ -62,6 +67,11 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
   @override
   void initState() {
     super.initState();
+
+    // Detectar enfermedad y color
+    _patientDisease = detectDiseaseFromString(widget.patient.chronicDisease);
+    _diseaseColor = getDiseaseColor(_patientDisease);
+
     _loadAuthToken();
     _loadPatientDataAndPreferences();
     // Agregar listeners para recalcular calorías automáticamente
@@ -112,21 +122,11 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
         _selectedActivityLevel = savedActivityLevel ?? 'Sedentario';
       });
 
-      // Debug: mostrar valores finales cargados
-      print('=== VALORES CARGADOS ===');
-      print('Peso: ${_weightController.text}');
-      print('Altura: ${_heightController.text}');
-      print('Edad: ${_ageController.text}');
-      print('Género: $_selectedGender');
-      print('Actividad: $_selectedActivityLevel');
-      print('=======================');
 
       // Calcular calorías con los datos cargados
       _calculateAndSaveCalories();
 
     } catch (e) {
-      print('❌ Error al cargar datos del paciente: $e');
-      // Si hay error, usar solo datos del paciente
       _usePatientDefaultData();
     }
   }
@@ -134,7 +134,6 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
 
 // Método mejorado para usar datos por defecto del paciente
   void _usePatientDefaultData() {
-    print('🔄 Usando datos por defecto del paciente...');
 
     setState(() {
       _weightController.text = widget.patient.weight?.toString() ?? '';
@@ -146,8 +145,6 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       _selectedActivityLevel = 'Sedentario'; // Valor por defecto
     });
 
-    print('✅ Datos por defecto aplicados - Género: $_selectedGender');
-    _calculateAndSaveCalories();
   }
 
   String? _inferGenderFromPatient() {
@@ -221,18 +218,6 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
 
       // Guardar en SharedPreferences
       await _saveCalorieDataToPreferences(weight, height, age.toInt(), calculatedCalories);
-
-      // Debug: mostrar cálculos
-      print('=== CÁLCULO HARRIS-BENEDICT ===');
-      print('Peso: $weight kg');
-      print('Altura: $height cm');
-      print('Edad: $age años');
-      print('Género: $_selectedGender');
-      print('TMB: ${tmb.toStringAsFixed(2)} kcal');
-      print('Factor Actividad: $activityFactor');
-      print('Factor Estrés: $stressFactor');
-      print('Calorías Totales: ${calculatedCalories.toStringAsFixed(0)} kcal/día');
-      print('===============================');
 
     } else {
       setState(() {
@@ -360,14 +345,14 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color:_diseaseColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Calorías calculadas: ${_calculatedCalories.toStringAsFixed(0)} kcal/día',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.orange,
+                    color: _diseaseColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -377,9 +362,9 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Cerrar diálogo
-              Navigator.pop(context); // Regresar a pantalla anterior
-              widget.onHistoryCreated?.call(); // Callback para actualizar
+              Navigator.pop(context);
+              Navigator.pop(context);
+              widget.onHistoryCreated?.call();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.checkValidation,
@@ -407,8 +392,8 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: _diseaseColor),
+            child: Text('Entendido', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -419,27 +404,28 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: AppColors.secondary.withOpacity(0.6),
+        statusBarColor: _diseaseColor.withOpacity(0.6),
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           backgroundColor: Colors.white,
+          scrolledUnderElevation: 0,
           elevation: 0,
           leading: IconButton(
             icon: SvgPicture.asset(
               'assets/images/anterior_icon.svg',
               width: 21,
               height: 21,
-              color: AppColors.secondary,
+              color: _diseaseColor,
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: Text(
             'Nuevo Historial Médico',
             style: TextStyle(
-              color: Colors.orange,
+              color: _diseaseColor,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -497,15 +483,15 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.grey),
+                      side: BorderSide(color: Colors.grey.shade500),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(15),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Cancelar',
+                    child: Text('Cancelar',
                       style: TextStyle(
-                          color: Colors.black,
+                          color: Colors.grey.shade700,
                           fontWeight: FontWeight.w500,
                           fontSize: 16
                       ),
@@ -517,9 +503,9 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
                   child: ElevatedButton(
                     onPressed: _saveHistory,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.checkValidation,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(15),
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -560,15 +546,15 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: Colors.orange.withOpacity(0.2),
+            backgroundColor: _diseaseColor.withOpacity(0.2),
             child: Text(
               widget.patient.fullName.isNotEmpty
                   ? widget.patient.fullName[0].toUpperCase()
                   : 'P',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: _diseaseColor,
               ),
             ),
           ),
@@ -598,14 +584,14 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: _diseaseColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '${_calculatedCalories.toStringAsFixed(0)} kcal/día',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Colors.orange,
+                        color: _diseaseColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -625,12 +611,12 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange.withOpacity(0.1), Colors.red.withOpacity(0.1)],
+          colors: [_diseaseColor.withOpacity(0.2), _diseaseColor.withOpacity(0.1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        border: Border.all(color: _diseaseColor.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +626,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: _diseaseColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -662,10 +648,10 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
               ),
               TextButton.icon(
                 onPressed: _usePatientDefaultData,
-                icon: const Icon(Icons.refresh, size: 16, color: Colors.orange),
-                label: const Text(
+                icon: Icon(Icons.refresh, size: 16, color: _diseaseColor),
+                label: Text(
                   'Restaurar',
-                  style: TextStyle(fontSize: 12, color: Colors.orange),
+                  style: TextStyle(fontSize: 12, color: _diseaseColor),
                 ),
               ),
             ],
@@ -760,7 +746,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.orange, Colors.deepOrange],
+                colors: [_diseaseColor, _diseaseColor.withOpacity(0.5)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -828,7 +814,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.orange),
+            Icon(icon, size: 20, color: _diseaseColor),
             const SizedBox(width: 8),
             Text(
               label,
@@ -851,7 +837,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.orange),
+              borderSide: BorderSide(color: _diseaseColor),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -1012,7 +998,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.orange),
+            Icon(icon, size: 20, color: _diseaseColor),
             const SizedBox(width: 8),
             Text(
               label,
@@ -1037,7 +1023,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.orange),
+              borderSide: BorderSide(color: _diseaseColor),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -1062,7 +1048,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.orange),
+            Icon(icon, size: 20, color: _diseaseColor),
             const SizedBox(width: 8),
             Text(
               label,
@@ -1076,15 +1062,15 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: _diseaseColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${value.toInt()}/10',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange,
+                  color: _diseaseColor,
                 ),
               ),
             ),
@@ -1093,10 +1079,10 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
         const SizedBox(height: 8),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
-            activeTrackColor: Colors.orange,
-            inactiveTrackColor: Colors.orange.withOpacity(0.3),
-            thumbColor: Colors.orange,
-            overlayColor: Colors.orange.withOpacity(0.2),
+            activeTrackColor: _diseaseColor,
+            inactiveTrackColor: _diseaseColor.withOpacity(0.3),
+            thumbColor: _diseaseColor,
+            overlayColor: _diseaseColor.withOpacity(0.2),
           ),
           child: Slider(
             value: value,
@@ -1122,7 +1108,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.orange),
+            Icon(icon, size: 20, color: _diseaseColor),
             const SizedBox(width: 8),
             Text(
               label,
@@ -1147,7 +1133,7 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.orange),
+              borderSide: BorderSide(color: _diseaseColor),
             ),
             contentPadding: const EdgeInsets.all(12),
           ),

@@ -35,5 +35,9 @@ class ApiConstants {
   static String reviewPlan(int planId) => '$apiVersion/nutritionist/nutrition-plans/$planId/review';
   static String editPlan(int planId) => '$apiVersion/nutritionist/nutrition-plans/$planId/edit';
   static const String rejectedByPatientPlans = '$apiVersion/nutritionist/nutrition-plans/rejected-by-patient';
+
+  static String patientNutritionHistory(int patientId) => '$apiVersion/nutritionist/patients/$patientId/nutrition-history';
+  static String patientPlanStats(int patientId) => '$apiVersion/nutritionist/patients/$patientId/plan-stats';
+
 }
 

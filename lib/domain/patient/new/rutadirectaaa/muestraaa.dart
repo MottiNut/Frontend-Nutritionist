@@ -5,29 +5,59 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'api_endpoints.dart';
 
-class NutritionistService {
+class PatientPlanStats {
+  final int totalPlans;
+  final int approvedPlans;
+  final int rejectedPlans;
+  final int pendingPlans;
+  final int activePlans;
+  final String? lastPlanDate;
+  final double? averageEnergyRequirement;
+  final Map<String, int> goalDistribution;
 
+  PatientPlanStats({
+    required this.totalPlans,
+    required this.approvedPlans,
+    required this.rejectedPlans,
+    required this.pendingPlans,
+    required this.activePlans,
+    this.lastPlanDate,
+    this.averageEnergyRequirement,
+    required this.goalDistribution,
+  });
+
+  factory PatientPlanStats.fromJson(Map<String, dynamic> json) {
+    return PatientPlanStats(
+      totalPlans: json['totalPlans'] ?? 0,
+      approvedPlans: json['approvedPlans'] ?? 0,
+      rejectedPlans: json['rejectedPlans'] ?? 0,
+      pendingPlans: json['pendingPlans'] ?? 0,
+      activePlans: json['activePlans'] ?? 0,
+      lastPlanDate: json['lastPlanDate'],
+      averageEnergyRequirement: json['averageEnergyRequirement']?.toDouble(),
+      goalDistribution: Map<String, int>.from(json['goalDistribution'] ?? {}),
+    );
+  }
+}
+class NutritionistService {
   static final Map<int, Uint8List> _imageCache = HashMap<int, Uint8List>();
 
-  Future<List<PatientProfile>> getAllPatients({
-    String? chronicDisease,
+  Future<List<PatientProfile>> getDiabetesPatients({
     String sortBy = 'fullName',
     String order = 'asc',
     required String token,
   }) async {
-    final queryParams = <String, String>{
-      'sortBy': sortBy,
-      'order': order,
-    };
-
-    if (chronicDisease != null && chronicDisease.isNotEmpty) {
-      queryParams['chronicDisease'] = chronicDisease;
-    }
-
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
-        .replace(queryParameters: queryParams);
-
     try {
+      final queryParams = <String, String>{
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
+          .replace(queryParameters: queryParams);
+
+      print('🔍 Cargando pacientes con diabetes...');
+
       final response = await http.get(
         uri,
         headers: ApiConstants.getHeaders(token),
@@ -35,12 +65,47 @@ class NutritionistService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => PatientProfile.fromJson(json)).toList();
+        final allPatients = data.map((json) => PatientProfile.fromJson(json)).toList();
+
+        print('📊 Total de pacientes obtenidos: ${allPatients.length}');
+
+        // Filtrado ESPECÍFICO para diabetes únicamente
+        final diabetesPatients = allPatients.where((p) {
+          if (p.chronicDisease == null ||
+              p.chronicDisease!.trim().isEmpty ||
+              p.chronicDisease!.toLowerCase().trim() == 'ninguna') {
+            return false;
+          }
+
+          final disease = p.chronicDisease!.toLowerCase().trim();
+
+          // Solo diabetes, sin otras enfermedades
+          bool isDiabetes = disease.contains('diabetes') ||
+              disease.contains('diabético') ||
+              disease.contains('diabética') ||
+              disease.contains('diabetico') ||
+              disease.contains('diabetica');
+
+          // Excluir si también tiene otras enfermedades
+          bool hasOtherDiseases = disease.contains('hipertensión') ||
+              disease.contains('hipertension') ||
+              disease.contains('obesidad') ||
+              disease.contains('obeso') ||
+              disease.contains('obesa') ||
+              disease.contains('sobrepeso');
+
+          return isDiabetes && !hasOtherDiseases;
+        }).toList();
+
+        print('🩺 Pacientes SOLO con diabetes encontrados: ${diabetesPatients.length}');
+
+        return diabetesPatients;
       } else {
         throw _handleHttpError(response.statusCode, response.body);
       }
     } catch (e) {
-      throw Exception('Error al obtener pacientes: $e');
+      print('❌ Error al cargar pacientes con diabetes: $e');
+      throw Exception('Error al obtener pacientes con diabetes: $e');
     }
   }
 
@@ -48,7 +113,8 @@ class NutritionistService {
   Future<PatientProfile> getPatientById(int patientId, String token) async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientById(patientId)}'),
+        Uri.parse(
+            '${ApiConstants.baseUrl}${ApiConstants.patientById(patientId)}'),
         headers: ApiConstants.getHeaders(token),
       );
 
@@ -63,21 +129,25 @@ class NutritionistService {
   }
 
   /// Obtiene un paciente con su historial médico
-  Future<PatientWithHistory> getPatientWithHistory(int patientId, String token) async {
+  Future<PatientWithHistory> getPatientWithHistory(
+      int patientId, String token) async {
     final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientWithHistory(patientId)}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.patientWithHistory(patientId)}'),
       headers: ApiConstants.getHeaders(token),
     );
 
     if (response.statusCode == 200) {
       return PatientWithHistory.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Error al obtener paciente con historial: ${response.body}');
+      throw Exception(
+          'Error al obtener paciente con historial: ${response.body}');
     }
   }
 
   /// Obtiene las enfermedades crónicas para filtros
-  Future<List<ChronicDiseaseFilter>> getChronicDiseaseFilters(String token) async {
+  Future<List<ChronicDiseaseFilter>> getChronicDiseaseFilters(
+      String token) async {
     try {
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.chronicDiseases}'),
@@ -104,7 +174,8 @@ class NutritionistService {
 
     try {
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientProfileImage(userId)}'),
+        Uri.parse(
+            '${ApiConstants.baseUrl}${ApiConstants.patientProfileImage(userId)}'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -124,6 +195,7 @@ class NutritionistService {
       return null;
     }
   }
+
   /// Limpia el caché de imágenes
   static void clearImageCache() {
     _imageCache.clear();
@@ -158,50 +230,43 @@ class NutritionistService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final allPatients = data.map((json) => PatientProfile.fromJson(json)).toList();
+        final allPatients =
+            data.map((json) => PatientProfile.fromJson(json)).toList();
 
         print('📊 Total de pacientes obtenidos: ${allPatients.length}');
 
-        // Filtrado mejorado para hipertensión con más términos y flexibilidad
+        // Filtrado ESPECÍFICO para hipertensión únicamente
         final hypertensionPatients = allPatients.where((p) {
-          if (p.chronicDisease == null) return false;
+          if (p.chronicDisease == null ||
+              p.chronicDisease!.trim().isEmpty ||
+              p.chronicDisease!.toLowerCase().trim() == 'ninguna') {
+            return false;
+          }
 
-          final disease = p.chronicDisease!.toLowerCase();
+          final disease = p.chronicDisease!.toLowerCase().trim();
 
-          // Lista ampliada de términos relacionados con hipertensión
-          final hypertensionTerms = [
-            'hipertensión', 'hipertension', 'hipertensivo', 'hipertensiva',
-            'hipertenso', 'hipertensa', 'presión alta', 'presion alta',
-            'presión arterial alta', 'presion arterial alta', 'tensión alta',
-            'tension alta', 'hta', 'hipertension arterial', 'hipertensión arterial',
-            'grado 1', 'grado 2', 'grado 3', 'leve', 'moderada', 'severa',
-            'ht', 'hypertension', 'high blood pressure', 'hbpm'
-          ];
+          // Solo hipertensión
+          bool isHypertension = disease.contains('hipertensión') ||
+              disease.contains('hipertension') ||
+              disease.contains('hipertensión arterial') ||
+              disease.contains('hipertension arterial') ||
+              (disease.contains('presión') && disease.contains('alta')) ||
+              (disease.contains('presion') && disease.contains('alta'));
 
-          // También buscar por siglas y abreviaciones comunes
-          final hypertensionPatterns = [
-            RegExp(r'hipert', caseSensitive: false),
-            RegExp(r'presi[óo]n.*alta', caseSensitive: false),
-            RegExp(r'tensi[óo]n.*alta', caseSensitive: false),
-            RegExp(r'hta', caseSensitive: false),
-            RegExp(r'h\.t\.a', caseSensitive: false),
-          ];
+          // Excluir si también tiene otras enfermedades
+          bool hasOtherDiseases = disease.contains('diabetes') ||
+              disease.contains('diabético') ||
+              disease.contains('diabética') ||
+              disease.contains('obesidad') ||
+              disease.contains('obeso') ||
+              disease.contains('obesa') ||
+              disease.contains('sobrepeso');
 
-          // Verificar por términos exactos
-          final hasTerm = hypertensionTerms.any((term) => disease.contains(term));
-
-          // Verificar por patrones
-          final hasPattern = hypertensionPatterns.any((pattern) => pattern.hasMatch(disease));
-
-          return hasTerm || hasPattern;
+          return isHypertension && !hasOtherDiseases;
         }).toList();
 
-        print('🩺 Pacientes con hipertensión encontrados: ${hypertensionPatients.length}');
-
-        // Debug info
-        for (var patient in allPatients) {
-          print('👤 Paciente: ${patient.fullName} - Enfermedad: ${patient.chronicDisease}');
-        }
+        print(
+            '🩺 Pacientes SOLO con hipertensión encontrados: ${hypertensionPatients.length}');
 
         return hypertensionPatients;
       } else {
@@ -237,79 +302,63 @@ class NutritionistService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final allPatients = data.map((json) => PatientProfile.fromJson(json)).toList();
+        final allPatients =
+            data.map((json) => PatientProfile.fromJson(json)).toList();
 
         print('📊 Total de pacientes obtenidos: ${allPatients.length}');
 
-        // Filtrado para obesidad y sobrepeso
+        // Filtrado ESPECÍFICO para obesidad únicamente
         final obesityPatients = allPatients.where((p) {
-          // Filtrar por enfermedad crónica
+          // Filtrar por enfermedad crónica SOLO
           bool hasObesityDisease = false;
-          if (p.chronicDisease != null) {
-            final disease = p.chronicDisease!.toLowerCase();
+          if (p.chronicDisease != null &&
+              p.chronicDisease!.trim().isNotEmpty &&
+              p.chronicDisease!.toLowerCase().trim() != 'ninguna') {
+            final disease = p.chronicDisease!.toLowerCase().trim();
 
-            final obesityTerms = [
-              'obesidad', 'obeso', 'obesa', 'sobrepeso', 'sobre peso',
-              'exceso de peso', 'exceso peso', 'peso excesivo',
-              'obesidad grado', 'obesidad tipo', 'obesidad clase',
-              'grado i', 'grado ii', 'grado iii', 'grado 1', 'grado 2', 'grado 3',
-              'clase i', 'clase ii', 'clase iii', 'clase 1', 'clase 2', 'clase 3',
-              'obesidad leve', 'obesidad moderada', 'obesidad severa',
-              'obesidad mórbida', 'obesidad morbida', 'obesidad extrema',
-              'imc elevado', 'índice masa corporal elevado',
-              'overweight', 'obesity'
-            ];
+            // Solo obesidad/sobrepeso
+            hasObesityDisease = disease.contains('obesidad') ||
+                disease.contains('obeso') ||
+                disease.contains('obesa') ||
+                disease.contains('sobrepeso') ||
+                disease.contains('sobre peso');
 
-            final obesityPatterns = [
-              RegExp(r'obes', caseSensitive: false),
-              RegExp(r'sobrepeso', caseSensitive: false),
-              RegExp(r'sobre.*peso', caseSensitive: false),
-              RegExp(r'exceso.*peso', caseSensitive: false),
-              RegExp(r'imc.*alto|imc.*elevado', caseSensitive: false),
-            ];
+            // Excluir si también tiene otras enfermedades
+            bool hasOtherDiseases = disease.contains('diabetes') ||
+                disease.contains('diabético') ||
+                disease.contains('diabética') ||
+                disease.contains('hipertensión') ||
+                disease.contains('hipertension');
 
-            hasObesityDisease = obesityTerms.any((term) => disease.contains(term)) ||
-                obesityPatterns.any((pattern) => pattern.hasMatch(disease));
+            hasObesityDisease = hasObesityDisease && !hasOtherDiseases;
           }
 
-          // Filtrar por IMC (sobrepeso: IMC ≥ 25, obesidad: IMC ≥ 30)
+          // Para pacientes sin enfermedad específica, filtrar por IMC
           bool hasHighBMI = false;
-          if (p.bmi != null && p.bmi! >= 25.0) {
-            hasHighBMI = true;
+          if (!hasObesityDisease &&
+              (p.chronicDisease == null ||
+                  p.chronicDisease!.trim().isEmpty ||
+                  p.chronicDisease!.toLowerCase().trim() == 'ninguna')) {
+            if (p.bmi != null && p.bmi! >= 25.0) {
+              hasHighBMI = true;
+            }
+
+            // O por categoría de IMC
+            if (p.bmiCategory != null) {
+              final category = p.bmiCategory!.toLowerCase();
+              hasHighBMI = hasHighBMI ||
+                  category.contains('sobrepeso') ||
+                  category.contains('obesidad') ||
+                  category.contains('obeso') ||
+                  category.contains('obesa');
+            }
           }
 
-          // Filtrar por categoría de IMC
-          bool hasObesityCategory = false;
-          if (p.bmiCategory != null) {
-            final category = p.bmiCategory!.toLowerCase();
-            final obesityCategories = [
-              'sobrepeso', 'sobre peso', 'overweight',
-              'obesidad', 'obeso', 'obesa', 'obesity',
-              'obesidad grado', 'obesidad clase',
-              'obesidad leve', 'obesidad moderada', 'obesidad severa'
-            ];
-            hasObesityCategory = obesityCategories.any((cat) => category.contains(cat));
-          }
-
-          return hasObesityDisease || hasHighBMI || hasObesityCategory;
+          return hasObesityDisease || hasHighBMI;
         }).toList();
 
-        print('⚖️ Pacientes con obesidad/sobrepeso encontrados: ${obesityPatients.length}');
-
-        // Debug info
-        for (var patient in obesityPatients) {
-          String reason = '';
-          if (patient.chronicDisease != null && patient.chronicDisease!.toLowerCase().contains('obes')) {
-            reason += 'Enfermedad: ${patient.chronicDisease} ';
-          }
-          if (patient.bmi != null && patient.bmi! >= 25.0) {
-            reason += 'IMC: ${patient.bmi} ';
-          }
-          if (patient.bmiCategory != null) {
-            reason += 'Categoría: ${patient.bmiCategory}';
-          }
-          print('👤 Paciente: ${patient.fullName} - $reason');
-        }
+        print(
+            '⚖️ Pacientes SOLO con obesidad/sobrepeso encontrados: ${obesityPatients.length}');
 
         return obesityPatients;
       } else {
@@ -321,15 +370,86 @@ class NutritionistService {
     }
   }
 
+//  múltiples enfermedades
+  Future<List<PatientProfile>> getMultipleDiseasePatients({
+    String sortBy = 'fullName',
+    String order = 'asc',
+    required String token,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'sortBy': sortBy,
+        'order': order,
+      };
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
+          .replace(queryParameters: queryParams);
+
+      print('🔍 Cargando pacientes con múltiples enfermedades...');
+
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final allPatients =
+            data.map((json) => PatientProfile.fromJson(json)).toList();
+
+        // Filtrado para pacientes con más de una enfermedad
+        final multipleDiseasesPatients = allPatients.where((p) {
+          if (p.chronicDisease == null ||
+              p.chronicDisease!.trim().isEmpty ||
+              p.chronicDisease!.toLowerCase().trim() == 'ninguna') {
+            return false;
+          }
+
+          final disease = p.chronicDisease!.toLowerCase().trim();
+          int diseaseCount = 0;
+
+          if (disease.contains('diabetes') ||
+              disease.contains('diabético') ||
+              disease.contains('diabética')) {
+            diseaseCount++;
+          }
+          if (disease.contains('hipertensión') ||
+              disease.contains('hipertension')) {
+            diseaseCount++;
+          }
+          if (disease.contains('obesidad') ||
+              disease.contains('obeso') ||
+              disease.contains('obesa') ||
+              disease.contains('sobrepeso')) {
+            diseaseCount++;
+          }
+
+          return diseaseCount > 1;
+        }).toList();
+
+        print(
+            '🩺 Pacientes con múltiples enfermedades encontrados: ${multipleDiseasesPatients.length}');
+
+        return multipleDiseasesPatients;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar pacientes con múltiples enfermedades: $e');
+      throw Exception(
+          'Error al obtener pacientes con múltiples enfermedades: $e');
+    }
+  }
+
   // ================ HISTORIAL MÉDICO ================
 
   /// Obtiene el historial médico de un paciente
   Future<List<MedicalHistory>> getPatientHistory(
-      int patientId,
-      String token, {
-        DateTime? startDate,
-        DateTime? endDate,
-      }) async {
+    int patientId,
+    String token, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final queryParams = <String, String>{};
     if (startDate != null) {
       queryParams['startDate'] = startDate.toIso8601String().split('T')[0];
@@ -338,7 +458,8 @@ class NutritionistService {
       queryParams['endDate'] = endDate.toIso8601String().split('T')[0];
     }
 
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientHistory(patientId)}')
+    final uri = Uri.parse(
+            '${ApiConstants.baseUrl}${ApiConstants.patientHistory(patientId)}')
         .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
     final response = await http.get(
@@ -356,12 +477,13 @@ class NutritionistService {
 
   /// Crea un nuevo registro de historial médico
   Future<MedicalHistory> createMedicalHistory(
-      int patientId,
-      CreateMedicalHistoryRequest request,
-      String token,
-      ) async {
+    int patientId,
+    CreateMedicalHistoryRequest request,
+    String token,
+  ) async {
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientHistory(patientId)}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.patientHistory(patientId)}'),
       headers: ApiConstants.getHeaders(token),
       body: json.encode(request.toJson()),
     );
@@ -375,12 +497,13 @@ class NutritionistService {
 
   /// Actualiza un registro de historial médico
   Future<MedicalHistory> updateMedicalHistory(
-      int historyId,
-      UpdateMedicalHistoryRequest request,
-      String token,
-      ) async {
+    int historyId,
+    UpdateMedicalHistoryRequest request,
+    String token,
+  ) async {
     final response = await http.put(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.updateHistory(historyId)}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.updateHistory(historyId)}'),
       headers: ApiConstants.getHeaders(token),
       body: json.encode(request.toJson()),
     );
@@ -395,9 +518,11 @@ class NutritionistService {
   // ================ RESÚMENES Y PROGRESO ================
 
   /// Obtiene el resumen de salud del paciente
-  Future<PatientHealthSummary> getPatientHealthSummary(int patientId, String token) async {
+  Future<PatientHealthSummary> getPatientHealthSummary(
+      int patientId, String token) async {
     final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientHealthSummary(patientId)}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.patientHealthSummary(patientId)}'),
       headers: ApiConstants.getHeaders(token),
     );
 
@@ -410,11 +535,12 @@ class NutritionistService {
 
   /// Obtiene el progreso del paciente
   Future<PatientProgress> getPatientProgress(
-      int patientId,
-      String token, {
-        int days = 30,
-      }) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientProgress(patientId)}')
+    int patientId,
+    String token, {
+    int days = 30,
+  }) async {
+    final uri = Uri.parse(
+            '${ApiConstants.baseUrl}${ApiConstants.patientProgress(patientId)}')
         .replace(queryParameters: {'days': days.toString()});
 
     final response = await http.get(
@@ -431,11 +557,79 @@ class NutritionistService {
 
   // ================ PLANES NUTRICIONALES ================
 
+  /// Obtiene el historial completo de planes nutricionales de un paciente
+  Future<List<NutritionPlanResponse>> getPatientNutritionHistory(
+      int patientId,
+      String token, {
+        String? status, // Filtrar por estado específico
+        DateTime? startDate,
+        DateTime? endDate,
+        int? limit,
+      }) async {
+    try {
+      final queryParams = <String, String>{};
+
+      if (status != null) queryParams['status'] = status;
+      if (limit != null) queryParams['limit'] = limit.toString();
+      if (startDate != null) {
+        queryParams['startDate'] = startDate.toIso8601String().split('T')[0];
+      }
+      if (endDate != null) {
+        queryParams['endDate'] = endDate.toIso8601String().split('T')[0];
+      }
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientNutritionHistory(patientId)}')
+          .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+      print('🔍 Cargando historial de planes para paciente $patientId...');
+
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final plans = data.map((json) => NutritionPlanResponse.fromJson(json)).toList();
+
+        // Ordenar por fecha de creación (más reciente primero)
+        plans.sort((a, b) => DateTime.parse(b.createdAt).compareTo(DateTime.parse(a.createdAt)));
+
+        print('📋 Planes encontrados: ${plans.length}');
+        return plans;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar historial de planes: $e');
+      throw Exception('Error al obtener historial de planes: $e');
+    }
+  }
+
+  /// Obtiene estadísticas del historial de planes del paciente
+  Future<PatientPlanStats> getPatientPlanStats(int patientId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patientPlanStats(patientId)}'),
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        return PatientPlanStats.fromJson(json.decode(response.body));
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar estadísticas de planes: $e');
+      throw Exception('Error al obtener estadísticas de planes: $e');
+    }
+  }
+
   /// Genera un nuevo plan nutricional usando IA
   Future<NutritionPlanResponse> generatePlan(
-      GeneratePlanRequest request,
-      String token,
-      ) async {
+    GeneratePlanRequest request,
+    String token,
+  ) async {
     final response = await http.post(
       Uri.parse('${ApiConstants.baseUrl}${ApiConstants.generatePlan}'),
       headers: ApiConstants.getHeaders(token),
@@ -480,10 +674,10 @@ class NutritionistService {
 
   /// Revisa y aprueba/rechaza un plan
   Future<NutritionPlanResponse> reviewPlan(
-      int planId,
-      ReviewPlanRequest request,
-      String token,
-      ) async {
+    int planId,
+    ReviewPlanRequest request,
+    String token,
+  ) async {
     final response = await http.post(
       Uri.parse('${ApiConstants.baseUrl}${ApiConstants.reviewPlan(planId)}'),
       headers: ApiConstants.getHeaders(token),
@@ -499,10 +693,10 @@ class NutritionistService {
 
   /// Edita un plan nutricional existente
   Future<NutritionPlanResponse> editPlan(
-      int planId,
-      EditPlanRequest request,
-      String token,
-      ) async {
+    int planId,
+    EditPlanRequest request,
+    String token,
+  ) async {
     final response = await http.put(
       Uri.parse('${ApiConstants.baseUrl}${ApiConstants.editPlan(planId)}'),
       headers: ApiConstants.getHeaders(token),
@@ -517,9 +711,11 @@ class NutritionistService {
   }
 
   /// Obtiene los planes rechazados por pacientes
-  Future<List<RejectedByPatient>> getRejectedByPatientPlans(String token) async {
+  Future<List<RejectedByPatient>> getRejectedByPatientPlans(
+      String token) async {
     final response = await http.get(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.rejectedByPatientPlans}'),
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.rejectedByPatientPlans}'),
       headers: ApiConstants.getHeaders(token),
     );
 
@@ -551,6 +747,7 @@ class NutritionistService {
     }
   }
 }
+
 // ================ ENTIDADES DE PLANS NUTRICIONALES ================
 class NutritionPlanResponse {
   final int planId;
@@ -604,6 +801,7 @@ class NutritionPlanResponse {
     );
   }
 }
+
 class PendingPlanResponse {
   final int planId;
   final int patientId;
@@ -638,6 +836,7 @@ class PendingPlanResponse {
     );
   }
 }
+
 class DetailedNutritionPlan {
   final int planId;
   final int patientId;
@@ -805,6 +1004,7 @@ class DetailedNutritionPlan {
     );
   }
 }
+
 class RejectedByPatient {
   final int planId;
   final int patientId;
@@ -839,6 +1039,7 @@ class RejectedByPatient {
     );
   }
 }
+
 // ================ REQUEST MODELS ================
 class CreateMedicalHistoryRequest {
   final DateTime consultationDate;
@@ -910,6 +1111,7 @@ class CreateMedicalHistoryRequest {
     };
   }
 }
+
 class UpdateMedicalHistoryRequest extends CreateMedicalHistoryRequest {
   UpdateMedicalHistoryRequest({
     required DateTime consultationDate,
@@ -933,28 +1135,29 @@ class UpdateMedicalHistoryRequest extends CreateMedicalHistoryRequest {
     int? stressLevel,
     int? sleepQuality,
   }) : super(
-    consultationDate: consultationDate,
-    waistCircumference: waistCircumference,
-    hipCircumference: hipCircumference,
-    bodyFatPercentage: bodyFatPercentage,
-    bloodGlucose: bloodGlucose,
-    waterConsumption: waterConsumption,
-    caloricIntake: caloricIntake,
-    bloodPressure: bloodPressure,
-    lipidProfile: lipidProfile,
-    eatingHabits: eatingHabits,
-    supplementation: supplementation,
-    macronutrients: macronutrients,
-    foodPreferences: foodPreferences,
-    foodRelationship: foodRelationship,
-    nutritionalObjectives: nutritionalObjectives,
-    patientEvolution: patientEvolution,
-    professionalNotes: professionalNotes,
-    heartRate: heartRate,
-    stressLevel: stressLevel,
-    sleepQuality: sleepQuality,
-  );
+          consultationDate: consultationDate,
+          waistCircumference: waistCircumference,
+          hipCircumference: hipCircumference,
+          bodyFatPercentage: bodyFatPercentage,
+          bloodGlucose: bloodGlucose,
+          waterConsumption: waterConsumption,
+          caloricIntake: caloricIntake,
+          bloodPressure: bloodPressure,
+          lipidProfile: lipidProfile,
+          eatingHabits: eatingHabits,
+          supplementation: supplementation,
+          macronutrients: macronutrients,
+          foodPreferences: foodPreferences,
+          foodRelationship: foodRelationship,
+          nutritionalObjectives: nutritionalObjectives,
+          patientEvolution: patientEvolution,
+          professionalNotes: professionalNotes,
+          heartRate: heartRate,
+          stressLevel: stressLevel,
+          sleepQuality: sleepQuality,
+        );
 }
+
 class GeneratePlanRequest {
   final int patientId;
   final String weekStartDate;
@@ -983,6 +1186,7 @@ class GeneratePlanRequest {
     };
   }
 }
+
 class ReviewPlanRequest {
   final String action; // "approve" or "reject"
   final String? reviewNotes;
@@ -999,22 +1203,35 @@ class ReviewPlanRequest {
     };
   }
 }
+
 class EditPlanRequest {
   final Map<String, dynamic> planContent;
-  final String reviewNotes;
+  final String? reviewNotes;
+  final bool planContentValid;
 
   EditPlanRequest({
     required this.planContent,
-    required this.reviewNotes,
+    this.reviewNotes,
+    required this.planContentValid,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'planContent': planContent,
       'reviewNotes': reviewNotes,
+      'planContentValid': planContentValid,
     };
   }
+
+  factory EditPlanRequest.fromJson(Map<String, dynamic> json) {
+    return EditPlanRequest(
+      planContent: json['planContent'] ?? {},
+      reviewNotes: json['reviewNotes'],
+      planContentValid: json['planContentValid'] ?? true,
+    );
+  }
 }
+
 // ================ MODELOS DE DATOS ================
 class PatientProfile {
   final int patientId;
@@ -1144,6 +1361,7 @@ class PatientProfile {
     return null;
   }
 }
+
 class PatientWithHistory {
   final PatientProfile patient;
   final List<MedicalHistory> medicalHistories;
@@ -1170,6 +1388,7 @@ class PatientWithHistory {
     );
   }
 }
+
 class MedicalHistory {
   final int historyId;
   final int patientId;
@@ -1255,6 +1474,7 @@ class MedicalHistory {
     );
   }
 }
+
 class ChronicDiseaseFilter {
   final String code;
   final String description;
@@ -1271,6 +1491,7 @@ class ChronicDiseaseFilter {
     );
   }
 }
+
 class PatientHealthSummary {
   final int patientId;
   final String fullName;
@@ -1328,6 +1549,7 @@ class PatientHealthSummary {
     );
   }
 }
+
 class PatientProgress {
   final int periodDays;
   final int totalConsultations;
@@ -1356,4 +1578,3 @@ class PatientProgress {
     );
   }
 }
-

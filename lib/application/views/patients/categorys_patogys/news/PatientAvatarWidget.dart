@@ -66,7 +66,6 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
     }
   }
 
-  // Método helper para obtener el BorderRadius correcto
   BorderRadius _getBorderRadius() {
     if (widget.customBorderRadius != null) {
       return widget.customBorderRadius!;
@@ -127,10 +126,6 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
         height: widget.size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(
-            color: widget.statusColor.withOpacity(0.3),
-            width: 2,
-          ),
         ),
         child: ClipOval(
           child: Image.memory(
@@ -150,10 +145,6 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
         height: double.infinity,
         decoration: BoxDecoration(
           borderRadius: _getBorderRadius(),
-          border: Border.all(
-            color: widget.statusColor.withOpacity(0.3),
-            width: 1,
-          ),
         ),
         child: ClipRRect(
           borderRadius: _getBorderRadius(),
@@ -227,7 +218,7 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
             : _buildPlaceholderAvatar(),
       );
     }
-    // Para versión que se adapta al contenedor padre
+
     else {
       return _isLoading
           ? _buildLoadingWidget()

@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Usar NutritionistService en lugar del servicio anterior
       final nutritionistService = NutritionistService();
-      final patients = await nutritionistService.getAllPatients(
+      final patients = await nutritionistService.getMultipleDiseasePatients(
         token: authProvider.token!,
         sortBy: 'fullName',
         order: 'asc',
@@ -478,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 55.14,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(width: 2, color: Colors.white.withOpacity(0.3)),
+                    //border: Border.all(width: 2, color: Colors.white.withOpacity(0.3)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),

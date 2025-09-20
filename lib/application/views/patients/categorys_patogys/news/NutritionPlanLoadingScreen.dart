@@ -36,17 +36,19 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
   late AnimationController _progressController;
   late AnimationController _pulseController;
-  late AnimationController _successController; // Nueva animación para el éxito
+  late AnimationController _successController;
   late Animation<double> _progressAnimation;
   late Animation<double> _pulseAnimation;
   late Animation<double> _successAnimation;
   late AnimationController _particlesController;
   late Animation<double> _particlesAnimation;
+  late AnimationController _floatingController;
+  late Animation<double> _floatingAnimation;
 
   int _currentStep = 0;
   bool _isGenerating = true;
   bool _showSuccess = false;
-  bool _isNavigating = false; // Nueva variable para mostrar estado de navegación
+  bool _isNavigating = false;
   NutritionPlanResponse? _generatedPlan;
   DetailedNutritionPlan? _detailedPlan;
   String? _errorMessage;
@@ -62,48 +64,62 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
   final List<Map<String, String>> _nutritionTips = [
     {
-      "title": "💡 Sabías que...",
-      "tip": "La distribución 40-30-30 (carbos-proteína-grasa) es óptima para pacientes activos"
+      "icon": "💡",
+      "title": "Distribución Óptima",
+      "tip": "40% carbohidratos, 30% proteína, 30% grasa para máximo rendimiento"
     },
     {
-      "title": "🥗 Tip Profesional",
-      "tip": "5 colores diferentes en el plato aseguran diversidad de micronutrientes"
+      "icon": "🌈",
+      "title": "Regla del Arcoíris",
+      "tip": "5 colores diferentes aseguran diversidad completa de micronutrientes"
     },
     {
-      "title": "⏰ Timing Nutricional",
-      "tip": "Las proteínas post-entreno se absorben mejor en los primeros 30 minutos"
+      "icon": "⚡",
+      "title": "Ventana Anabólica",
+      "tip": "Post-entreno: 30 minutos clave para absorción proteica óptima"
     },
     {
-      "title": "🔥 Metabolismo",
-      "tip": "El efecto térmico de los alimentos representa el 8-10% del gasto energético"
+      "icon": "🔥",
+      "title": "Termogénesis",
+      "tip": "Los alimentos queman 8-10% de tu energía solo al procesarlos"
     },
     {
-      "title": "🧠 Neurotransmisores",
-      "tip": "El triptófano necesita carbohidratos para atravesar la barrera hematoencefálica"
+      "icon": "🧠",
+      "title": "Neurotransmisores",
+      "tip": "Triptófano + carbohidratos = mejor síntesis de serotonina"
     },
   ];
 
-  // MEJORAR LA LISTA DE PASOS EXISTENTE - REEMPLAZAR TU _steps:
-  final List<Map<String, String>> _detailedSteps = [
+  final List<Map<String, dynamic>> _detailedSteps = [
     {
-      "title": "Analizando perfil del paciente",
-      "detail": "Procesando datos antropométricos y preferencias alimentarias"
+      "title": "Analizando Perfil Biométrico",
+      "detail": "Procesando datos antropométricos y preferencias alimentarias",
+      "icon": Icons.analytics_outlined,
+      "color": Colors.blue
     },
     {
-      "title": "Calculando requerimientos nutricionales",
-      "detail": "BMR, TDEE y distribución de macronutrientes personalizada"
+      "title": "Calculando Requerimientos",
+      "detail": "BMR, TDEE y distribución personalizada de macronutrientes",
+      "icon": Icons.calculate_outlined,
+      "color": Colors.green
     },
     {
-      "title": "Seleccionando alimentos compatibles",
-      "detail": "Identificando opciones según restricciones y objetivos"
+      "title": "Seleccionando Alimentos",
+      "detail": "Identificando opciones según restricciones y objetivos",
+      "icon": Icons.restaurant_outlined,
+      "color": Colors.orange
     },
     {
-      "title": "Generando menú personalizado",
-      "detail": "Creando combinaciones balanceadas y variadas"
+      "title": "Generando Menú Inteligente",
+      "detail": "Creando combinaciones balanceadas y variadas",
+      "icon": Icons.auto_awesome_outlined,
+      "color": Colors.purple
     },
     {
-      "title": "Optimizando plan nutricional",
-      "detail": "Ajustando porciones y tiempos de comida"
+      "title": "Optimizando Plan Final",
+      "detail": "Ajustando porciones y sincronización nutricional",
+      "icon": Icons.tune_outlined,
+      "color": Colors.teal
     },
   ];
 
@@ -112,7 +128,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     super.initState();
     _initAnimations();
     _startLoadingSequence();
-
     _startTipRotation();
     _startFoodCounter();
   }
@@ -124,19 +139,24 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     );
 
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
 
     _particlesController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     )..repeat();
 
     _successController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
+
+    _floatingController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat(reverse: true);
 
     _progressAnimation = Tween<double>(
       begin: 0.0,
@@ -147,8 +167,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     ));
 
     _pulseAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.2,
+      begin: 0.85,
+      end: 1.15,
     ).animate(CurvedAnimation(
       parent: _pulseController,
       curve: Curves.easeInOut,
@@ -165,10 +185,18 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
       parent: _successController,
       curve: Curves.elasticOut,
     ));
+
+    _floatingAnimation = Tween<double>(
+      begin: -8.0,
+      end: 8.0,
+    ).animate(CurvedAnimation(
+      parent: _floatingController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   void _startTipRotation() {
-    _tipTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    _tipTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted && _isGenerating) {
         setState(() {
           _currentTipIndex = (_currentTipIndex + 1) % _nutritionTips.length;
@@ -178,11 +206,11 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
   }
 
   void _startFoodCounter() {
-    _counterTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) {
-      if (mounted && _isGenerating && _foodCount < 847) {
+    _counterTimer = Timer.periodic(const Duration(milliseconds: 250), (timer) {
+      if (mounted && _isGenerating && _foodCount < 1247) {
         setState(() {
-          _foodCount += Random().nextInt(15) + 5;
-          _recipeCount = (_foodCount / 37).floor(); // Simulación realista
+          _foodCount += Random().nextInt(18) + 7;
+          _recipeCount = (_foodCount / 42).floor();
         });
       }
     });
@@ -190,7 +218,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
   void _startLoadingSequence() async {
     try {
-      // Mostrar pasos de carga con animación
       for (int i = 0; i < _detailedSteps.length; i++) {
         if (!mounted) return;
 
@@ -199,12 +226,9 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         });
 
         _progressController.animateTo((i + 1) / _detailedSteps.length);
-
-        // Simular tiempo de procesamiento para cada paso
-        await Future.delayed(Duration(milliseconds: 600 + (i * 100)));
+        await Future.delayed(Duration(milliseconds: 700 + (i * 150)));
       }
 
-      // Ahora llamar al backend real para generar el plan
       if (mounted) {
         await _generatePlanFromBackend();
       }
@@ -221,16 +245,14 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
   }
 
   String _getEstimatedTimeRemaining() {
-    double remaining = (1 - _progressAnimation.value) * 45; // 45 segundos total estimado
-    if (remaining < 10) return "unos segundos";
-    if (remaining < 30) return "${remaining.toInt()}s";
-    return "1 min";
+    double remaining = (1 - _progressAnimation.value) * 50;
+    if (remaining < 8) return "finalizando";
+    if (remaining < 25) return "${remaining.toInt()}s";
+    return "~1 min";
   }
 
-  // Método para generar el plan real desde el backend
   Future<void> _generatePlanFromBackend() async {
     try {
-      // Llamar al servicio para generar el plan
       final generatedPlan = await _nutritionistService.generatePlan(
         widget.planRequest,
         widget.authToken,
@@ -243,13 +265,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
           _showSuccess = true;
         });
 
-        // Mostrar animación de éxito
         _successController.forward();
-
-        // Notificar que el plan fue generado
         widget.onPlanGenerated?.call(generatedPlan);
-
-
       }
 
     } catch (e) {
@@ -264,7 +281,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     }
   }
 
-  // Método que será llamado desde NutritionPlanGenerator cuando el plan esté listo
   void onPlanGenerated(NutritionPlanResponse plan) {
     if (mounted) {
       setState(() {
@@ -286,7 +302,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     }
   }
 
-  // Método para reintentar la generación
   void _retryGeneration() {
     setState(() {
       _isGenerating = true;
@@ -296,10 +311,13 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
       _generatedPlan = null;
       _detailedPlan = null;
       _currentStep = 0;
+      _foodCount = 0;
+      _recipeCount = 0;
     });
     _progressController.reset();
     _successController.reset();
     _startLoadingSequence();
+    _startFoodCounter();
   }
 
   @override
@@ -308,7 +326,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     _pulseController.dispose();
     _particlesController.dispose();
     _successController.dispose();
-
+    _floatingController.dispose();
     _tipTimer?.cancel();
     _counterTimer?.cancel();
     super.dispose();
@@ -316,262 +334,412 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final availableHeight = screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8FAFB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              // Header con botón de cancelar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Generando Plan',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+        child: Column(
+          children: [
+            // Header fijo
+            _buildHeader(),
+
+            // Contenido principal con scroll
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: availableHeight - 120,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 10),
+                        if (_isGenerating) ..._buildLoadingContent(),
+                        if (_showSuccess && !_isGenerating) ..._buildSuccessContent(),
+                        if (_errorMessage != null && !_isGenerating && !_showSuccess) ..._buildErrorContent(),
+                        const SizedBox(height: 30),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: (!_isGenerating && !_showSuccess && !_isNavigating) ? () {
-                      widget.onCancel?.call();
-                      Navigator.pop(context);
-                    } : null,
-                    icon: const Icon(Icons.close),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // Contenido principal
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_isGenerating) ..._buildLoadingContent(),
-                    if (_showSuccess && !_isGenerating) ..._buildSuccessContent(),
-                    if (_errorMessage != null && !_isGenerating && !_showSuccess) ..._buildErrorContent(),
-                  ],
                 ),
               ),
+            ),
 
-              // Footer con información del paciente
-              _buildPatientInfo(),
+            // Footer fijo
+            _buildPatientInfo(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 5, 15, 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Generando Plan Nutricional',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              /*const SizedBox(height: 4),
+              Text(
+                'Creando experiencia personalizada',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w400,
+                ),
+              ),*/
             ],
           ),
-        ),
+          IconButton(
+            onPressed: (!_isGenerating && !_showSuccess && !_isNavigating) ? () {
+              widget.onCancel?.call();
+              Navigator.pop(context);
+            } : null,
+            icon: const Icon(Icons.close_rounded, size: 22),
+            style: IconButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   List<Widget> _buildLoadingContent() {
     return [
-      // Animación principal (mantener igual)
-      Stack(
-        alignment: Alignment.center,
-        children: [
-          AnimatedBuilder(
-            animation: _particlesAnimation,
-            builder: (context, child) {
-              return CustomPaint(
-                size: const Size(180, 180),
-                painter: ParticlesPainter(_particlesAnimation.value),
-              );
-            },
-          ),
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _pulseAnimation.value,
-                child: Container(
-                  width: 140,
-                  height: 140,
+      // Animación principal mejorada
+      AnimatedBuilder(
+        animation: _floatingAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _floatingAnimation.value),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Partículas de fondo
+                AnimatedBuilder(
+                  animation: _particlesAnimation,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      size: const Size(200, 200),
+                      painter: EnhancedParticlesPainter(_particlesAnimation.value),
+                    );
+                  },
+                ),
+
+                // Círculos concéntricos
+                AnimatedBuilder(
+                  animation: _pulseAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _pulseAnimation.value,
+                      child: Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.orange.withOpacity(0.15),
+                              Colors.orange.withOpacity(0.05),
+                              Colors.transparent,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(80),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                // Contenedor principal
+                Container(
+                  width: 120,
+                  height: 120,
                   decoration: BoxDecoration(
-                    gradient: RadialGradient(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                       colors: [
-                        Colors.orange.withOpacity(0.3),
-                        Colors.orange.withOpacity(0.1),
-                        Colors.transparent,
+                        Colors.white,
+                        Colors.orange.shade50,
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(70),
+                    borderRadius: BorderRadius.circular(60),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.2),
+                        blurRadius: 25,
+                        spreadRadius: 5,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.white,
+                        blurRadius: 10,
+                        spreadRadius: -5,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
                   ),
                   child: Center(
-                    child: Container(
-                      width: 100,
-                      height: 100,
+                    child: Lottie.asset(
+                      'assets/loading/palta_saltarina.json',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.green.shade50,
+              Colors.blue.shade50,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.green.shade200, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.green.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(50),
+                        gradient: LinearGradient(
+                          colors: [Colors.green.shade400, Colors.green.shade600],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.orange.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            color: Colors.green.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      child: Lottie.asset(
-                        'assets/loading/palta_saltarina.json',
-                        width: 60,
-                        height: 60,
+                      child: Center(
+                        child: Text(
+                          '$_foodCount',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Alimentos\nCompatibles',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+              Container(
+                width: 2,
+                height: 50,
+                margin: const EdgeInsets.symmetric(horizontal: 8), // Añadido margen
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.grey.shade300,
+                      Colors.grey.shade400,
+                      Colors.grey.shade300,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              Expanded( // Añadido Expanded para cada columna
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade400, Colors.blue.shade600],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$_recipeCount',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Recetas\nPersonalizadas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-
-      const SizedBox(height: 5),
-
-      // NUEVO: Paso actual con más detalle
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(
-              _currentStep < _detailedSteps.length
-                  ? _detailedSteps[_currentStep]["title"]!
-                  : 'Finalizando...',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _currentStep < _detailedSteps.length
-                  ? _detailedSteps[_currentStep]["detail"]!
-                  : 'Últimos ajustes...',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
 
       const SizedBox(height: 20),
 
-      // NUEVO: Contador de alimentos
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.green.shade50, Colors.blue.shade50],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade100),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
-              children: [
-                Text(
-                  '$_foodCount',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                Text(
-                  'Alimentos\nCompatibles',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              width: 1,
-              height: 40,
-              color: Colors.grey[300],
-            ),
-            Column(
-              children: [
-                Text(
-                  '$_recipeCount',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-                Text(
-                  'Recetas\nDisponibles',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // NUEVO: Tips educativos rotativos
+      // Tips educativos mejorados
       AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 800),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.3, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
         child: Container(
           key: ValueKey(_currentTipIndex),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.amber.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.amber.shade200),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.amber.shade50,
+                Colors.orange.shade50,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.amber.shade200, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          child: Column(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _nutritionTips[_currentTipIndex]["title"]!,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.orange,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.amber.shade300, Colors.orange.shade400],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Center(
+                  child: Text(
+                    _nutritionTips[_currentTipIndex]["icon"]!,
+                    style: const TextStyle(fontSize: 20),
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _nutritionTips[_currentTipIndex]["tip"]!,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
+              const SizedBox(width: 16),
+              Expanded( // Añadido Expanded para evitar overflow
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _nutritionTips[_currentTipIndex]["title"]!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _nutritionTips[_currentTipIndex]["tip"]!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -585,71 +753,115 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
       AnimatedBuilder(
         animation: _progressAnimation,
         builder: (context, child) {
-          return Column(
-            children: [
-              // Barra con gradiente
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: _progressAnimation.value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.orange, Colors.deepOrange],
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 5),
+            child: Column(
+              children: [
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Stack(
+                    children: [
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: _progressAnimation.value,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.orange, Colors.deepOrange],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.5),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${(_progressAnimation.value * 100).toInt()}% completado',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible( // Añadido Flexible para evitar overflow
+                      child: Text(
+                        '${(_progressAnimation.value * 100).toInt()}% completado',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '~${_getEstimatedTimeRemaining()} restantes',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _getEstimatedTimeRemaining(),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.orange,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           );
         },
       ),
 
-      const SizedBox(height: 20),
+      const SizedBox(height: 25),
 
-      // Indicadores de pasos (mantener igual)
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_detailedSteps.length, (index) {
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: index <= _currentStep ? Colors.orange : Colors.grey[300],
-              borderRadius: BorderRadius.circular(4),
-            ),
-          );
-        }),
+      // Indicadores de pasos mejorados
+      SingleChildScrollView( // Añadido ScrollView horizontal para los indicadores
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_detailedSteps.length, (index) {
+            final isActive = index <= _currentStep;
+            final isComplete = index < _currentStep;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: isActive ? 24 : 12,
+              height: 12,
+              decoration: BoxDecoration(
+                gradient: isActive
+                    ? LinearGradient(
+                  colors: [Colors.orange, Colors.deepOrange],
+                )
+                    : null,
+                color: !isActive ? Colors.grey[300] : null,
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: isActive ? [
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : null,
+              ),
+              child: isComplete ?
+              const Icon(Icons.check, color: Colors.white, size: 10) : null,
+            );
+          }),
+        ),
       ),
     ];
   }
@@ -922,37 +1134,87 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 }
 
 // Painter personalizado para las partículas animadas
-class ParticlesPainter extends CustomPainter {
+class EnhancedParticlesPainter extends CustomPainter {
   final double animationValue;
 
-  ParticlesPainter(this.animationValue);
+  EnhancedParticlesPainter(this.animationValue);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.orange.withOpacity(0.3)
-      ..style = PaintingStyle.fill;
-
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = size.width / 2;
 
-    // Dibujar múltiples partículas giratorias
-    for (int i = 0; i < 8; i++) {
-      final angle = (animationValue * 2 * 3.14159) + (i * 3.14159 / 4);
-      final radius = maxRadius * 0.7;
+    // Partículas naranjas principales
+    final orangePaint = Paint()
+      ..color = Colors.orange.withOpacity(0.4)
+      ..style = PaintingStyle.fill;
 
-      final x = center.dx + radius * cos(angle);
-      final y = center.dy + radius * sin(angle);
+    // Partículas amarillas secundarias
+    final yellowPaint = Paint()
+      ..color = Colors.yellow.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
 
-      final particleSize = 3.0 + (sin(animationValue * 4 * 3.14159 + i) * 2);
+    // Partículas rojas terciarias
+    final redPaint = Paint()
+      ..color = Colors.red.withOpacity(0.2)
+      ..style = PaintingStyle.fill;
+
+    // Dibujar múltiples partículas giratorias en diferentes órbitas
+    for (int i = 0; i < 12; i++) {
+      final angle = (animationValue * 2 * 3.14159) + (i * 3.14159 / 6);
+
+      // Partículas en órbita exterior
+      final outerRadius = maxRadius * 0.8;
+      final outerX = center.dx + outerRadius * cos(angle);
+      final outerY = center.dy + outerRadius * sin(angle);
+
+      final outerSize = 4.0 + (sin(animationValue * 3 * 3.14159 + i) * 1.5);
       canvas.drawCircle(
-        Offset(x, y),
-        particleSize,
-        paint,
+        Offset(outerX, outerY),
+        outerSize,
+        orangePaint,
+      );
+
+      // Partículas en órbita media
+      final middleRadius = maxRadius * 0.5;
+      final middleX = center.dx + middleRadius * cos(angle + 0.5);
+      final middleY = center.dy + middleRadius * sin(angle + 0.5);
+
+      final middleSize = 3.0 + (cos(animationValue * 2 * 3.14159 + i) * 1.0);
+      canvas.drawCircle(
+        Offset(middleX, middleY),
+        middleSize,
+        yellowPaint,
+      );
+
+      // Partículas en órbita interior
+      final innerRadius = maxRadius * 0.3;
+      final innerX = center.dx + innerRadius * cos(angle + 1.0);
+      final innerY = center.dy + innerRadius * sin(angle + 1.0);
+
+      final innerSize = 2.0 + (sin(animationValue * 4 * 3.14159 + i) * 0.8);
+      canvas.drawCircle(
+        Offset(innerX, innerY),
+        innerSize,
+        redPaint,
       );
     }
+
+    // Efecto de destello central
+    final glowPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.orange.withOpacity(0.1),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: maxRadius * 0.4))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, maxRadius * 0.4, glowPaint);
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
+  }
 }

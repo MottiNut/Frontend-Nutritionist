@@ -1138,7 +1138,7 @@ class StatsService {
 
     try {
       // Obtener todos los pacientes para contar
-      final patients = await _nutritionistService.getAllPatients(token: token);
+      final patients = await _nutritionistService.getMultipleDiseasePatients(token: token);
       final patientCount = patients.length;
 
       // Calcular consultas sumando historiales médicos

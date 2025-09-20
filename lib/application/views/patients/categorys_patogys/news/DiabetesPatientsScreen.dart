@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
 import 'package:lottie/lottie.dart';
-
 import 'PatientAvatarWidget.dart';
 import 'PatientDetailScreen.dart';
 
@@ -58,8 +57,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
 
       print('🔍 Cargando pacientes con token: ${token.substring(0, 10)}...');
 
-      final patients = await nutritionistService.getAllPatients(
-        chronicDisease: _selectedFilter == 'Todos' ? null : _selectedFilter,
+      final patients = await nutritionistService.getDiabetesPatients(
         sortBy: _sortBy,
         order: _sortOrder,
         token: token,
@@ -214,7 +212,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔹 Pequeña barra superior tipo "handle" para mejor UX
+
               Container(
                 width: 40,
                 height: 4,
@@ -234,7 +232,6 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
               ),
               const SizedBox(height: 6),
 
-              // 🔹 Opciones más compactas
               ...['fullName', 'age', 'bmi', 'createdAt'].map((field) {
                 final labels = {
                   'fullName': 'Nombre',
@@ -270,7 +267,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.orange.withOpacity(0.08) // 🔹 Resalta selección
+                          ? Colors.orange.withOpacity(0.08)
                           : Colors.grey[100],
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -925,7 +922,7 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                       width: 100,
                       height: double.infinity,
                       decoration: BoxDecoration(
-                        border: Border.all(width: 0.7, color: Colors.grey.shade100),
+                        border: Border.all(color: Colors.grey.shade100, width: 0.8),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           bottomLeft: Radius.circular(12),

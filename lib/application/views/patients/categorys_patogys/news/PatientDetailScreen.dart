@@ -12,6 +12,74 @@ import 'NutritionPlanGenerator.dart';
 import 'PatientAvatarWidget.dart';
 import 'PatientValidationHelper.dart';
 
+enum PatientDisease {
+  obesity,
+  hypertension,
+  diabetes,
+  none
+}
+
+PatientDisease detectDiseaseFromString(String? diseaseText) {
+  if (diseaseText == null || diseaseText.trim().isEmpty || diseaseText.trim().toLowerCase() == 'ninguna') {
+    return PatientDisease.none;
+  }
+
+  final text = diseaseText.toLowerCase().trim();
+
+  if (text.contains('obesidad') ||
+      text.contains('obesity') ||
+      text.contains('obeso') ||
+      text.contains('obesa') ||
+      text.contains('sobrepeso') ||
+      text.contains('sobre peso')) {
+    print('✅ Detectada: OBESIDAD');
+    return PatientDisease.obesity;
+  }
+
+  if (text.contains('hipertensión') ||
+      text.contains('hipertension') ||
+      text.contains('hipertensión arterial') ||
+      text.contains('hipertension arterial') ||
+      text.contains('presión') ||
+      text.contains('presion') ||
+      text.contains('arterial') ||
+      text.contains('hta') ||
+      text.contains('hipertenso') ||
+      text.contains('hipertensa') ||
+      text.contains('hipertensivo') ||
+      text.contains('hipertensiva')) {
+    print('✅ Detectada: HIPERTENSIÓN');
+    return PatientDisease.hypertension;
+  }
+
+  // Detectar diabetes
+  if (text.contains('diabetes') ||
+      text.contains('diabético') ||
+      text.contains('diabética') ||
+      text.contains('diabetico') ||
+      text.contains('diabetica')) {
+    print('✅ Detectada: DIABETES');
+    return PatientDisease.diabetes;
+  }
+
+  print('❌ No se detectó enfermedad específica, retornando: NONE');
+  return PatientDisease.none;
+}
+
+Color getDiseaseColor(PatientDisease disease) {
+  switch (disease) {
+    case PatientDisease.obesity:
+      return AppColors.backgroundObecidad;
+    case PatientDisease.hypertension:
+      return AppColors.backgroundHipertencion;
+    case PatientDisease.diabetes:
+      return AppColors.secondary;
+    case PatientDisease.none:
+    default:
+      return AppColors.primary;
+  }
+}
+
 class PatientDetailScreens extends StatefulWidget {
   final PatientProfile patient;
 
@@ -41,6 +109,10 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
 
   NutritionPlanGenerator? _planGenerator;
 
+  late PatientDisease _patientDisease;
+  late Color _diseaseColor;
+
+
   @override
   void initState() {
     super.initState();
@@ -48,8 +120,10 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     _scrollController = ScrollController();
 
     _scrollController.addListener(_onScroll);
-
     _loadPatientDetails();
+
+    _patientDisease = detectDiseaseFromString(widget.patient.chronicDisease);
+    _diseaseColor = getDiseaseColor(_patientDisease);
   }
 
   Future<void> _loadPatientDetails() async {
@@ -127,12 +201,12 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: AppColors.secondary.withOpacity(0.6),
+        statusBarColor: _diseaseColor.withOpacity(0.6),
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: Colors.grey.shade100,
-        appBar: _buildFixedAppBar(),
+        appBar: _buildFixedAppBar(_diseaseColor),
         body: _isLoading
             ? Center(
           child: Lottie.asset(
@@ -145,13 +219,12 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             ? _buildErrorState()
             : Column(
           children: [
-            // 🔥 TabBar fijo arriba
             Material(
               color: Colors.white,
               elevation: 2,
               child: _buildTabBar(),
             ),
-            // 👇 El contenido ocupa el resto de la pantalla
+
             Expanded(
               child: Stack(
                 children: [
@@ -174,17 +247,17 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     );
   }
 
-  PreferredSizeWidget _buildFixedAppBar() {
+  PreferredSizeWidget _buildFixedAppBar(Color diseaseColor) {
     final statusColor = PatientValidationHelper.getStatusColor(widget.patient);
     final statusText = PatientValidationHelper.getStatusText(widget.patient);
     final diabetesType =
         PatientValidationHelper.getDiabetesType(widget.patient.chronicDisease);
 
     return AppBar(
-      backgroundColor: AppColors.secondary,
+      backgroundColor: diseaseColor,
       elevation: 4,
       toolbarHeight: 165,
-      // Altura final aumentada
+
       automaticallyImplyLeading: false,
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -192,8 +265,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.secondary,
-              AppColors.secondary.withOpacity(0.8),
+              diseaseColor,
+              diseaseColor.withOpacity(0.8),
             ],
           ),
           boxShadow: [
@@ -211,7 +284,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
               children: [
                 Row(
                   children: [
-                    // Flecha de regreso
+
                     IconButton(
                       icon: SvgPicture.asset(
                         'assets/images/anterior_icon.svg',
@@ -237,7 +310,6 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     ),
                     const SizedBox(width: 12),
 
-                    // Nombre y tipo de paciente (en columna)
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,7 +339,6 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                       ),
                     ),
 
-                    // Icono de historial de planes con tooltip
                     Tooltip(
                       message: 'Ver historial de planes',
                       textStyle: const TextStyle(
@@ -286,7 +357,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                         ),
                         onPressed: () {
                           // Navegar al historial de planes nutricionales
-                         
+
                         },
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
@@ -295,6 +366,40 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                         ),
                       ),
                     ),
+
+                    /*Tooltip(
+                      message: 'Ver historial de planes',
+                      textStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.history,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => PatientPlanHistoryScreen(
+                                patientId: widget.patient.patientId,
+                                patientName: widget.patient.fullName,
+                              ),
+                            ),
+                          );
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                      ),
+                    ),*/
                   ],
                 ),
 
@@ -461,7 +566,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             title,
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w400,
               letterSpacing: 0.5,
             ),
@@ -476,7 +581,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                 child: Text(
                   value,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                     letterSpacing: 0.5,
@@ -491,7 +596,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                 Text(
                   suffix,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withOpacity(0.8),
                   ),
@@ -543,7 +648,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _loadPatientDetails,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(backgroundColor: _diseaseColor),
             child:
                 const Text('Reintentar', style: TextStyle(color: Colors.white)),
           ),
@@ -579,7 +684,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: _diseaseColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Material(
@@ -626,7 +731,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: _diseaseColor ,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Material(
@@ -671,16 +776,16 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                   ),
                 ),
               ] else ...[
-                // Paciente con historial - Botones principales
+
                 Row(
                   children: [
-                    // Botón generar plan nutricional
+
                     Expanded(
                       flex: 3,
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Color(0xFFFF8A50)],
+                          gradient: LinearGradient(
+                            colors: [_diseaseColor, _diseaseColor.withOpacity(0.5)],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
@@ -693,7 +798,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                             borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 16),
+                                  vertical: 11, horizontal: 16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -716,7 +821,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 15,
+                                        fontSize: 16,
                                         letterSpacing: 0.5,
                                       ),
                                       textAlign: TextAlign.center,
@@ -738,7 +843,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
+                            color: _diseaseColor.withOpacity(0.6),
                             width: 1.5,
                           ),
 
@@ -750,21 +855,21 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                             borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                  vertical: 16, horizontal: 10),
+                                  vertical: 13, horizontal: 10),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.add_circle_outline,
-                                    color: Colors.orange[600],
+                                    color: _diseaseColor,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 6),
-                                  const Flexible(
+                                    Flexible(
                                     child: Text(
                                       'Consulta',
                                       style: TextStyle(
-                                        color: Colors.orange,
+                                        color: _diseaseColor,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15,
                                       ),
@@ -799,7 +904,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
       controller: _tabController,
       tabs: tabs,
       isScrollable: false,
-      labelColor: AppColors.secondary,
+      labelColor: _diseaseColor,
       unselectedLabelColor: Colors.grey[400],
       labelStyle: const TextStyle(
         fontSize: 15,
@@ -809,7 +914,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
         fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
-      indicatorColor: AppColors.secondary,
+      indicatorColor: _diseaseColor,
       indicatorWeight: 2.5,
       indicatorSize: TabBarIndicatorSize.tab,
     );
@@ -913,7 +1018,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _navigateToCreateMedicalHistory,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              style: ElevatedButton.styleFrom(backgroundColor: _diseaseColor),
               child: Text(
                 PatientValidationHelper.isNewPatient(widget.patient)
                     ? 'Completar Historial'

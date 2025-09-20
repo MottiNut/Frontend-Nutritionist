@@ -55,7 +55,7 @@ class _ActivePatientsScreenState extends State<ActivePatientsScreen> {
         throw Exception('Token de autenticación no disponible');
       }
 
-      final patients = await widget.nutritionistService.getAllPatients(
+      final patients = await widget.nutritionistService.getMultipleDiseasePatients(
         token: authProvider.token!,
         sortBy: 'fullName',
         order: 'asc',

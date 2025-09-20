@@ -134,7 +134,7 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
       }
 
       // Cargar todos los pacientes sin filtrar
-      final allPatients = await nutritionistService.getAllPatients(
+      final allPatients = await nutritionistService.getHypertensionPatients(
         sortBy: _sortBy,
         order: _sortOrder,
         token: token,
@@ -1046,13 +1046,12 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => _navigateToPatientDetail(patient),
-        child: SizedBox( // 🔑 Forzar a ocupar todo el espacio
+        child: SizedBox(
           width: double.infinity,
           height: 100,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // ---------- Fondo principal ----------
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -1073,10 +1072,11 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
                   children: [
                     // Avatar lateral
                     Container(
-                      width: 100,
+                      width: 94,
                       height: double.infinity,
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
+                        border: Border.all(color: Colors.grey.shade100, width: 0.8),
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(12),
                           bottomLeft: Radius.circular(12),
@@ -1094,8 +1094,6 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
                         fit: BoxFit.cover,
                       ),
                     ),
-
-                    // Info del paciente
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(12),
@@ -1151,10 +1149,7 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
                               decoration: BoxDecoration(
                                 color: statusColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  width: 1,
-                                  color: statusColor.withOpacity(0.3),
-                                ),
+
                               ),
                               child: Text(
                                 statusText,
