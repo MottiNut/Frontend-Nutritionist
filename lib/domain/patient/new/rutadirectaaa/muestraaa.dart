@@ -42,6 +42,41 @@ class PatientPlanStats {
 class NutritionistService {
   static final Map<int, Uint8List> _imageCache = HashMap<int, Uint8List>();
 
+  Future<List<PatientProfile>> getAllPatients({
+    String? chronicDisease,
+    String sortBy = 'fullName',
+    String order = 'asc',
+    required String token,
+  }) async {
+    final queryParams = <String, String>{
+      'sortBy': sortBy,
+      'order': order,
+    };
+
+    if (chronicDisease != null && chronicDisease.isNotEmpty) {
+      queryParams['chronicDisease'] = chronicDisease;
+    }
+
+    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.patients}')
+        .replace(queryParameters: queryParams);
+
+    try {
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => PatientProfile.fromJson(json)).toList();
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      throw Exception('Error al obtener pacientes: $e');
+    }
+  }
+
   Future<List<PatientProfile>> getDiabetesPatients({
     String sortBy = 'fullName',
     String order = 'asc',

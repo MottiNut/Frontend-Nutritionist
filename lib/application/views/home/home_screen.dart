@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Usar NutritionistService en lugar del servicio anterior
       final nutritionistService = NutritionistService();
-      final patients = await nutritionistService.getMultipleDiseasePatients(
+      final patients = await nutritionistService.getAllPatients(
         token: authProvider.token!,
         sortBy: 'fullName',
         order: 'asc',

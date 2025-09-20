@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
@@ -335,15 +336,65 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final availableHeight = screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom;
+    final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final availableHeight = screenHeight - topPadding - bottomPadding;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFB),
-      body: SafeArea(
-        child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFB), // Color del body
+        body: Column(
           children: [
-            // Header fijo
-            _buildHeader(),
+            // Header fijo con padding superior igual al SafeArea
+            Container(
+              padding: EdgeInsets.fromLTRB(20, topPadding + 5, 15, 5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Generando Plan Nutricional',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: (!_isGenerating && !_showSuccess && !_isNavigating)
+                        ? () {
+                      widget.onCancel?.call();
+                      Navigator.pop(context);
+                    }
+                        : null,
+                    icon: const Icon(Icons.close_rounded, size: 22),
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             // Contenido principal con scroll
             Expanded(
@@ -378,61 +429,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 5, 15, 5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Generando Plan Nutricional',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              /*const SizedBox(height: 4),
-              Text(
-                'Creando experiencia personalizada',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w400,
-                ),
-              ),*/
-            ],
-          ),
-          IconButton(
-            onPressed: (!_isGenerating && !_showSuccess && !_isNavigating) ? () {
-              widget.onCancel?.call();
-              Navigator.pop(context);
-            } : null,
-            icon: const Icon(Icons.close_rounded, size: 22),
-            style: IconButton.styleFrom(
-              foregroundColor: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   List<Widget> _buildLoadingContent() {
     return [
       // Animación principal mejorada
@@ -449,7 +445,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   animation: _particlesAnimation,
                   builder: (context, child) {
                     return CustomPaint(
-                      size: const Size(200, 200),
+                      size: const Size(150, 150),
                       painter: EnhancedParticlesPainter(_particlesAnimation.value),
                     );
                   },
@@ -481,8 +477,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
                 // Contenedor principal
                 Container(
-                  width: 120,
-                  height: 120,
+                  width: 90,
+                  height: 90,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -511,8 +507,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   child: Center(
                     child: Lottie.asset(
                       'assets/loading/palta_saltarina.json',
-                      width: 80,
-                      height: 80,
+                      width: 70,
+                      height: 70,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -525,7 +521,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
       Container(
         margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
