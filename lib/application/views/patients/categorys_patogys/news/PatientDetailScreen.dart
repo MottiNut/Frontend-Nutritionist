@@ -567,6 +567,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
               fontSize: 13,
+              fontFamily: "Omnes",
               fontWeight: FontWeight.w400,
               letterSpacing: 0.5,
             ),
@@ -584,6 +585,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     fontSize: 17,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
+                    fontFamily: "Omnes",
                     letterSpacing: 0.5,
                   ),
                   maxLines: 1,
@@ -598,6 +600,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
+                    fontFamily: "Omnes",
                     color: Colors.white.withOpacity(0.8),
                   ),
                 ),

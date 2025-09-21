@@ -14,6 +14,7 @@ class LanguageScreen extends StatefulWidget {
 
 class _LanguageScreenState extends State<LanguageScreen> {
   String searchQuery = '';
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {
@@ -78,9 +79,9 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
     final filteredLanguages = languages
         .where((lang) => lang['name']
-        .toString()
-        .toLowerCase()
-        .contains(searchQuery.toLowerCase()))
+            .toString()
+            .toLowerCase()
+            .contains(searchQuery.toLowerCase()))
         .toList();
 
     return Scaffold(
@@ -104,9 +105,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
           children: [
             // Search bar
             TextField(
-              onChanged: (value) => setState(() {
-                searchQuery = value;
-              }),
+              controller: _controller,
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              style: TextStyle(fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Buscar idioma',
                 prefixIcon: const Icon(Icons.search),
@@ -116,117 +121,165 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 22),
+                        onPressed: () {
+                          setState(() {
+                            searchQuery = '';
+                            _controller.clear();
+                          });
+                        },
+                      )
+                    : null,
               ),
             ),
+
             const SizedBox(height: 16),
-            // Grid de idiomas
             Expanded(
               child: filteredLanguages.isEmpty
-                  ? const Center(
-                child: Text(
-                  'No se encontró ningún idioma',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              )
-                  : GridView.builder(
-                itemCount: filteredLanguages.length,
-                gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3, // tres por fila
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.8, // bandera arriba, texto abajo
-                ),
-                itemBuilder: (context, index) {
-                  final lang = filteredLanguages[index];
-                  final langLocale = lang['locale'] as Locale;
-                  final countryCode = lang['countryCode'] as String;
-                  final isSelected =
-                      languageProvider.currentLocale.languageCode ==
-                          langLocale.languageCode &&
-                          languageProvider.currentLocale.countryCode ==
-                              langLocale.countryCode;
-
-                  final isEnabled = lang['enabled'] == true;
-
-                  return GestureDetector(
-                    onTap: isEnabled
-                        ? () {
-                      languageProvider.setLocale(langLocale);
-                      SnackBarManager.showSuccess(
-                          context, '${lang['name']} seleccionado');
-                    }
-                        : () {
-                      SnackBarManager.showWarning(context,
-                          'Este idioma está deshabilitado por ahora');
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isEnabled && isSelected
-                            ? AppColors.primary
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isEnabled && isSelected
-                              ? AppColors.primary
-                              : Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          )
-                        ],
-                      ),
+                  ? Center(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          ColorFiltered(
-                            colorFilter: isEnabled
-                                ? const ColorFilter.mode(
-                              Colors.transparent,
-                              BlendMode.multiply,
-                            )
-                                : const ColorFilter.matrix(<double>[
-                              0.5, 0.5, 0.5, 0, 0,
-                              0.5, 0.5, 0.5, 0, 0,
-                              0.5, 0.5, 0.5, 0, 0,
-                              0,   0,   0,   1, 0,
-                            ]),
-                            child: Image.asset(
-                              'icons/flags/png/$countryCode.png',
-                              package: 'country_icons',
-                              width: 45,
-                              height: 35,
-                              fit: BoxFit.cover,
-                            ),
+                          Icon(
+                            Icons.language_outlined,
+                            size: 60,
+                            color: Colors.grey.shade300,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Text(
-                            lang['name'] as String,
-                            textAlign: TextAlign.center,
+                            'No se encontró ningún idioma',
                             style: TextStyle(
-                              color: isEnabled
-                                  ? (isSelected
-                                  ? Colors.white
-                                  : Colors.black87)
-                                  : Colors.grey, // texto gris si está deshabilitado
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              color: Colors.grey.shade400,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
+                    )
+                  : GridView.builder(
+                      itemCount: filteredLanguages.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemBuilder: (context, index) {
+                        final lang = filteredLanguages[index];
+                        final langLocale = lang['locale'] as Locale;
+                        final countryCode = lang['countryCode'] as String;
+                        final isSelected =
+                            languageProvider.currentLocale.languageCode ==
+                                    langLocale.languageCode &&
+                                languageProvider.currentLocale.countryCode ==
+                                    langLocale.countryCode;
+
+                        final isEnabled = lang['enabled'] == true;
+
+                        return GestureDetector(
+                          onTap: isEnabled
+                              ? () {
+                                  languageProvider.setLocale(langLocale);
+                                  SnackBarManager.showSuccess(
+                                      context, '${lang['name']} seleccionado');
+                                }
+                              : () {
+                                  SnackBarManager.showWarning(context,
+                                      'Este idioma está deshabilitado por ahora');
+                                },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isEnabled && isSelected
+                                  ? AppColors.primary
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isEnabled && isSelected
+                                    ? AppColors.primary
+                                    : Colors.grey.shade300,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ColorFiltered(
+                                  colorFilter: isEnabled
+                                      ? const ColorFilter.mode(
+                                          Colors.transparent,
+                                          BlendMode.multiply)
+                                      : const ColorFilter.matrix(<double>[
+                                          0.5,
+                                          0.5,
+                                          0.5,
+                                          0,
+                                          0,
+                                          0.5,
+                                          0.5,
+                                          0.5,
+                                          0,
+                                          0,
+                                          0.5,
+                                          0.5,
+                                          0.5,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          1,
+                                          0,
+                                        ]),
+                                  child: Image.asset(
+                                    'icons/flags/png/$countryCode.png',
+                                    package: 'country_icons',
+                                    width: 45,
+                                    height: 35,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  lang['name'] as String,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isEnabled
+                                        ? (isSelected
+                                            ? Colors.white
+                                            : Colors.black87)
+                                        : Colors.grey,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

@@ -19,7 +19,7 @@ class AppThemeProvider extends ChangeNotifier {
         scaffoldBackgroundColor: Colors.black,
         textTheme: textTheme,
         // Configurar fontFamily por defecto para toda la app
-        fontFamily: 'Omnes',
+        fontFamily: 'Nunito',
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.grey.shade900,
@@ -36,7 +36,7 @@ class AppThemeProvider extends ChangeNotifier {
             borderSide: BorderSide(color: Colors.grey.shade700),
           ),
           labelStyle: TextStyle(
-            fontFamily: 'Omnes',
+            fontFamily: 'Nunito',
             color: Colors.grey[300],
             fontWeight: FontWeight.w400,
           ),
@@ -46,7 +46,7 @@ class AppThemeProvider extends ChangeNotifier {
             backgroundColor: Colors.cyan,
             foregroundColor: Colors.white,
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w600,
             ),
             shape: RoundedRectangleBorder(
@@ -58,7 +58,7 @@ class AppThemeProvider extends ChangeNotifier {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -66,7 +66,7 @@ class AppThemeProvider extends ChangeNotifier {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w500,
             ),
             shape: RoundedRectangleBorder(
@@ -84,7 +84,7 @@ class AppThemeProvider extends ChangeNotifier {
           foregroundColor: Colors.white,
           elevation: 0,
           titleTextStyle: TextStyle(
-            fontFamily: 'Omnes',
+            fontFamily: 'Nunito',
             fontSize: fontSize + 4,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -98,7 +98,7 @@ class AppThemeProvider extends ChangeNotifier {
         scaffoldBackgroundColor: Colors.white,
         textTheme: textTheme,
         // Configurar fontFamily por defecto para toda la app
-        fontFamily: 'Omnes',
+        fontFamily: 'Nunito',
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.grey.shade50,
@@ -115,7 +115,7 @@ class AppThemeProvider extends ChangeNotifier {
             borderSide: BorderSide(color: Colors.grey.shade300),
           ),
           labelStyle: TextStyle(
-            fontFamily: 'Omnes',
+            fontFamily: 'Nunito',
             color: Colors.grey[700],
             fontWeight: FontWeight.w400,
           ),
@@ -125,7 +125,7 @@ class AppThemeProvider extends ChangeNotifier {
             backgroundColor: Colors.cyan,
             foregroundColor: Colors.white,
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w600,
             ),
             shape: RoundedRectangleBorder(
@@ -137,7 +137,7 @@ class AppThemeProvider extends ChangeNotifier {
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -145,7 +145,7 @@ class AppThemeProvider extends ChangeNotifier {
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             textStyle: const TextStyle(
-              fontFamily: 'Omnes',
+              fontFamily: 'Nunito',
               fontWeight: FontWeight.w500,
             ),
             shape: RoundedRectangleBorder(
@@ -163,7 +163,7 @@ class AppThemeProvider extends ChangeNotifier {
           foregroundColor: Colors.black,
           elevation: 0,
           titleTextStyle: TextStyle(
-            fontFamily: 'Omnes',
+            fontFamily: 'Nunito',
             fontSize: fontSize + 4,
             fontWeight: FontWeight.w600,
             color: Colors.black,
@@ -183,8 +183,7 @@ class AppTypography {
 
   AppTypography._internal();
 
-  // Configuración de pesos de fuente estilo redes sociales con Omnes
-  static const String fontFamily = 'Omnes';
+  static const String fontFamily = 'Nunito';
   static const FontWeight thin = FontWeight.w100;
   static const FontWeight light = FontWeight.w300;
   static const FontWeight regular = FontWeight.w400;
@@ -244,9 +243,9 @@ class AppTypography {
       titleLarge: TextStyle(
         fontFamily: fontFamily,
         fontSize: fontSize + 6,
-        fontWeight: semiBold,
+        fontWeight: bold,
         color: baseColor,
-        letterSpacing: -0.2,
+        letterSpacing: 0.5,
       ),
       titleMedium: TextStyle(
         fontFamily: fontFamily,

@@ -25,6 +25,8 @@ dependencies:
 
   debounce_throttle: ^2.0.0
 
+  dropdown_flutter: ^1.0.2
+
   http: ^1.4.0
   # JSON serialization
   json_annotation: ^4.8.1
@@ -160,6 +162,8 @@ flutter:
     - assets/images/candado_icon.svg
     - assets/images/alert_icon.svg
     - assets/images/user_detail.svg
+    - assets/images/user_placeholder_esmer.svg
+    - assets/images/user_placeholder_orange.svg
     - assets/images/user_fondo_detail.svg
     - assets/images/bag.png
     #images enfermedad detail
@@ -241,3 +245,16 @@ flutter:
         - asset: assets/fonts/Omnes-SemiBold-Italic.ttf
           weight: 600
           style: italic
+
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Nunito-italic.ttf
+          weight: 300
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-ExtraBold.ttf
+          weight: 800

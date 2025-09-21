@@ -736,6 +736,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
   }
+
   void _navigateToUnits() {
     Navigator.push(
       context,

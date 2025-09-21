@@ -375,12 +375,14 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
               Navigator.pop(context);
             },
           ),
+          titleSpacing: 0,
           title: const Text(
             'Pacientes con Diabetes',
             style: TextStyle(
               color: Colors.orange,
-              fontSize: 21,
-              fontWeight: FontWeight.w500,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+
             ),
           ),
           actions: [
@@ -665,17 +667,17 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         decoration: BoxDecoration(
           color:
-              isSelected ? Colors.orange : Colors.transparent,
+              isSelected ? AppColors.secondary.withOpacity(0.25) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? Colors.orange : Colors.grey[300]!,
-            width: isSelected ? 1.5 : 0.7,
+            color: isSelected ? AppColors.secondary.withOpacity(0.25) : Colors.grey[300]!,
+            width: isSelected ? 0 : 0.7,
           ),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[600],
+            color: isSelected ? AppColors.secondary : Colors.grey[600],
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

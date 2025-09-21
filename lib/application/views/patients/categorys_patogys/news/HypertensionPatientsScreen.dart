@@ -380,12 +380,14 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
               Navigator.pop(context);
             },
           ),
-          title: const Text(
+          titleSpacing: 0,
+          title: Text(
             'Pacientes con Hipertensión',
             style: TextStyle(
               color: AppColors.backgroundHipertencion,
-              fontSize: 19,
-              fontWeight: FontWeight.w500,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.1,
             ),
           ),
           actions: [
@@ -396,13 +398,10 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
               ),
               onPressed: () => setState(() => _isGridView = !_isGridView),
             ),
-            /* IconButton(
-              icon: const Icon(Icons.info_outline, color: AppColors.backgroundHipertencion),
-              onPressed: _showDebugInfo,
-            ),*/
           ],
         ),
-        body: _buildBodyContent(),
+
+          body: _buildBodyContent(),
       ),
     );
   }

@@ -1395,6 +1395,12 @@ class PatientProfile {
     if (value is int) return value == 1;
     return null;
   }
+
+  @override
+  String toString() {
+    return '$firstName $lastName';
+  }
+
 }
 
 class PatientWithHistory {

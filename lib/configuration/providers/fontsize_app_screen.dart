@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 
 class FontSizeProvider with ChangeNotifier {
-  static const double extraSmall = 12.0;
-  static const double small = 14.0;
-  static const double medium = 16.0;
-  static const double large = 18.0;
+  static const double extraSmall = 14.0;
+  static const double small = 16.0;
+  static const double medium = 18.0;
+  static const double large = 20.0;
 
-  double _fontSize = extraSmall; // Default size is now extraSmall
+  double _fontSize = extraSmall;
   static const double _defaultSize = extraSmall; // Added default size constant
 
   // Constructor to initialize with default size

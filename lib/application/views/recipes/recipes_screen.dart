@@ -356,8 +356,10 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
       title,
       style: const TextStyle(
         color: AppColors.textSecondary,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+        fontFamily: 'Nunito',
+        letterSpacing: 0.5
       ),
     );
   }
@@ -376,8 +378,9 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
           label,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
+            fontFamily: 'Nunito',
           ),
         ),
         const SizedBox(height: 6),

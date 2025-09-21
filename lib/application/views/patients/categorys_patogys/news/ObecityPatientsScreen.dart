@@ -378,12 +378,13 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
               Navigator.pop(context);
             },
           ),
-          title: const Text(
+          titleSpacing: 0,
+          title: Text(
             'Pacientes con Obesidad',
             style: TextStyle(
               color: AppColors.backgroundObecidad,
-              fontSize: 19,
-              fontWeight: FontWeight.w500,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
             ),
           ),
           actions: [
