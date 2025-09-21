@@ -33,20 +33,29 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
   UserProfile? profile;
   String? _errorMessage;
   bool _isLoading = true;
   bool _hasAttemptedLoad = false;
 
   bool _usingCachedData = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _initializeProfile();
     _precacheUserAvatar();
   }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
 
   void _initializeProfile() async {
     final authProvider = context.read<AuthProvider>();
@@ -207,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if ((imageUrl == null || imageUrl.isEmpty) && userData['id'] != null) {
       final userId = userData['id'].toString();
       imageUrl =
-          'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId/image';
+      'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile/nutritionist/$userId/image';
     }
 
     if (imageUrl != null && authProvider.token != null) {
@@ -369,6 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return profile?.verificationStatus == VerificationStatus.verified;
   }
 
+  // Reemplazar el método build() completo
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -393,6 +403,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+
   Widget _buildProfileContent() {
     if (profile == null) {
       return _buildErrorState();
@@ -407,234 +418,524 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: AppColors.iconSecondary,
           color: AppColors.primary,
           onRefresh: _refreshProfile,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: MediaQuery.of(context).size.height * 0.35,
-                floating: false,
-                pinned: true,
-                backgroundColor: AppColors.primary,
-                elevation: 0,
-                title: const Text(
-                  'Perfil',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 23,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1,
+          child: NestedScrollView(
+            headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+              return <Widget>[
+                SliverAppBar(
+                  expandedHeight: MediaQuery.of(context).size.height * 0.3,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: AppColors.primary,
+                  elevation: 0,
+                  title: const Text(
+                    'Perfil',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1,
+                    ),
                   ),
-                ),
-                centerTitle: false,
-                actions: [
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(30),
+                  centerTitle: false,
+                  actions: [
+                    IconButton(
+                      icon: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                            child: const Icon(
+                              Icons.reply,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          )
                       ),
-                      child: Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                      onPressed: _shareProfile,
+                    ),
+                    IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                         child: const Icon(
-                          Icons.reply,
+                          Icons.menu,
                           color: Colors.white,
-                          size: 26,
+                          size: 24,
                         ),
-                      )
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
                     ),
-                    onPressed: _shareProfile,
-                  ),
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(7),
+                  ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: const Icon(
-                        Icons.settings,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.8),
-                          AppColors.backgroundDetail,
-                        ],
-                        stops: const [0.0, 0.7, 1.0],
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 60),
-                        // FOTO DE PERFIL con authProvider
-                        Stack(
-                          children: [
-                            Container(
-                              width: 130,
-                              height: 130,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-
-                              ),
-                              child: ClipOval(
-                                child: _buildProfileImage(
-                                    authProvider),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 4,
-                              right: 4,
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => EditProfileScreen(
-                                        userProfile: profile!,
-                                        onProfileUpdated: _updateProfile,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withOpacity(0.8),
+                            AppColors.backgroundDetail,
                           ],
+                          stops: const [0.0, 0.7, 1.0],
                         ),
-
-                        const SizedBox(height: 10),
-
-                        // Nombre y verificación
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                displayName,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            /*if (_isVerified()) ...[
-                              const SizedBox(width: 5),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 45),
+                          // FOTO DE PERFIL
+                          Stack(
+                            children: [
                               Container(
-                                padding: const EdgeInsets.all(4),
+                                width: 110,
+                                height: 110,
                                 decoration: BoxDecoration(
-                                  color: AppColors.checkValidation,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: Colors.white,
                                     width: 2,
                                   ),
-
                                 ),
-                                child: const Icon(
-                                  Icons.verified,
-                                  color: Colors.white,
-                                  size: 18,
+                                child: ClipOval(
+                                  child: _buildProfileImage(authProvider),
                                 ),
                               ),
-                            ],*/
-                          ],
-                        ),
-
-                        Text(
-                          specialtyText,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
+                              Positioned(
+                                bottom: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => EditProfileScreen(
+                                          userProfile: profile!,
+                                          onProfileUpdated: _updateProfile,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /*if (_usingCachedData)
-                        _buildCacheIndicator(),*/
-                      if (_errorMessage != null) ...[
-                        _buildErrorMessage(),
-                      ],
-                      _buildStatsRow(),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (_isLoading && profile != null)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          const SizedBox(height: 10),
+                          // Nombre
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            specialtyText,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                        child: Column(
+                          children: [
+                            if (_errorMessage != null) ...[
+                              _buildErrorMessage(),
+                            ],
+                            _buildStatsRow(),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                      _buildTabBar(),
+                    ],
+                  ),
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTipsGrid(),
+                _buildRecipesGrid(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Material(
+      color: Colors.white,
+      child: TabBar(
+        controller: _tabController,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(
+            color: AppColors.primary,
+            width: 2.5,
+          ),
+          insets: EdgeInsets.symmetric(horizontal: 60),
+        ),
+        indicatorPadding: EdgeInsets.zero,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: Colors.grey[500],
+        labelStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: MaterialStateProperty.all(Colors.transparent),
+        dividerColor: Colors.grey[200],
+        tabs: [
+          Tab(
+            height: 50,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.grid_on, size: 20),
+                const SizedBox(height: 2),
+                Text('Tips'),
+              ],
+            ),
+          ),
+          Tab(
+            height: 50,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.restaurant_menu, size: 20),
+                const SizedBox(height: 2),
+                Text('Recetas'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipsGrid() {
+    // Para demostración, agrega algunas imágenes de ejemplo
+    final List<String> tips = [
+
+      // 'tip1', 'tip2', 'tip3', 'tip4', 'tip5', 'tip6',
+    ];
+
+    if (tips.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.lightbulb_outline,
+        title: '¡Comparte tus mejores consejos!',
+        subtitle: 'Ayuda a tus pacientes con tips valiosos',
+        actionText: 'Crear primer tip',
+        onAction: () {
+          // Aquí iría la navegación para crear contenido
+          print('Crear tip');
+        },
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(2),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: tips.length,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Aquí irían las imágenes reales
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withOpacity(0.3),
+                      AppColors.primary.withOpacity(0.6),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.lightbulb,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+              // Overlay para simular contenido tipo TikTok/Instagram
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${10 + index}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildRecipesGrid() {
+    final List<String> recipes = [
+      // Descomenta para probar
+      // 'recipe1', 'recipe2', 'recipe3',
+    ];
+
+    if (recipes.isEmpty) {
+      return _buildEmptyState(
+        icon: Icons.restaurant_menu_outlined,
+        title: 'No hay recetas aún',
+        subtitle: 'Comparte recetas saludables con tus pacientes',
+        actionText: 'Crear primera receta',
+        onAction: () {
+          print('Crear receta');
+        },
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(2),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: recipes.length,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.orange.withOpacity(0.3),
+                      Colors.orange.withOpacity(0.6),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.restaurant,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bookmark,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${5 + index}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    String? actionText,
+    VoidCallback? onAction,
+  }) {
+    return Container(
+      color: Colors.white,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
+              ),
+
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[400],
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (actionText != null && onAction != null) ...[
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: onAction,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    actionText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -896,7 +1197,7 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
 
   Widget _buildLoadingStats() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -994,18 +1295,12 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
     required double rating,
   }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(width: 0.3, color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1039,7 +1334,7 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
           _buildVerticalDivider(),
           _buildStatItem(
             'Rating',
-            '${rating.toStringAsFixed(1)}⭐',
+            '${rating.toStringAsFixed(1)}',
             Icons.star_outline,
           ),
         ],
@@ -1051,23 +1346,23 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.primary, size: 24),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 2),
+
         Text(
           label,
           style: TextStyle(
@@ -1083,7 +1378,7 @@ class _DynamicStatsRowState extends State<DynamicStatsRow> {
   Widget _buildVerticalDivider() {
     return Container(
       height: 40,
-      width: 1,
+      width: 0.5,
       color: Colors.grey.withOpacity(0.3),
     );
   }

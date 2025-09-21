@@ -729,15 +729,15 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreenn> {
                     ),
                     child: Stack(
                       children: [
-                        // Avatar que se adapta al contenedor completo
+
                         Positioned.fill(
                           child: PatientAvatarWidget(
                             patient: patient,
                             statusColor: statusColor,
                             token: _authToken ?? '',
-                            isCircular: false, // ¡AQUÍ ESTÁ EL CAMBIO CLAVE!
-                            borderRadius: 0, // Sin radio porque el contenedor ya tiene el suyo
-                            fit: BoxFit.cover, // Se ajusta para cubrir todo el espacio
+                            isCircular: false,
+                            borderRadius: 0,
+                            fit: BoxFit.cover,
                           ),
                         ),
                         // Badge del tipo de diabetes

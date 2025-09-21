@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
+import 'PatientDetailScreen.dart';
 
 class PatientAvatarWidget extends StatefulWidget {
   final PatientProfile patient;
@@ -34,10 +35,16 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
   bool _isLoading = true;
   bool _hasError = false;
 
+  late PatientDisease _patientDisease;
+  late Color _diseaseColor;
+
   @override
   void initState() {
     super.initState();
     _loadProfileImage();
+
+    _patientDisease = detectDiseaseFromString(widget.patient.chronicDisease);
+    _diseaseColor = getDiseaseColor(_patientDisease);
   }
 
   Future<void> _loadProfileImage() async {
@@ -77,45 +84,52 @@ class _PatientAvatarWidgetState extends State<PatientAvatarWidget> {
     final isFemale = widget.patient.gender?.toLowerCase() == 'femenino' ||
         widget.patient.gender?.toLowerCase() == 'female';
 
-    Widget content = isFemale
-        ? SvgPicture.asset(
-      'assets/images/user_placeholder_esmer.svg',
-      fit: BoxFit.scaleDown,
-    )
-        : FittedBox(
-      fit: BoxFit.contain,
-      child: Icon(
-        Icons.person,
-        color: widget.statusColor,
-        size: widget.isCircular && widget.size != null
-            ? widget.size! * 0.6
-            : 40,
-      ),
-    );
+    // Detectar enfermedad y obtener color
+    final disease = detectDiseaseFromString(widget.patient.chronicDisease);
+    final backgroundColor = getDiseaseColor(disease).withOpacity(0.1);
 
-    if (widget.isCircular && widget.size != null) {
-      return Container(
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-        ),
-        padding: const EdgeInsets.all(4),
-        child: content,
+    // Elegir el SVG según la enfermedad y género
+    String? assetPath;
+    if (disease == PatientDisease.diabetes) {
+      assetPath = 'assets/images/user_placeholder_orange.svg';
+    } else if (isFemale) {
+      assetPath = 'assets/images/user_placeholder_esmer.svg';
+    } else {
+      assetPath = null;
+    }
+
+    Widget content;
+    if (assetPath != null) {
+      content = SvgPicture.asset(
+        assetPath,
+        fit: BoxFit.scaleDown,
       );
     } else {
-      return Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: _getBorderRadius(),
+      content = FittedBox(
+        fit: BoxFit.contain,
+        child: Icon(
+          Icons.person,
+          color: widget.statusColor,
+          size: widget.isCircular && widget.size != null
+              ? widget.size! * 0.6
+              : 40,
         ),
-        padding: const EdgeInsets.all(8),
-        child: content,
       );
     }
+
+    Widget avatar = Container(
+      width: widget.isCircular && widget.size != null ? widget.size : null,
+      height: widget.isCircular && widget.size != null ? widget.size : null,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: widget.isCircular ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: widget.isCircular ? null : _getBorderRadius(),
+      ),
+      padding: widget.isCircular ? const EdgeInsets.all(4) : const EdgeInsets.all(8),
+      child: Center(child: content),
+    );
+
+    return avatar;
   }
 
   Widget _buildProfileImage() {

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:vibration/vibration.dart';
 import '../../../../../configuration/themes/app_colors.dart';
 import '../../../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
 
@@ -59,6 +60,9 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
   int _recipeCount = 0;
   Timer? _tipTimer;
   Timer? _counterTimer;
+
+  bool _showBlockedMessage = false;
+  Timer? _messageTimer;
 
   // Instancia del servicio
   final NutritionistService _nutritionistService = NutritionistService();
@@ -219,6 +223,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
   void _startLoadingSequence() async {
     try {
+      // Avanzar progreso hasta el 80% durante los pasos de UI
       for (int i = 0; i < _detailedSteps.length; i++) {
         if (!mounted) return;
 
@@ -226,7 +231,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
           _currentStep = i;
         });
 
-        _progressController.animateTo((i + 1) / _detailedSteps.length);
+        // Avanzar progreso hasta 80% (no 100%)
+        _progressController.animateTo(0.8 * ((i + 1) / _detailedSteps.length));
         await Future.delayed(Duration(milliseconds: 700 + (i * 150)));
       }
 
@@ -245,13 +251,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     }
   }
 
-  String _getEstimatedTimeRemaining() {
-    double remaining = (1 - _progressAnimation.value) * 50;
-    if (remaining < 8) return "finalizando";
-    if (remaining < 25) return "${remaining.toInt()}s";
-    return "~1 min";
-  }
-
   Future<void> _generatePlanFromBackend() async {
     try {
       final generatedPlan = await _nutritionistService.generatePlan(
@@ -260,6 +259,11 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
       );
 
       if (mounted) {
+        await _progressController.animateTo(1.0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut
+        );
+
         setState(() {
           _generatedPlan = generatedPlan;
           _isGenerating = false;
@@ -280,6 +284,15 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         widget.onError?.call(_errorMessage!);
       }
     }
+  }
+
+  String _getEstimatedTimeRemaining() {
+    if (!_isGenerating && _showSuccess) return "completado";
+
+    double remaining = (1 - _progressAnimation.value) * 50;
+    if (remaining < 8) return "finalizando";
+    if (remaining < 25) return "${remaining.toInt()}s";
+    return "~1 min";
   }
 
   void onPlanGenerated(NutritionPlanResponse plan) {
@@ -330,6 +343,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
     _floatingController.dispose();
     _tipTimer?.cancel();
     _counterTimer?.cancel();
+    _messageTimer?.cancel();
     super.dispose();
   }
 
@@ -337,94 +351,207 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final topPadding = MediaQuery.of(context).padding.top;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final availableHeight = screenHeight - topPadding - bottomPadding;
+    final availableHeight = screenHeight - topPadding;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Colors.white,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFB), // Color del body
-        body: Column(
-          children: [
-            // Header fijo con padding superior igual al SafeArea
-            Container(
-              padding: EdgeInsets.fromLTRB(20, topPadding + 5, 15, 5),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isGenerating || _showSuccess || _isNavigating) {
+          // Vibrar al intentar retroceder
+          if (await Vibration.hasVibrator() ?? false) {
+            Vibration.vibrate(duration: 50);
+          }
+
+          // Mostrar mensaje temporal
+          setState(() {
+            _showBlockedMessage = true;
+          });
+
+          // Ocultar mensaje después de 2 segundos
+          _messageTimer?.cancel();
+          _messageTimer = Timer(const Duration(seconds: 2), () {
+            if (mounted) {
+              setState(() {
+                _showBlockedMessage = false;
+              });
+            }
+          });
+
+          return false; // Bloquear retroceso
+        }
+        return true; // Permitir retroceso
+      },
+      child: Stack(
+        children: [
+          AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.white,
+              statusBarIconBrightness: Brightness.dark,
+            ),
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF8FAFB),
+              body: Column(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Generando Plan Nutricional',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                  Container(
+                    padding: EdgeInsets.fromLTRB(20, topPadding + 5, 15, 15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Título y botón de cerrar
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Generando Plan Nutricional',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            IconButton(
+                              onPressed: (!_isGenerating && !_showSuccess && !_isNavigating)
+                                  ? () {
+                                widget.onCancel?.call();
+                                Navigator.pop(context);
+                              }
+                                  : null,
+                              icon: const Icon(Icons.close_rounded, size: 22),
+                              style: IconButton.styleFrom(
+                                foregroundColor: (!_isGenerating && !_showSuccess && !_isNavigating)
+                                    ? Colors.grey[600]
+                                    : Colors.grey[300],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.patientName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Plan de ${widget.mealsPerDay} comidas diarias',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    onPressed: (!_isGenerating && !_showSuccess && !_isNavigating)
-                        ? () {
-                      widget.onCancel?.call();
-                      Navigator.pop(context);
-                    }
-                        : null,
-                    icon: const Icon(Icons.close_rounded, size: 22),
-                    style: IconButton.styleFrom(
-                      foregroundColor: Colors.grey[600],
+
+                  // Contenido principal con scroll
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: availableHeight - 200,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_isGenerating) ..._buildLoadingContent(),
+                              if (_showSuccess && !_isGenerating) ..._buildSuccessContent(),
+                              if (_errorMessage != null && !_isGenerating && !_showSuccess) ..._buildErrorContent(),
+                              const SizedBox(height: 30),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          ),
 
-            // Contenido principal con scroll
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: availableHeight - 120,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 10),
-                        if (_isGenerating) ..._buildLoadingContent(),
-                        if (_showSuccess && !_isGenerating) ..._buildSuccessContent(),
-                        if (_errorMessage != null && !_isGenerating && !_showSuccess) ..._buildErrorContent(),
-                        const SizedBox(height: 30),
+          // Mensaje de bloqueo de retroceso (fuera del Scaffold pero dentro del Stack)
+          if (_showBlockedMessage)
+            Positioned(
+              bottom: 100,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.center,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
+                    ),
+                    child: const Text(
+                      'No se puede retroceder mientras se genera el plan',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-
-            // Footer fijo
-            _buildPatientInfo(),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -477,8 +604,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
                 // Contenedor principal
                 Container(
-                  width: 90,
-                  height: 90,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -507,8 +634,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   child: Center(
                     child: Lottie.asset(
                       'assets/loading/palta_saltarina.json',
-                      width: 70,
-                      height: 70,
+                      width: 90,
+                      height: 90,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -521,7 +648,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
 
       Container(
         margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+        padding: EdgeInsets.fromLTRB(16, 6, 16, 6),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -550,8 +677,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 55,
+                      height: 55,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.green.shade400, Colors.green.shade600],
@@ -569,7 +696,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                         child: Text(
                           '$_foodCount',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -593,7 +720,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
               Container(
                 width: 2,
                 height: 50,
-                margin: const EdgeInsets.symmetric(horizontal: 8), // Añadido margen
+                margin: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -607,13 +734,13 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
-              Expanded( // Añadido Expanded para cada columna
+              Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 55,
+                      height: 55,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.blue.shade400, Colors.blue.shade600],
@@ -631,7 +758,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                         child: Text(
                           '$_recipeCount',
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -657,9 +784,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         ),
       ),
 
-      const SizedBox(height: 20),
+      const SizedBox(height: 10),
 
-      // Tips educativos mejorados
       AnimatedSwitcher(
         duration: const Duration(milliseconds: 800),
         transitionBuilder: (Widget child, Animation<double> animation) {
@@ -674,7 +800,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         child: Container(
           key: ValueKey(_currentTipIndex),
           margin: const EdgeInsets.symmetric(horizontal: 5),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(10),
+          height: 120,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -714,7 +841,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                 ),
               ),
               const SizedBox(width: 16),
-              Expanded( // Añadido Expanded para evitar overflow
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -743,9 +870,8 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         ),
       ),
 
-      const SizedBox(height: 25),
+      const SizedBox(height: 20),
 
-      // Barra de progreso mejorada
       AnimatedBuilder(
         animation: _progressAnimation,
         builder: (context, child) {
@@ -753,14 +879,16 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
             margin: const EdgeInsets.symmetric(horizontal: 5),
             child: Column(
               children: [
+                // Barra de progreso con fondo gris al 100%
                 Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: Colors.grey[300], // Fondo gris completo
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Stack(
                     children: [
+                      // Progreso que se va pintando gradualmente
                       FractionallySizedBox(
                         alignment: Alignment.centerLeft,
                         widthFactor: _progressAnimation.value,
@@ -783,11 +911,11 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                     ],
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible( // Añadido Flexible para evitar overflow
+                    Flexible(
                       child: Text(
                         '${(_progressAnimation.value * 100).toInt()}% completado',
                         style: const TextStyle(
@@ -821,10 +949,9 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         },
       ),
 
-      const SizedBox(height: 25),
+      const SizedBox(height: 14),
 
-      // Indicadores de pasos mejorados
-      SingleChildScrollView( // Añadido ScrollView horizontal para los indicadores
+      SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -853,8 +980,12 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
                   ),
                 ] : null,
               ),
-              child: isComplete ?
-              const Icon(Icons.check, color: Colors.white, size: 10) : null,
+              child: isComplete
+                  ? ScaleTransition(
+                scale: _pulseAnimation, // Usa la animación de pulso existente
+                child: const Icon(Icons.check, color: Colors.white, size: 10),
+              )
+                  : null,
             );
           }),
         ),
@@ -904,7 +1035,7 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
       Text(
         _isNavigating
             ? 'Preparando tu plan...'
-            : 'Tu plan nutricional de ${widget.mealsPerDay} comidas está listo',
+            : 'Tu plan nutricional está listo',
         style: TextStyle(
           fontSize: 16,
           color: Colors.grey[600],
@@ -1046,57 +1177,6 @@ class NutritionPlanLoadingScreenState extends State<NutritionPlanLoadingScreen>
         ],
       ),
     ];
-  }
-
-  Widget _buildPatientInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.person,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.patientName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  'Plan de ${widget.mealsPerDay} comidas diarias',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildInfoRow(String label, String value) {

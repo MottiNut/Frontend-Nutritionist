@@ -765,21 +765,69 @@ class _NutritionPlanDetailScreenState extends State<NutritionPlanDetailScreen> {
   void _sendPlan() async {
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false, // Evita cerrar tocando fuera
       builder: (context) => AlertDialog(
-        title: const Text('Enviar Plan'),
+        backgroundColor: Colors.white, // Fondo limpio y profesional
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.workspace_premium,
+              color: AppColors.primary,
+              size: 28,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Confirmar envío',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
         content: const Text(
-            '¿Estás seguro de que deseas enviar este plan al paciente?'),
+          '¿Estás seguro de que deseas enviar este plan al paciente?',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.black54,
+            height: 1.4,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.checkValidation,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
             ),
-            child: const Text('Enviar', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Enviar',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16
+              ),
+            ),
           ),
         ],
       ),

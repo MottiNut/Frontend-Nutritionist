@@ -15,6 +15,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  PageController _pageController = PageController(viewportFraction: 0.9);
+  int _currentIndex = 2;
+
   // Contador de tiempo (23h 59m 59s)
   Timer? _timer;
   int _hours = 23;
@@ -24,13 +27,13 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
   final List<SubscriptionPlan> plans = [
     SubscriptionPlan(
       id: 'free',
-      title: 'Plan Gratuito',
+      title: 'Gratuito',
       subtitle: 'Perfecto para empezar',
       price: 'S/ 0',
       period: 'Siempre gratis',
       maxPatients: 15,
       features: [
-        'Máximo 15 pacientes por mes',
+        'Máximo 15 pacientes/mes',
         'Planes nutricionales básicos',
         'Historial de consultas',
         'Soporte por email',
@@ -38,14 +41,17 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
       gradient: AppColors.softPrimaryGradient,
       iconColor: AppColors.primary,
       isPopular: false,
+      description: 'Ideal para nutricionistas que están comenzando su práctica profesional. Incluye funciones básicas para gestionar pacientes.',
+      icon: Icons.favorite_outline,
+      validUntil: '31 Dic 2025',
     ),
     SubscriptionPlan(
       id: 'monthly',
-      title: 'Plan Mensual',
+      title: 'Mensual Pro',
       subtitle: 'Flexibilidad total',
       price: 'S/ 20',
       period: 'por mes',
-      maxPatients: -1, // Ilimitado
+      maxPatients: -1,
       features: [
         'Pacientes ilimitados',
         'IA para planes nutricionales',
@@ -57,27 +63,33 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
       gradient: AppColors.primarySecondaryGradient,
       iconColor: AppColors.secondary,
       isPopular: true,
+      description: 'La opción más flexible para profesionales que buscan todas las funciones premium sin limitaciones.',
+      icon: Icons.star_outline,
+      validUntil: '31 Dic 2025',
     ),
     SubscriptionPlan(
       id: 'yearly',
-      title: 'Plan Anual',
-      subtitle: 'Mejor valor - Ahorra 37%',
+      title: 'Anual Pro',
+      subtitle: 'Ahorra 37%',
       price: 'S/ 150',
       period: 'por año',
-      maxPatients: -1, // Ilimitado
+      maxPatients: -1,
       originalPrice: 'S/ 240',
       features: [
         'Todo del plan mensual',
         'Ahorra S/ 90 al año',
         'Consultoría personalizada',
-        'Acceso a nuevas funciones',
+        'Acceso anticipado a funciones',
         'Soporte 24/7',
-        'Backup automático en la nube',
+        'Backup automático',
         'Análisis predictivo con IA',
       ],
       gradient: AppColors.successGradient,
       iconColor: AppColors.progress,
       isPopular: false,
+      description: 'Máximo valor para tu práctica profesional. Incluye todo del plan mensual más beneficios exclusivos y IA predictiva.',
+      icon: Icons.diamond_outlined,
+      validUntil: '31 Dic 2025',
     ),
   ];
 
@@ -124,7 +136,6 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
             if (_hours > 0) {
               _hours--;
             } else {
-              // Reiniciar contador
               _hours = 23;
               _minutes = 59;
               _seconds = 59;
@@ -139,6 +150,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
   void dispose() {
     _animationController.dispose();
     _timer?.cancel();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -161,18 +173,18 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: CustomScrollView(
-                slivers: [
-                  _buildAppBar(),
-                  _buildOfferCountdown(),
-                  _buildPlansGrid(),
-                  SliverPadding(
-                    padding: EdgeInsets.only(bottom: 20),
-                  ),
-                ],
-              ),
+            child: Column(
+              children: [
+                _buildAppBar(),
+                _buildOfferCountdown(),
+                Expanded(
+                  child: _buildCarousel(),
+                ),
+
+                SizedBox(height: 7),
+                _buildDots(),
+                SizedBox(height: 20),
+              ],
             ),
           ),
         ),
@@ -181,132 +193,127 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
   }
 
   Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: false,
-      pinned: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios, color: AppColors.textLight),
-        onPressed: () => Navigator.pop(context),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          'Planes de Suscripción',
-          style: TextStyle(
-            color: AppColors.textLight,
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: AppColors.textLight),
+            onPressed: () => Navigator.pop(context),
           ),
-        ),
-        centerTitle: true,
+          Expanded(
+            child: Text(
+              'Planes de Suscripción',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+            ),
+          ),
+          SizedBox(width: 48),
+        ],
       ),
     );
   }
 
   Widget _buildOfferCountdown() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: EdgeInsets.all(20),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: AppColors.errorGradient,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.secondary.withOpacity(0.3),
-              blurRadius: 15,
-              offset: Offset(0, 8),
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: AppColors.errorGradient,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            '🔥 OFERTA LIMITADA 🔥',
+            style: TextStyle(
+              color: AppColors.textLight,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(
-              '🔥 OFERTA LIMITADA 🔥',
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Obtén descuentos especiales',
-              style: TextStyle(
-                color: AppColors.textLight.withOpacity(0.9),
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildTimeCard(_hours.toString().padLeft(2, '0'), 'Horas'),
-                Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 20)),
-                _buildTimeCard(_minutes.toString().padLeft(2, '0'), 'Min'),
-                Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 20)),
-                _buildTimeCard(_seconds.toString().padLeft(2, '0'), 'Seg'),
-              ],
-            ),
-          ],
+          ),
+          SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildTimeCard(_hours.toString().padLeft(2, '0')),
+              Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 18)),
+              _buildTimeCard(_minutes.toString().padLeft(2, '0')),
+              Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 18)),
+              _buildTimeCard(_seconds.toString().padLeft(2, '0')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeCard(String time) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.textLight.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        time,
+        style: TextStyle(
+          color: AppColors.textLight,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  Widget _buildTimeCard(String time, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.textLight.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.textLight.withOpacity(0.3)),
-          ),
-          child: Text(
-            time,
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textLight.withOpacity(0.7),
-            fontSize: 10,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlansGrid() {
-    return SliverPadding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-              (context, index) {
-            return _buildPlanCard(plans[index], index);
+  Widget _buildCarousel() {
+    return SlideTransition(
+      position: _slideAnimation,
+      child: Container(
+        height: 500, // Aumentado para más contenido
+        child: PageView.builder(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
           },
-          childCount: plans.length,
+          itemCount: plans.length,
+          itemBuilder: (context, index) {
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 8),
+              child: _buildPlanCard(plans[index], index),
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildPlanCard(SubscriptionPlan plan, int index) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 20),
+    bool isSelected = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        _pageController.animateToPage(
+          index,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      },
       child: Stack(
         children: [
-          // Fondo con blur
           ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: BackdropFilter(
@@ -316,14 +323,16 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
                   gradient: plan.gradient,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: AppColors.textLight.withOpacity(0.1),
-                    width: 1,
+                    color: isSelected
+                        ? AppColors.textLight.withOpacity(0.3)
+                        : AppColors.textLight.withOpacity(0.1),
+                    width: isSelected ? 2 : 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
+                      color: Colors.black.withOpacity(isSelected ? 0.4 : 0.2),
+                      blurRadius: isSelected ? 25 : 15,
+                      offset: Offset(0, isSelected ? 15 : 8),
                     ),
                   ],
                 ),
@@ -334,28 +343,146 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
                   ),
                   padding: EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildPlanHeader(plan),
-                      SizedBox(height: 20),
-                      _buildPlanFeatures(plan),
-                      SizedBox(height: 24),
-                      _buildActionButton(plan),
+                      // Icono arriba
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.textLight.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: plan.iconColor.withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          plan.icon,
+                          color: plan.iconColor,
+                          size: 36,
+                        ),
+                      ),
+
+                      // Fecha pequeña arriba
+                      Text(
+                        'Válido hasta: ${plan.validUntil}',
+                        style: TextStyle(
+                          color: AppColors.textLight.withOpacity(0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+
+                      SizedBox(height: 8),
+
+                      // Título y precio
+                      Text(
+                        plan.title,
+                        style: TextStyle(
+                          color: AppColors.textLight,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      Text(
+                        plan.subtitle,
+                        style: TextStyle(
+                          color: AppColors.textLight.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+
+                      SizedBox(height: 12),
+
+                      if (plan.originalPrice != null)
+                        Text(
+                          plan.originalPrice!,
+                          style: TextStyle(
+                            color: AppColors.textLight.withOpacity(0.6),
+                            fontSize: 16,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+
+                      Text(
+                        plan.price,
+                        style: TextStyle(
+                          color: AppColors.textLight,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      Text(
+                        plan.period,
+                        style: TextStyle(
+                          color: AppColors.textLight.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+
+                      SizedBox(height: 16),
+
+                      // Descripción abajo
+                      Expanded(
+                        child: Text(
+                          plan.description,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.textLight.withOpacity(0.9),
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _selectPlan(plan),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.textLight,
+                            foregroundColor: AppColors.textSecondary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 8,
+                            shadowColor: AppColors.textLight.withOpacity(0.3),
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                plan.id == 'free' ? 'Empezar Gratis' : 'Suscribirse',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
           ),
+
           // Badge de popular
           if (plan.isPopular)
             Positioned(
               top: -8,
-              right: 20,
+              right: 16,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: AppColors.secondaryGradient,
+                  color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -366,7 +493,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
                   ],
                 ),
                 child: Text(
-                  '⭐ MÁS POPULAR',
+                  '⭐ POPULAR',
                   style: TextStyle(
                     color: AppColors.textLight,
                     fontSize: 10,
@@ -380,158 +507,36 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
     );
   }
 
-  Widget _buildPlanHeader(SubscriptionPlan plan) {
+  Widget _buildDots() {
     return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.textLight.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: plan.iconColor.withOpacity(0.3),
-              width: 2,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(plans.length, (index) {
+        return GestureDetector(
+          onTap: () {
+            _pageController.animateToPage(
+              index,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            margin: EdgeInsets.symmetric(horizontal: 6),
+            width: _currentIndex == index ? 24 : 10,
+            height: 7,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              color: _currentIndex == index
+                  ? AppColors.progress
+                  : AppColors.textLight.withOpacity(0.3),
             ),
-          ),
-          child: Icon(
-            _getPlanIcon(plan.id),
-            color: plan.iconColor,
-            size: 24,
-          ),
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                plan.title,
-                style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                plan.subtitle,
-                style: TextStyle(
-                  color: AppColors.textLight.withOpacity(0.8),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (plan.originalPrice != null)
-              Text(
-                plan.originalPrice!,
-                style: TextStyle(
-                  color: AppColors.textLight.withOpacity(0.6),
-                  fontSize: 14,
-                  decoration: TextDecoration.lineThrough,
-                ),
-              ),
-            Text(
-              plan.price,
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              plan.period,
-              style: TextStyle(
-                color: AppColors.textLight.withOpacity(0.8),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlanFeatures(SubscriptionPlan plan) {
-    return Column(
-      children: plan.features.map((feature) {
-        return Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: AppColors.progress,
-                size: 18,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  feature,
-                  style: TextStyle(
-                    color: AppColors.textLight.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
           ),
         );
-      }).toList(),
+      }),
     );
-  }
-
-  Widget _buildActionButton(SubscriptionPlan plan) {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: () => _selectPlan(plan),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.textLight,
-          foregroundColor: AppColors.textSecondary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 8,
-          shadowColor: AppColors.textLight.withOpacity(0.3),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              plan.id == 'free' ? 'Empezar Gratis' : 'Suscribirse Ahora',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_forward, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getPlanIcon(String planId) {
-    switch (planId) {
-      case 'free':
-        return Icons.favorite_outline;
-      case 'monthly':
-        return Icons.star_outline;
-      case 'yearly':
-        return Icons.diamond_outlined;
-      default:
-        return Icons.workspace_premium_outlined;
-    }
   }
 
   void _selectPlan(SubscriptionPlan plan) {
-    // Aquí integras la lógica de suscripción
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -558,7 +563,6 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Aquí integrar Google Play Billing o el sistema de pagos
               _processPurchase(plan);
             },
             style: ElevatedButton.styleFrom(
@@ -575,7 +579,6 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
   }
 
   void _processPurchase(SubscriptionPlan plan) {
-    // Implementar lógica de compra
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Procesando suscripción a ${plan.title}...'),
@@ -595,12 +598,15 @@ class SubscriptionPlan {
   final String subtitle;
   final String price;
   final String period;
-  final int maxPatients; // -1 para ilimitado
+  final int maxPatients;
   final String? originalPrice;
   final List<String> features;
   final LinearGradient gradient;
   final Color iconColor;
   final bool isPopular;
+  final String description;
+  final IconData icon;
+  final String validUntil;
 
   SubscriptionPlan({
     required this.id,
@@ -614,5 +620,8 @@ class SubscriptionPlan {
     required this.gradient,
     required this.iconColor,
     this.isPopular = false,
+    required this.description,
+    required this.icon,
+    required this.validUntil,
   });
 }

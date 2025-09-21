@@ -302,11 +302,17 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                     const SizedBox(width: 8),
 
                     // Avatar
-                    PatientAvatarWidget(
-                      patient: widget.patient,
-                      statusColor: statusColor,
-                      token: _authToken ?? '',
-                      size: 55,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.4), // ✔ color aquí
+                        shape: BoxShape.circle,
+                      ),
+                      child: PatientAvatarWidget(
+                        patient: widget.patient,
+                        statusColor: Colors.white.withOpacity(0.1),
+                        token: _authToken ?? '',
+                        size: 50,
+                      ),
                     ),
                     const SizedBox(width: 12),
 

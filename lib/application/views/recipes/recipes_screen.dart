@@ -116,18 +116,18 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
           'Gestión de Recetas',
           style: TextStyle(
             color: AppColors.textLight,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
         ),
         backgroundColor: AppColors.primary,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.textLight,
+          indicatorColor: AppColors.backgroundHipertencion,
           labelColor: AppColors.textLight,
           unselectedLabelColor: AppColors.textLight.withOpacity(0.7),
-          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           tabs: const [
             Tab(text: 'Crear Receta'),
             Tab(text: 'Mis Recetas'),
@@ -300,7 +300,7 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
   }
 
   Widget _buildMessagesTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,6 +346,7 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
           ),
           const SizedBox(height: 24),
           _buildQuickMessages(),
+          const SizedBox(height: 24), // Padding adicional al final
         ],
       ),
     );
@@ -355,11 +356,11 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
     return Text(
       title,
       style: const TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 18,
-        fontWeight: FontWeight.w800,
-        fontFamily: 'Nunito',
-        letterSpacing: 0.5
+          color: AppColors.textSecondary,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          fontFamily: 'Nunito',
+          letterSpacing: 0.5
       ),
     );
   }
@@ -763,6 +764,7 @@ class _RecipesScreenState extends State<RecipesScreen> with TickerProviderStateM
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildSectionHeader('Mensajes rápidos'),
         const SizedBox(height: 12),

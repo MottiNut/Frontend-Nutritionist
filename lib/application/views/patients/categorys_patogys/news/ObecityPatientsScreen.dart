@@ -713,7 +713,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                   flex: 70,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: typeColor.withOpacity(0.1),
+                      color: AppColors.backgroundObecidad.withOpacity(0.1),
                     ),
                     child: Stack(
                       children: [
@@ -847,7 +847,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
   }
 
   Widget _buildPatientListItem(PatientProfile patient) {
-    final statusColor = _getStatusColor(patient);
+    final statusColor = AppColors.backgroundObecidad.withOpacity(0.1);
     final statusText = _getStatusText(patient);
     final obesityType = _getObesityType(patient);
 
@@ -881,7 +881,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Avatar lateral con indicador de tipo de obesidad
+
                     Container(
                       width: 90,
                       height: double.infinity,
@@ -897,7 +897,7 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                         children: [
                           PatientAvatarWidget(
                             patient: patient,
-                            statusColor: AppColors.backgroundObecidadIcon,
+                            statusColor: AppColors.secondary,
                             token: _authToken ?? '',
                             isCircular: false,
                             customBorderRadius: const BorderRadius.only(
@@ -963,13 +963,13 @@ class _ObesityPatientsScreenState extends State<ObesityPatientsScreen> {
                               padding: EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.13),
+                                color: AppColors.backgroundObecidad.withOpacity(0.13),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 statusText,
                                 style: TextStyle(
-                                  color: statusColor,
+                                  color: AppColors.backgroundObecidad,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),

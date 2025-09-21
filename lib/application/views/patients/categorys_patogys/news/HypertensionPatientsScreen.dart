@@ -1083,7 +1083,7 @@ class _HypertensionPatientsScreenState extends State<HypertensionPatientsScreen>
                       ),
                       child: PatientAvatarWidget(
                         patient: patient,
-                        statusColor: AppColors.backgroundHipertencion,
+                        statusColor: AppColors.backgroundHipertencion.withOpacity(0.1),
                         token: _authToken ?? '',
                         isCircular: false,
                         customBorderRadius: const BorderRadius.only(

@@ -218,7 +218,7 @@ class UserProfile {
   // Método para obtener biografía con fallback
   String get biographyOrDefault {
     return biography ??
-        'Nutricionista especializada en ${specialtyFormatted.toLowerCase()}, comprometida con ayudar a mis pacientes a alcanzar sus objetivos de salud a través de una alimentación balanceada y personalizada.';
+        'Añade una breve descripción..';
   }
 
   // Método copyWith para actualizaciones
