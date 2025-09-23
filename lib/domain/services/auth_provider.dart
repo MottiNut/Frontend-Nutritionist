@@ -381,8 +381,106 @@ class CacheService {
 }
 class AuthService {
   // URLs base
-  static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
-  static const String profileBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile';
+  //static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
+  //static const String profileBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile';
+  //static const String notificationsBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/notifications';
+
+  static const String baseUrl = 'http://localhost:8080/api/bff/auth';
+  static const String profileBaseUrl = 'http://localhost:8080/api/bff/auth/profile';
+  static const String notificationsBaseUrl = 'http://localhost:8080/api/bff/notifications';
+
+  Future<bool> registerDeviceToken({
+    required String token,
+    required String deviceToken,
+    required String platform,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$notificationsBaseUrl/device-token'),
+        headers: _headersWithAuth(token),
+        body: json.encode({
+          'deviceToken': deviceToken,
+          'platform': platform,
+        }),
+      );
+
+      return response.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error registering device token: $e');
+      return false;
+    }
+  }
+
+  // Obtener historial de notificaciones
+  Future<List<dynamic>> getNotificationHistory({
+    required String token,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$notificationsBaseUrl/history?limit=$limit'),
+        headers: _headersWithAuth(token),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting notification history: $e');
+      return [];
+    }
+  }
+
+  // Enviar acción del paciente (para cuando el paciente acepta/rechaza planes)
+  Future<bool> sendPatientActionNotification({
+    required String token,
+    required String patientId,
+    required String nutritionistId,
+    required int planId,
+    required String patientName,
+    required String actionType,
+    String? reason,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$notificationsBaseUrl/nutritionist/patient-action'),
+        headers: _headersWithAuth(token),
+        body: json.encode({
+          'patientId': patientId,
+          'nutritionistId': nutritionistId,
+          'planId': planId,
+          'patientName': patientName,
+          'actionType': actionType,
+          'reason': reason,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error sending patient action notification: $e');
+      return false;
+    }
+  }
+
+  // Notificar nuevo paciente asignado
+  Future<bool> notifyNewPatientAssignment({
+    required String token,
+    required String nutritionistId,
+    required String patientName,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$notificationsBaseUrl/nutritionist/new-patient?nutritionistId=$nutritionistId&patientName=$patientName'),
+        headers: _headersWithAuth(token),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error notifying new patient: $e');
+      return false;
+    }
+  }
 
   // Endpoints específicos
   static const String loginEndpoint = '$baseUrl/login';
@@ -1097,11 +1195,139 @@ class AuthProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isVerificationPending => _isVerificationPending;
 
+  // Nuevas propiedades para notificaciones
+  int _unreadNotifications = 0;
+  List<dynamic> _notifications = [];
+  String? _fcmToken;
+
+  // Getters para notificaciones
+  int get unreadNotifications => _unreadNotifications;
+  List<dynamic> get notifications => _notifications;
+  String? get fcmToken => _fcmToken;
+
   AuthProvider() {
     _loadStoredAuth();
   }
 
   // ========== GESTIÓN DE SESIÓN ==========
+
+  void setFcmToken(String token) {
+    _fcmToken = token;
+    _registerDeviceTokenIfPossible();
+  }
+
+  // Registrar device token cuando el usuario esté autenticado
+  Future<void> _registerDeviceTokenIfPossible() async {
+    if (_token != null && _fcmToken != null) {
+      try {
+        final success = await _authService.registerDeviceToken(
+          token: _token!,
+          deviceToken: _fcmToken!,
+          platform: Platform.isAndroid ? 'ANDROID' : 'IOS',
+        );
+
+        if (success) {
+          debugPrint('✅ Device token registrado exitosamente');
+        } else {
+          debugPrint('❌ Error registrando device token');
+        }
+      } catch (e) {
+        debugPrint('Error registering device token: $e');
+      }
+    }
+  }
+
+  // Cargar historial de notificaciones
+  Future<void> loadNotificationHistory() async {
+    if (_token == null) return;
+
+    try {
+      _notifications = await _authService.getNotificationHistory(
+        token: _token!,
+        limit: 50,
+      );
+
+      _unreadNotifications = _notifications
+          .where((n) => n['isRead'] == false)
+          .length;
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading notification history: $e');
+    }
+  }
+
+  Future<void> _handleAuthSuccess(AuthResponse response) async {
+    _token = response.token;
+    _userId = response.userId;
+    _email = response.email ?? _email;
+    _user = response.user;
+    _isAuthenticated = true;
+
+    if (_token != null && _userId != null && _email != null) {
+      await _saveAuth(
+        token: _token!,
+        userId: _userId!,
+        email: _email!,
+        userData: _user,
+      );
+
+      // Registrar device token después del login exitoso
+      await _registerDeviceTokenIfPossible();
+
+      await loadNotificationHistory();
+    }
+
+    notifyListeners();
+  }
+
+
+  // Método para enviar notificación de acción del paciente
+  Future<bool> sendPatientAction({
+    required String patientId,
+    required int planId,
+    required String patientName,
+    required String actionType,
+    String? reason,
+  }) async {
+    if (_token == null || _userId == null) {
+      return false;
+    }
+
+    try {
+      return await _authService.sendPatientActionNotification(
+        token: _token!,
+        patientId: patientId,
+        nutritionistId: _userId!,
+        planId: planId,
+        patientName: patientName,
+        actionType: actionType,
+        reason: reason,
+      );
+    } catch (e) {
+      debugPrint('Error sending patient action: $e');
+      return false;
+    }
+  }
+
+  // Método para notificar nuevo paciente
+  Future<bool> notifyNewPatient(String patientName) async {
+    if (_token == null || _userId == null) {
+      return false;
+    }
+
+    try {
+      return await _authService.notifyNewPatientAssignment(
+        token: _token!,
+        nutritionistId: _userId!,
+        patientName: patientName,
+      );
+    } catch (e) {
+      debugPrint('Error notifying new patient: $e');
+      return false;
+    }
+  }
+
 
   Future<void> _loadStoredAuth() async {
     try {
@@ -1651,25 +1877,6 @@ class AuthProvider with ChangeNotifier {
   }
 
   // ========== MÉTODOS PRIVADOS ==========
-
-  Future<void> _handleAuthSuccess(AuthResponse response) async {
-    _token = response.token;
-    _userId = response.userId;
-    _email = response.email ?? _email;
-    _user = response.user;
-    _isAuthenticated = true;
-
-    if (_token != null && _userId != null && _email != null) {
-      await _saveAuth(
-        token: _token!,
-        userId: _userId!,
-        email: _email!,
-        userData: _user,
-      );
-    }
-
-    notifyListeners();
-  }
 
   void _setLoading(bool loading) {
     _isLoading = loading;

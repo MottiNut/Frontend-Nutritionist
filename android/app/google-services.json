@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "741527707381",
+    "project_id": "mottinut-54a61",
+    "storage_bucket": "mottinut-54a61.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:741527707381:android:3cf943763adc3d0282afbc",
+        "android_client_info": {
+          "package_name": "com.mottinut.mottinutnutriotinist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBeaphwZmzkEdfPFXTd-N8_seqIQFaGmrY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -681,7 +681,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         icon: Icons.lightbulb_outline,
         title: '¡Comparte tus mejores consejos!',
         subtitle: 'Ayuda a tus pacientes con tips valiosos',
-        actionText: 'Crear primer tip',
+        //actionText: '',//Crear primer tip
         onAction: () {
           // Aquí iría la navegación para crear contenido
           print('Crear tip');
@@ -779,7 +779,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         icon: Icons.restaurant_menu_outlined,
         title: 'No hay recetas aún',
         subtitle: 'Comparte recetas saludables con tus pacientes',
-        actionText: 'Crear primera receta',
+        //actionText: '', //Crear primera receta
         onAction: () {
           print('Crear receta');
         },

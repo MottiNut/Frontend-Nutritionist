@@ -36,10 +36,11 @@ dependencies:
   # Firebase Core (requerido)
   firebase_core: ^4.1.0
   firebase_auth: ^6.0.2
+  cloud_firestore: ^6.0.1
+  firebase_messaging: ^16.0.1
+
   # Apple Sign In (solo iOS)
   sign_in_with_apple: ^7.0.1
-  # Cloud Firestore (para guardar datos del usuario)
-  cloud_firestore: ^6.0.1
 
   #conecction
   connectivity_plus: ^6.1.4
@@ -73,8 +74,14 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.3.1
   path_provider: ^2.1.1
+
+  #notificactions
+  flutter_local_notifications: ^19.4.2
+
   #reconocimiento de foto
   google_ml_kit: ^0.20.0
+
+  fl_chart: ^1.1.1
 
   #validar sign up
   dartz: ^0.10.1
@@ -167,6 +174,7 @@ flutter:
     - assets/images/user_fondo_detail.svg
     - assets/images/bag.png
     #images enfermedad detail
+    - assets/images/diamod.jpg
     - assets/images/log_m.svg
     - assets/images/log_n.svg
     - assets/images/call_icon.svg

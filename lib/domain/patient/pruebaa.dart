@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'new/rutadirectaaa/api_endpoints.dart';
+import 'new/rutadirectaaa/nutritionist_notification_service.dart';
+
 enum MealType {
   desayuno('Desayuno', 'breakfast'),
   colacionMatinal('Colación Matinal', 'morning_snack'),
@@ -1415,6 +1418,144 @@ class RiskFactors {
 
 class PatientServiceEnhanced extends BaseService {
 
+  final NutritionistNotificationService? notificationService;
+  final String authToken;
+
+  PatientServiceEnhanced({required this.authToken, this.notificationService});
+
+  Future<void> acceptNutritionPlan({
+    required int planId,
+    required String patientId,
+    required String nutritionistId,
+    required String patientName,
+    String? feedback,
+  }) async {
+    try {
+      // Primero llamar al endpoint para aceptar el plan
+      final response = await _client.post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.reviewPlan(planId)}'),
+        headers: ApiConstants.getHeaders(authToken),
+        body: json.encode({
+          'action': 'accept',
+          'feedback': feedback,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Enviar notificación al nutricionista
+        await notificationService?.sendPatientAction(
+          patientId: patientId,
+          nutritionistId: nutritionistId,
+          planId: planId,
+          patientName: patientName,
+          actionType: 'ACCEPTED',
+          reason: feedback,
+        );
+
+        print('✅ Plan aceptado y notificación enviada al nutricionista');
+      } else {
+        throw ApiException(
+          'Error al aceptar el plan: ${response.statusCode}',
+          statusCode: response.statusCode,
+          endpoint: ApiConstants.reviewPlan(planId),
+        );
+      }
+    } catch (e) {
+      print('❌ Error en acceptNutritionPlan: $e');
+      rethrow;
+    }
+  }
+
+  // Método para rechazar plan nutricional
+  Future<void> rejectNutritionPlan({
+    required int planId,
+    required String patientId,
+    required String nutritionistId,
+    required String patientName,
+    required String reason,
+    String? feedback,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.reviewPlan(planId)}'),
+        headers: ApiConstants.getHeaders(authToken),
+        body: json.encode({
+          'action': 'reject',
+          'reason': reason,
+          'feedback': feedback,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Enviar notificación al nutricionista
+        await notificationService?.sendPatientAction(
+          patientId: patientId,
+          nutritionistId: nutritionistId,
+          planId: planId,
+          patientName: patientName,
+          actionType: 'REJECTED',
+          reason: reason,
+        );
+
+        print('✅ Plan rechazado y notificación enviada al nutricionista');
+      } else {
+        throw ApiException(
+          'Error al rechazar el plan: ${response.statusCode}',
+          statusCode: response.statusCode,
+          endpoint: ApiConstants.reviewPlan(planId),
+        );
+      }
+    } catch (e) {
+      print('❌ Error en rejectNutritionPlan: $e');
+      rethrow;
+    }
+  }
+
+  // Método para solicitar modificaciones al plan
+  Future<void> requestPlanModifications({
+    required int planId,
+    required String patientId,
+    required String nutritionistId,
+    required String patientName,
+    required String modifications,
+    String? feedback,
+  }) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.reviewPlan(planId)}'),
+        headers: ApiConstants.getHeaders(authToken),
+        body: json.encode({
+          'action': 'modify',
+          'modifications': modifications,
+          'feedback': feedback,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Enviar notificación al nutricionista
+        await notificationService?.sendPatientAction(
+          patientId: patientId,
+          nutritionistId: nutritionistId,
+          planId: planId,
+          patientName: patientName,
+          actionType: 'MODIFIED',
+          reason: modifications,
+        );
+
+        print('✅ Modificaciones solicitadas y notificación enviada al nutricionista');
+      } else {
+        throw ApiException(
+          'Error al solicitar modificaciones: ${response.statusCode}',
+          statusCode: response.statusCode,
+          endpoint: ApiConstants.reviewPlan(planId),
+        );
+      }
+    } catch (e) {
+      print('❌ Error en requestPlanModifications: $e');
+      rethrow;
+    }
+  }
+
   // OBTENER PACIENTES ACTIVOS
   Future<List<Patient>> getActivePatients() async {
     const endpoint = ApiConfig.activePatients;
@@ -1874,6 +2015,7 @@ class PatientServiceEnhanced extends BaseService {
     _client.close();
   }
 }
+
 class AppointmentEnhanced {
   final String id;
   final String patientId;

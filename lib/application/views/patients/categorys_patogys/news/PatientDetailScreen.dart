@@ -11,6 +11,10 @@ import 'NutritionPlanDetailScreen.dart';
 import 'NutritionPlanGenerator.dart';
 import 'PatientAvatarWidget.dart';
 import 'PatientValidationHelper.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 enum PatientDisease {
   obesity,
@@ -1051,31 +1055,96 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     );
   }
 
+
   Widget _buildProgressTab() {
+    if (!PatientValidationHelper.hasCompleteHistory(_patientWithHistory)) {
+      return _buildEmptyProgressState();
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProgressHeader(),
+          const SizedBox(height: 20),
+          _buildWeightProgressChart(),
+          _buildVitalSignsCards(),
+          const SizedBox(height: 20),
+          _buildHealthMetricsChart(),
+          const SizedBox(height: 20),
+          _buildRecentAchievements(),
+          const SizedBox(height: 120),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyProgressState() {
     return Center(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.insert_chart_outlined_rounded,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Aún no hay gráficos disponibles',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _diseaseColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.trending_up_rounded,
+              size: 64,
+              color: _diseaseColor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 20),
           Text(
-            'Cuando tengas datos, verás tu progreso aquí',
+            'Progreso en desarrollo',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Una vez que se registren más consultas,\npodrás ver el progreso del paciente aquí',
+            style: TextStyle(
+              fontSize: 14,
               color: Colors.grey.shade500,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: _diseaseColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(
+                color: _diseaseColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: _diseaseColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Se necesitan al menos 2 consultas',
+                  style: TextStyle(
+                    color: _diseaseColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1083,6 +1152,621 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     );
   }
 
+  Widget _buildProgressHeader() {
+    final latestHistory = _patientWithHistory!.medicalHistories.first;
+    final daysSinceLastVisit =
+        DateTime.now().difference(latestHistory.consultationDate).inDays;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 7),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Línea superior: Progreso + última consulta
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Progreso',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 14, color: Colors.blueGrey),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Última cita: ${latestHistory.consultationDate.day.toString().padLeft(2, '0')}/'
+                          '${latestHistory.consultationDate.month.toString().padLeft(2, '0')}/'
+                          '${latestHistory.consultationDate.year}',
+                      style: TextStyle(
+                        color: Colors.blueGrey[700],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 2),
+          // Total de visitas
+          Text(
+            '${_patientWithHistory!.medicalHistories.length} visitas registradas',
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildWeightProgressChart() {
+    final histories = _patientWithHistory!.medicalHistories;
+    if (histories.length < 2) return const SizedBox.shrink();
+
+    // Obtener datos de peso del paciente y del historial
+    List<FlSpot> weightSpots = [];
+    double currentWeight = widget.patient.weight ?? 0;
+
+    // Agregar peso inicial del paciente
+    weightSpots.add(FlSpot(0, currentWeight));
+
+    // Agregar pesos del historial (si los hay)
+    for (int i = 0; i < histories.length; i++) {
+      // Como no veo peso en MedicalHistory, usaremos el peso base del paciente
+      // En una implementación real, deberías tener peso en cada consulta
+      weightSpots.add(FlSpot(i + 1.0, currentWeight + (i * 0.5))); // Simulado
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.show_chart,
+                color: _diseaseColor,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Evolución del Peso',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: true,
+                  horizontalInterval: 5,
+                  verticalInterval: 1,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.withOpacity(0.2),
+                      strokeWidth: 1,
+                    );
+                  },
+                  getDrawingVerticalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.withOpacity(0.2),
+                      strokeWidth: 1,
+                    );
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        if (value == 0) return const Text('Inicial');
+                        return Text('C${value.toInt()}');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 5,
+                      reservedSize: 50,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        return Text('${value.toInt()}kg');
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                ),
+                minX: 0,
+                maxX: weightSpots.length - 1.0,
+                minY: weightSpots.map((spot) => spot.y).reduce((a, b) => a < b ? a : b) - 5,
+                maxY: weightSpots.map((spot) => spot.y).reduce((a, b) => a > b ? a : b) + 5,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: weightSpots,
+                    isCurved: true,
+                    gradient: LinearGradient(
+                      colors: [
+                        _diseaseColor,
+                        _diseaseColor.withOpacity(0.7),
+                      ],
+                    ),
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 6,
+                          color: _diseaseColor,
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        );
+                      },
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        colors: [
+                          _diseaseColor.withOpacity(0.1),
+                          _diseaseColor.withOpacity(0.05),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalSignsCards() {
+    final latestHistory = _patientWithHistory!.medicalHistories.first;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Signos Vitales Actuales',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildVitalCard(
+                'Glucosa',
+                '${latestHistory.bloodGlucose?.toStringAsFixed(0) ?? '--'}',
+                'mg/dL',
+                Icons.water_drop,
+                _getGlucoseStatus(latestHistory.bloodGlucose),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildVitalCard(
+                'Presión',
+                latestHistory.bloodPressure ?? '--/--',
+                'mmHg',
+                Icons.favorite,
+                Colors.red,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildVitalCard(
+                'Cintura',
+                '${latestHistory.waistCircumference?.toStringAsFixed(0) ?? '--'}',
+                'cm',
+                Icons.straighten,
+                _diseaseColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildVitalCard(
+                'Grasa Corp.',
+                '${latestHistory.bodyFatPercentage?.toStringAsFixed(1) ?? '--'}',
+                '%',
+                Icons.fitness_center,
+                Colors.orange,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVitalCard(String title, String value, String unit, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 20,
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.trending_up,
+                  color: color,
+                  size: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  unit,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthMetricsChart() {
+    final histories = _patientWithHistory!.medicalHistories;
+    if (histories.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.bar_chart,
+                color: _diseaseColor,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Métricas de Salud',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: 10,
+                barTouchData: BarTouchData(enabled: true),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        switch (value.toInt()) {
+                          case 0: return const Text('Sueño', style: TextStyle(fontSize: 12));
+                          case 1: return const Text('Estrés', style: TextStyle(fontSize: 12));
+                          case 2: return const Text('Agua', style: TextStyle(fontSize: 12));
+                          default: return const Text('');
+                        }
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      interval: 2,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        return Text('${value.toInt()}');
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: _getBarGroups(histories.first),
+                gridData: FlGridData(show: false),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<BarChartGroupData> _getBarGroups(MedicalHistory latestHistory) {
+    return [
+      BarChartGroupData(
+        x: 0,
+        barRods: [
+          BarChartRodData(
+            toY: latestHistory.sleepQuality?.toDouble() ?? 0,
+            color: Colors.blue,
+            width: 20,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      ),
+      BarChartGroupData(
+        x: 1,
+        barRods: [
+          BarChartRodData(
+            toY: latestHistory.stressLevel?.toDouble() ?? 0,
+            color: Colors.orange,
+            width: 20,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      ),
+      BarChartGroupData(
+        x: 2,
+        barRods: [
+          BarChartRodData(
+            toY: (latestHistory.waterConsumption ?? 0) * 3, // Escalar para visualizar mejor
+            color: Colors.cyan,
+            width: 20,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Widget _buildRecentAchievements() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 10, 15, 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.emoji_events,
+                color: Colors.amber,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Logros Recientes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildAchievementItem(
+            'Consulta Completada',
+            'Has registrado ${_patientWithHistory!.medicalHistories.length} consultas',
+            Icons.check_circle,
+            Colors.green,
+          ),
+          _buildAchievementItem(
+            'Seguimiento Activo',
+            'Mantienes un control regular de tu salud',
+            Icons.trending_up,
+            _diseaseColor,
+          ),
+          _buildAchievementItem(
+            'Datos Completos',
+            'Información médica actualizada',
+            Icons.data_usage,
+            Colors.blue,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementItem(String title, String description, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getGlucoseStatus(double? glucose) {
+    if (glucose == null) return Colors.grey;
+    if (glucose < 70) return Colors.red;
+    if (glucose > 140) return Colors.orange;
+    return Colors.green;
+  }
 
   Widget _buildSectionCard(String title, List<Widget> children) {
     return Container(

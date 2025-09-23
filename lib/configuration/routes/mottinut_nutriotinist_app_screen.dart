@@ -8,6 +8,8 @@ import '../../application/auth/sign_up/sign_up_screen.dart';
 import '../../application/auth/sign_up/verification_code/code_verification_screen.dart';
 import '../../application/onbording/ombording_screen.dart';
 import '../../application/splash/splash_screen.dart';
+import '../../application/views/home/notificactions/notification_screen.dart';
+import '../../domain/patient/new/providers/notification_provider.dart';
 import '../../domain/services/auth_provider.dart';
 import '../providers/app_languaje_provider.dart';
 import '../providers/app_theme_provider.dart';
@@ -21,8 +23,8 @@ class MottiNutNutriotinistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer5<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider>(
-      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, child) {
+    return Consumer6<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider, NotificationProvider>(
+      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, notificationProvider, child) {
         final isDarkMode = darkModeProvider.isDarkMode;
         final typography = AppTypography();
 
@@ -82,6 +84,10 @@ class MottiNutNutriotinistApp extends StatelessWidget {
           onUnknownRoute: (settings) => MaterialPageRoute(
             builder: (context) => _buildErrorScreen(),
           ),
+
+          navigatorObservers: [
+            _AppNavigatorObserver(notificationProvider),
+          ],
         );
       },
     );
@@ -237,7 +243,9 @@ class MottiNutNutriotinistApp extends StatelessWidget {
       '/button_navigation/chats': (context) => const ButtonsNavigations(initialIndex: 3),
       '/button_navigation/perfil': (context) => const ButtonsNavigations(initialIndex: 4),
       //'/search-rapida': (context) =>  SearchScreen(),
-      //'/avisos': (context) =>  NotificationScreen(),
+      /*'/notifications': (context) => NotificationScreen(
+        notifications: Provider.of<NotificationProvider>(context).notifications,
+      ),*/
     };
   }
 
@@ -322,5 +330,28 @@ class MottiNutNutriotinistApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+
+class _AppNavigatorObserver extends NavigatorObserver {
+  final NotificationProvider _notificationProvider;
+
+  _AppNavigatorObserver(this._notificationProvider);
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    // Cuando se navega a una nueva pantalla, puedes cargar notificaciones
+    if (route.settings.name == '/button_navigation') {
+      _loadNotifications();
+    }
+  }
+
+  void _loadNotifications() async {
+    try {
+      await _notificationProvider.loadNotificationHistory();
+    } catch (e) {
+      print('Error loading notifications: $e');
+    }
   }
 }

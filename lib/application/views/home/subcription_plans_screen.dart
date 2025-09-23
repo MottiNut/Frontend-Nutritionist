@@ -1,627 +1,709 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:ui';
 
-import '../../../configuration/themes/app_colors.dart';
+// Enum declarado a nivel superior
+enum SubscriptionType { monthly, annual }
 
-class SubscriptionPlansPage extends StatefulWidget {
+class SubscriptionModal extends StatefulWidget {
+  const SubscriptionModal({Key? key}) : super(key: key);
+
   @override
-  _SubscriptionPlansPageState createState() => _SubscriptionPlansPageState();
+  _SubscriptionModalState createState() => _SubscriptionModalState();
 }
 
-class _SubscriptionPlansPageState extends State<SubscriptionPlansPage>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  PageController _pageController = PageController(viewportFraction: 0.9);
-  int _currentIndex = 2;
-
-  // Contador de tiempo (23h 59m 59s)
-  Timer? _timer;
-  int _hours = 23;
-  int _minutes = 59;
-  int _seconds = 59;
-
-  final List<SubscriptionPlan> plans = [
-    SubscriptionPlan(
-      id: 'free',
-      title: 'Gratuito',
-      subtitle: 'Perfecto para empezar',
-      price: 'S/ 0',
-      period: 'Siempre gratis',
-      maxPatients: 15,
-      features: [
-        'Máximo 15 pacientes/mes',
-        'Planes nutricionales básicos',
-        'Historial de consultas',
-        'Soporte por email',
-      ],
-      gradient: AppColors.softPrimaryGradient,
-      iconColor: AppColors.primary,
-      isPopular: false,
-      description: 'Ideal para nutricionistas que están comenzando su práctica profesional. Incluye funciones básicas para gestionar pacientes.',
-      icon: Icons.favorite_outline,
-      validUntil: '31 Dic 2025',
-    ),
-    SubscriptionPlan(
-      id: 'monthly',
-      title: 'Mensual Pro',
-      subtitle: 'Flexibilidad total',
-      price: 'S/ 20',
-      period: 'por mes',
-      maxPatients: -1,
-      features: [
-        'Pacientes ilimitados',
-        'IA para planes nutricionales',
-        'Análisis avanzado',
-        'Reportes detallados',
-        'Soporte prioritario',
-        'Recordatorios automáticos',
-      ],
-      gradient: AppColors.primarySecondaryGradient,
-      iconColor: AppColors.secondary,
-      isPopular: true,
-      description: 'La opción más flexible para profesionales que buscan todas las funciones premium sin limitaciones.',
-      icon: Icons.star_outline,
-      validUntil: '31 Dic 2025',
-    ),
-    SubscriptionPlan(
-      id: 'yearly',
-      title: 'Anual Pro',
-      subtitle: 'Ahorra 37%',
-      price: 'S/ 150',
-      period: 'por año',
-      maxPatients: -1,
-      originalPrice: 'S/ 240',
-      features: [
-        'Todo del plan mensual',
-        'Ahorra S/ 90 al año',
-        'Consultoría personalizada',
-        'Acceso anticipado a funciones',
-        'Soporte 24/7',
-        'Backup automático',
-        'Análisis predictivo con IA',
-      ],
-      gradient: AppColors.successGradient,
-      iconColor: AppColors.progress,
-      isPopular: false,
-      description: 'Máximo valor para tu práctica profesional. Incluye todo del plan mensual más beneficios exclusivos y IA predictiva.',
-      icon: Icons.diamond_outlined,
-      validUntil: '31 Dic 2025',
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    _animationController = AnimationController(
-      duration: Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
-
-    _animationController.forward();
-    _startCountdown();
-  }
-
-  void _startCountdown() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_seconds > 0) {
-          _seconds--;
-        } else {
-          _seconds = 59;
-          if (_minutes > 0) {
-            _minutes--;
-          } else {
-            _minutes = 59;
-            if (_hours > 0) {
-              _hours--;
-            } else {
-              _hours = 23;
-              _minutes = 59;
-              _seconds = 59;
-            }
-          }
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _timer?.cancel();
-    _pageController.dispose();
-    super.dispose();
-  }
+class _SubscriptionModalState extends State<SubscriptionModal> {
+  SubscriptionType selectedPlan = SubscriptionType.annual;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.backgroundDark,
-              AppColors.backgroundSecondary,
-              AppColors.backgroundPrimary,
-            ],
-            stops: [0.0, 0.6, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+
+          SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: 120),
             child: Column(
               children: [
-                _buildAppBar(),
-                _buildOfferCountdown(),
-                Expanded(
-                  child: _buildCarousel(),
-                ),
-
-                SizedBox(height: 7),
-                _buildDots(),
-                SizedBox(height: 20),
+                _buildImageHeader(),
+                _buildMainTitles(),
+                _buildSubscriptionCards(),
+                _buildPaymentNote(),
+                _buildMottimutPlusSection(),
+                _buildBottomLinks(),
               ],
             ),
           ),
-        ),
+
+          // Botón fijo
+          _buildFixedBottomButton(),
+        ],
       ),
+
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildImageHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
+      height: 280,
+      child: Stack(
         children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppColors.textLight),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Text(
-              'Planes de Suscripción',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontWeight: FontWeight.w600,
-                fontSize: 20,
+          // Imagen de fondo
+          Container(
+            width: double.infinity,
+            height: 280,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/diamod.jpg'),
+                fit: BoxFit.cover,
               ),
             ),
           ),
-          SizedBox(width: 48),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildOfferCountdown() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 7),
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: AppColors.errorGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondary.withOpacity(0.3),
-            blurRadius: 15,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            '🔥 OFERTA LIMITADA 🔥',
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          // Gradient overlay
+          Container(
+            height: 280,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.1),
+                  Colors.black.withOpacity(0.7),
+                ],
+                stops: [0.0, 0.6, 1.0],
+              ),
             ),
           ),
-          SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildTimeCard(_hours.toString().padLeft(2, '0')),
-              Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 18)),
-              _buildTimeCard(_minutes.toString().padLeft(2, '0')),
-              Text(' : ', style: TextStyle(color: AppColors.textLight, fontSize: 18)),
-              _buildTimeCard(_seconds.toString().padLeft(2, '0')),
-            ],
+
+          // Botón X (cerrar)
+          Positioned(
+            top: 45,
+            left: 20,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+
+          // Óvalo decorativo debajo de la imagen
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 30,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.elliptical(MediaQuery.of(context).size.width, 40),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTimeCard(String time) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.textLight.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        time,
-        style: TextStyle(
-          color: AppColors.textLight,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+  Widget _buildMainTitles() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          SizedBox(height: 10),
+
+          // Título principal
+          Text(
+            'Empezar la prueba gratis',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          SizedBox(height: 8),
+
+          // Subtítulo
+          Text(
+            'Prueba GRATIS durante 10 días, luego',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          SizedBox(height: 24),
+        ],
       ),
     );
   }
 
-  Widget _buildCarousel() {
-    return SlideTransition(
-      position: _slideAnimation,
-      child: Container(
-        height: 500, // Aumentado para más contenido
-        child: PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          itemCount: plans.length,
-          itemBuilder: (context, index) {
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 8),
-              child: _buildPlanCard(plans[index], index),
-            );
-          },
-        ),
+  Widget _buildSubscriptionCards() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          // Plan Anual (EL MÁS POPULAR)
+          _buildSubscriptionCard(
+            type: SubscriptionType.annual,
+            title: 'Anualmente',
+            color: Color(0xFFFF6B35),
+            subtitle: 'Prueba gratis de 7 días',
+            originalPrice: 'S/ 250.00',
+            price: 'S/ 190.00',
+            monthlyPrice: 'S/ 15.99/mes',
+            isPopular: true,
+          ),
+
+          SizedBox(height: 12),
+
+          // Plan Mensual
+          _buildSubscriptionCard(
+            type: SubscriptionType.monthly,
+            title: 'Mensualmente',
+            subtitle: 'Prueba gratis de 3 días',
+            price: 'S/ 20.99',
+            isPopular: false,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPlanCard(SubscriptionPlan plan, int index) {
-    bool isSelected = _currentIndex == index;
+  Widget _buildSubscriptionCard({
+    required SubscriptionType type,
+    required String title,
+    String? subtitle,
+    String? originalPrice,
+    required String price,
+    String? monthlyPrice,
+    Color? color,
+    required bool isPopular,
+  }) {
+    bool isSelected = selectedPlan == type;
+    final mainColor = color ?? Colors.white;
+
+    const double badgeHeight = 28; // altura fija del badge
 
     return GestureDetector(
       onTap: () {
-        _pageController.animateToPage(
-          index,
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+        setState(() {
+          selectedPlan = type;
+        });
       },
       child: Stack(
+        clipBehavior: Clip.none, // permite que el badge sobresalga
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: plan.gradient,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.textLight.withOpacity(0.3)
-                        : AppColors.textLight.withOpacity(0.1),
-                    width: isSelected ? 2 : 1,
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.grey[850] : Colors.grey[900],
+              borderRadius: BorderRadius.circular(16),
+              border: isSelected
+                  ? Border.all(color: Color(0xFFFF6B35), width: 2)
+                  : null,
+            ),
+            padding: EdgeInsets.only(top: badgeHeight / 2 + 16, left: 20, right: 20, bottom: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Lado izquierdo
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: mainColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isSelected ? 0.4 : 0.2),
-                      blurRadius: isSelected ? 25 : 15,
-                      offset: Offset(0, isSelected ? 15 : 8),
-                    ),
+                ),
+
+                // Lado derecho - precios
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (originalPrice != null)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            originalPrice,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: Colors.grey[500],
+                              decorationThickness: 2,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            price,
+                            style: TextStyle(
+                              color: mainColor,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        price,
+                        style: TextStyle(
+                          color: mainColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    if (monthlyPrice != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Text(
+                          monthlyPrice,
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
+              ],
+            ),
+          ),
+
+          // Badge flotante centrado
+          if (isPopular)
+            Positioned(
+              top: -badgeHeight / 2,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 5 ),
                   decoration: BoxDecoration(
+                    color: mainColor,
                     borderRadius: BorderRadius.circular(24),
-                    color: Colors.black.withOpacity(0.2),
-                  ),
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Icono arriba
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.textLight.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: plan.iconColor.withOpacity(0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Icon(
-                          plan.icon,
-                          color: plan.iconColor,
-                          size: 36,
-                        ),
-                      ),
-
-                      // Fecha pequeña arriba
-                      Text(
-                        'Válido hasta: ${plan.validUntil}',
-                        style: TextStyle(
-                          color: AppColors.textLight.withOpacity(0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-
-                      SizedBox(height: 8),
-
-                      // Título y precio
-                      Text(
-                        plan.title,
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      Text(
-                        plan.subtitle,
-                        style: TextStyle(
-                          color: AppColors.textLight.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      SizedBox(height: 12),
-
-                      if (plan.originalPrice != null)
-                        Text(
-                          plan.originalPrice!,
-                          style: TextStyle(
-                            color: AppColors.textLight.withOpacity(0.6),
-                            fontSize: 16,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-
-                      Text(
-                        plan.price,
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      Text(
-                        plan.period,
-                        style: TextStyle(
-                          color: AppColors.textLight.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      SizedBox(height: 16),
-
-                      // Descripción abajo
-                      Expanded(
-                        child: Text(
-                          plan.description,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.textLight.withOpacity(0.9),
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => _selectPlan(plan),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.textLight,
-                            foregroundColor: AppColors.textSecondary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 8,
-                            shadowColor: AppColors.textLight.withOpacity(0.3),
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                plan.id == 'free' ? 'Empezar Gratis' : 'Suscribirse',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward, size: 18),
-                            ],
-                          ),
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
                       ),
                     ],
+                  ),
+                  child: Text(
+                    'EL MÁS POPULAR',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // Badge de popular
-          if (plan.isPopular)
-            Positioned(
-              top: -8,
-              right: 16,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildPaymentNote() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+      child: Text(
+        'Pago recurrente. Cancela cuando quieras.',
+        style: TextStyle(
+          color: Colors.grey[500],
+          fontSize: 14,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildMottimutPlusSection() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          SizedBox(height: 16),
+
+          // Logo Mottinut Plus
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Mottinut ',
+                style: TextStyle(
+                  color: Color(0xFF00D4AA),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.secondary.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
+                  color: Color(0xFF00D4AA),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '⭐ POPULAR',
+                  'PLUS+',
                   style: TextStyle(
-                    color: AppColors.textLight,
-                    fontSize: 10,
+                    color: Colors.black,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+            ],
+          ),
+
+          SizedBox(height: 5),
+
+          // Subtítulo
+          Text(
+            'Maximiza tu potencial total',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
+          ),
+
+          SizedBox(height: 24),
+
+          // Lista de características con viñetas
+          ..._buildFeaturesList(),
         ],
       ),
     );
   }
 
-  Widget _buildDots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(plans.length, (index) {
-        return GestureDetector(
-          onTap: () {
-            _pageController.animateToPage(
-              index,
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          },
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            margin: EdgeInsets.symmetric(horizontal: 6),
-            width: _currentIndex == index ? 24 : 10,
-            height: 7,
+  List<Widget> _buildFeaturesList() {
+    final features = [
+      'Planes nutricionales personalizados con IA',
+      'Análisis inteligente de alimentos y nutrientes',
+      'Seguimiento avanzado de progreso y objetivos',
+      'Opciones ilimitadas de planificación de comidas',
+      'Recordatorios automáticos para tus planes',
+      'Respaldo seguro de tus datos en la nube',
+      'Personalización de colores y temas',
+      'Gráficos detallados para tu evolución',
+    ];
+
+    return features.map((feature) => _buildFeatureItem(feature)).toList();
+  }
+
+  Widget _buildFeatureItem(String text) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Viñeta verde
+          Container(
+            margin: EdgeInsets.only(top: 2),
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              color: _currentIndex == index
-                  ? AppColors.progress
-                  : AppColors.textLight.withOpacity(0.3),
+              color: Color(0xFF00D4AA),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check,
+              color: Colors.black,
+              size: 14,
             ),
           ),
-        );
-      }),
+
+          SizedBox(width: 12),
+
+          // Texto de la característica
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  void _selectPlan(SubscriptionPlan plan) {
+  Widget _buildBottomLinks() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _buildBottomLink('Términos de uso', _showTermsOfUse),
+
+          SizedBox(height: 12),
+          _buildBottomLink('Continuar con versión gratis', _continueWithFreeVersion),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomLink(String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Color(0xFF00D4AA),
+          fontSize: 14,
+          decoration: TextDecoration.underline,
+          height: 1.2,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+
+  Widget _buildFixedBottomButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        color: Colors.black,
+        padding: EdgeInsets.fromLTRB(12, 12, 12, 6),
+        // espacio arriba y abajo del fondo
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              onPressed: _handleStartTrial,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF00D4AA),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                elevation: 0,
+                padding: EdgeInsets.zero,
+              ),
+              child: Center(
+                child: Text(
+                  'Comenzar prueba gratis',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleStartTrial() {
+    print('🚀 Iniciando prueba gratis con plan: $selectedPlan');
+    if (selectedPlan == SubscriptionType.annual) {
+      print('💰 Plan Anual: S/ 190.00 (7 días gratis)');
+    } else {
+      print('💰 Plan Mensual: S/ 20.99');
+    }
+
+    SubscriptionService.purchaseSubscription(selectedPlan);
+    Navigator.of(context).pop();
+  }
+
+  void _showTermsOfUse() {
+    print('📋 Mostrar términos de uso');
+    // Aquí puedes navegar a una página de términos
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundLigth,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Text(
-          'Plan Seleccionado',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Has seleccionado el ${plan.title}. ¿Deseas continuar?',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
+        backgroundColor: Colors.grey[900],
+        title: Text('Términos de uso', style: TextStyle(color: Colors.white)),
+        content: Text('Aquí van los términos de uso...',
+            style: TextStyle(color: Colors.white)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar', style: TextStyle(color: AppColors.textCuatary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _processPurchase(plan);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text('Continuar', style: TextStyle(color: AppColors.textLight)),
+            child: Text('Cerrar', style: TextStyle(color: Color(0xFF00D4AA))),
           ),
         ],
       ),
     );
   }
 
-  void _processPurchase(SubscriptionPlan plan) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Procesando suscripción a ${plan.title}...'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+  void _restorePurchase() {
+    print('🔄 Restaurar compra');
+    SubscriptionService.restorePurchase().then((success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success
+              ? 'Compra restaurada exitosamente'
+              : 'No se encontraron compras'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    });
+  }
+
+  void _continueWithFreeVersion() {
+    print('✨ Continuar con versión gratis');
+    Navigator.of(context).pop();
+  }
+}
+
+// Clase para manejar la lógica de suscripción
+class SubscriptionService {
+  // Método para mostrar el modal
+  static void showSubscriptionModal(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            SubscriptionModal(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: animation.drive(
+              Tween(begin: Offset(0.0, 1.0), end: Offset.zero),
+            ),
+            child: child,
+          );
+        },
+        transitionDuration: Duration(milliseconds: 300),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
+  // Método para manejar la compra de suscripción
+  static Future<bool> purchaseSubscription(SubscriptionType type) async {
+    try {
+      switch (type) {
+        case SubscriptionType.monthly:
+          print('💳 Procesando suscripción mensual S/ 20.99...');
+          break;
+        case SubscriptionType.annual:
+          print('💳 Procesando suscripción anual S/ 190.00 (7 días gratis)...');
+          break;
+      }
+
+      // Simular proceso de pago
+      await Future.delayed(Duration(seconds: 2));
+      print('✅ Suscripción procesada exitosamente');
+      return true;
+    } catch (e) {
+      print('❌ Error al procesar suscripción: $e');
+      return false;
+    }
+  }
+
+  // Método para verificar estado de suscripción
+  static Future<bool> isSubscribed() async {
+    // Aquí verificarías con tu backend/store
+    return false;
+  }
+
+  // Método para cancelar suscripción
+  static Future<bool> cancelSubscription() async {
+    try {
+      print('🚫 Cancelando suscripción...');
+      await Future.delayed(Duration(seconds: 1));
+      return true;
+    } catch (e) {
+      print('❌ Error al cancelar suscripción: $e');
+      return false;
+    }
+  }
+
+  // Método para restaurar compra
+  static Future<bool> restorePurchase() async {
+    try {
+      print('🔄 Restaurando compras...');
+      await Future.delayed(Duration(seconds: 2));
+      print('✅ Compras restauradas');
+      return true;
+    } catch (e) {
+      print('❌ Error al restaurar compra: $e');
+      return false;
+    }
+  }
+}
+
+// Widget de ejemplo para probar
+class ExampleUsage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      appBar: AppBar(
+        title: Text('Mottinut App'),
+        backgroundColor: Colors.black,
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            SubscriptionService.showSubscriptionModal(context);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF00D4AA),
+            padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          ),
+          child: Text(
+            'Ver Suscripción Premium',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );
   }
-}
-
-class SubscriptionPlan {
-  final String id;
-  final String title;
-  final String subtitle;
-  final String price;
-  final String period;
-  final int maxPatients;
-  final String? originalPrice;
-  final List<String> features;
-  final LinearGradient gradient;
-  final Color iconColor;
-  final bool isPopular;
-  final String description;
-  final IconData icon;
-  final String validUntil;
-
-  SubscriptionPlan({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.price,
-    required this.period,
-    required this.maxPatients,
-    this.originalPrice,
-    required this.features,
-    required this.gradient,
-    required this.iconColor,
-    this.isPopular = false,
-    required this.description,
-    required this.icon,
-    required this.validUntil,
-  });
 }

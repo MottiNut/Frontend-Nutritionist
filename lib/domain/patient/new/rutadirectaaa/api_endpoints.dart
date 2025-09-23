@@ -1,7 +1,10 @@
 // lib/config/constants.dart
 class ApiConstants {
   // Configuración base
-  static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net';
+  //static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net';
+
+  static const String baseUrl = 'http://localhost:8080';
+
   static const String apiVersion = '/api/bff';
 
   // Headers por defecto
@@ -38,6 +41,15 @@ class ApiConstants {
 
   static String patientNutritionHistory(int patientId) => '$apiVersion/nutritionist/patients/$patientId/nutrition-history';
   static String patientPlanStats(int patientId) => '$apiVersion/nutritionist/patients/$patientId/plan-stats';
+
+  static const String notifications = '$apiVersion/notifications';
+  static const String deviceToken = '$notifications/device-token';
+  static const String notificationHistory = '$notifications/history';
+  static const String nutritionistNotifications = '$notifications/nutritionist';
+
+  static String patientPlanAction() => '$nutritionistNotifications/patient-action';
+  static String newPatientNotification() => '$nutritionistNotifications/new-patient';
+
 
 }
 

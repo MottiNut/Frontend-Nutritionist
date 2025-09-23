@@ -868,7 +868,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+        /*  const SizedBox(height: 32),
           GestureDetector(
             onTap: () {
               // Navigator.pushNamed(context, '/create-appointment');
@@ -899,7 +899,7 @@ class _WeeklyAgendaScreenState extends State<WeeklyAgendaScreen> with SingleTick
                 ],
               ),
             ),
-          ),
+          ),*/
         ],
       ),
     );

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../../configuration/themes/app_colors.dart';
+import '../../../../../domain/patient/new/rutadirectaaa/nutritionist_notification_service.dart';
 import '../../../../../domain/patient/pruebaa.dart';
+import '../../../../../domain/services/auth_provider.dart';
 import '../person_detail_screen.dart';
 import '../search/search_patients_creen.dart';
 
@@ -36,7 +39,9 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreen>
   ViewMode viewMode = ViewMode.grid;
   bool isAscending = true;
 
-  final PatientServiceEnhanced patientService = PatientServiceEnhanced();
+  late String myAuthToken;
+  late NutritionistNotificationService notificationService;
+  late PatientServiceEnhanced patientService;
 
   // Estados para el manejo de datos
   List<Patient> allPatients = [];
@@ -50,6 +55,17 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreen>
   @override
   void initState() {
     super.initState();
+
+    final authProvider = context.read<AuthProvider>();
+    myAuthToken = authProvider.token ?? '';
+
+    // Inicializamos los servicios
+    notificationService = NutritionistNotificationService(myAuthToken);
+    patientService = PatientServiceEnhanced(
+      authToken: myAuthToken,
+      notificationService: notificationService,
+    );
+
     _refreshController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -364,7 +380,12 @@ class _DiabetesPatientsScreenState extends State<DiabetesPatientsScreen>
                     primaryColor: AppColors.backgroundDia,
                     secondaryColor: AppColors.backgroundDia,
                     placeholderAsset: 'assets/images/user_placeholder_orange.svg',
-                    patientService: PatientServiceEnhanced(),
+                    patientService: PatientServiceEnhanced(
+                      authToken: context.read<AuthProvider>().token ?? '',
+                      notificationService: NutritionistNotificationService(
+                        context.read<AuthProvider>().token ?? '',
+                      ),
+                    ),
                   ),
                 ),
               );

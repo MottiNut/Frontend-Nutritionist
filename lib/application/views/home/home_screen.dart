@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:mottinutnutriotinist/application/views/home/subcription_plans_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,16 +11,16 @@ import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../../configuration/themes/app_colors.dart';
+import '../../../domain/patient/new/rutadirectaaa/firebase_notification_handler.dart';
 import '../../../domain/patient/new/rutadirectaaa/muestraaa.dart';
+import '../../../domain/patient/new/rutadirectaaa/nutritionist_notification_service.dart';
 import '../../../domain/patient/pruebaa.dart';
 import '../../../domain/services/auth_provider.dart';
 import '../../requestSnacbar/snackBar_manager.dart';
 import '../../skeletons/home_skeleton_screen.dart';
 import 'active_patients_screen.dart';
 import 'citas_detail/weekly_agenda_screen.dart';
-import 'notificactions/notification_animation.dart';
 import 'notificactions/notification_screen.dart';
-
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -29,8 +30,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int selectedDay = DateTime.now().day;
 
-  // Servicios
-  final PatientServiceEnhanced patientService = PatientServiceEnhanced();
+  // Servicios - CORRECCIÓN: Agregar authToken requerido
+  late PatientServiceEnhanced patientService;
   final AppointmentServiceEnhanced appointmentService = AppointmentServiceEnhanced();
 
   // Estados
@@ -40,11 +41,201 @@ class _HomeScreenState extends State<HomeScreen> {
   int activePatientCount = 0;
   String? error;
 
+  // Notificaciones reales
+  late FirebaseNotificationService _notificationHandler;
+  late NutritionistNotificationService _notificationService;
+  int _unreadNotifications = 0;
+  List<dynamic> _realNotifications = [];
+
   @override
   void initState() {
     super.initState();
     loadHomeData();
     _precacheUserAvatar();
+    _initializeNotifications();
+  }
+
+  void _initializeNotifications() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (authProvider.token != null) {
+      // Inicializar servicio real de notificaciones
+      _notificationService = NutritionistNotificationService(authProvider.token!);
+
+      // Inicializar PatientServiceEnhanced con el servicio de notificaciones
+      patientService = PatientServiceEnhanced(
+        authToken: authProvider.token!,
+        notificationService: _notificationService,
+      );
+
+      // Inicializar FirebaseNotificationService con callback
+      _notificationHandler = FirebaseNotificationService(
+        onNotificationReceived: _handleNotification,
+      );
+      await _notificationHandler.initialize();
+
+      // Registrar device token en backend
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await _notificationService.registerDeviceToken(
+            fcmToken, Platform.isAndroid ? 'android' : 'ios');
+      }
+
+      // Cargar historial real de notificaciones
+      await _loadRealNotifications();
+    }
+  }
+
+
+  // Cargar notificaciones reales del backend
+  Future<void> _loadRealNotifications() async {
+    try {
+      _realNotifications = await _notificationService.getNotificationHistory(limit: 50);
+
+      // Contar notificaciones no leídas reales
+      _unreadNotifications = _realNotifications
+          .where((notification) => notification['isRead'] == false || notification['read'] == false)
+          .length;
+
+      setState(() {});
+    } catch (e) {
+      print('Error cargando notificaciones reales: $e');
+      _realNotifications = [];
+      _unreadNotifications = 0;
+    }
+  }
+
+  void _handleNotification(Map<String, dynamic> data) {
+    // Actualizar contador de notificaciones no leídas
+    setState(() {
+      _unreadNotifications++;
+    });
+
+    // Mostrar notificación local
+    final type = data['type'];
+    final title = data['title'] ?? 'Nueva notificación';
+    final body = data['body'] ?? '';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(body),
+          ],
+        ),
+        duration: Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Ver',
+          onPressed: () => _navigateToNotifications(),
+        ),
+      ),
+    );
+
+    // Recargar datos si es necesario
+    if (type == 'PLAN_ACCEPTED_BY_PATIENT' ||
+        type == 'PLAN_REJECTED_BY_PATIENT' ||
+        type == 'NEW_PATIENT_ASSIGNED') {
+      loadHomeData();
+      _loadRealNotifications(); // Recargar notificaciones
+    }
+  }
+
+  Widget _buildNotificationIcon() {
+    return Stack(
+      children: [
+        IconButton(
+          icon: Icon(Icons.notifications_outlined, size: 28),
+          onPressed: _navigateToNotifications,
+        ),
+        if (_unreadNotifications > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: BoxConstraints(
+                minWidth: 18,
+                minHeight: 18,
+              ),
+              child: Text(
+                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // Helper function para mapear string a NotificationType
+  NotificationType _mapStringToNotificationType(String? typeString) {
+    switch (typeString?.toLowerCase()) {
+      case 'new_patient':
+      case 'patient':
+        return NotificationType.newPatient;
+      case 'new_appointment':
+      case 'appointment':
+        return NotificationType.newAppointment;
+      case 'plan_update':
+      case 'plan':
+        return NotificationType.planUpdate;
+      case 'chat_message':
+      case 'message':
+        return NotificationType.chatMessage;
+      case 'app_update':
+      case 'update':
+        return NotificationType.appUpdate;
+      case 'reminder':
+        return NotificationType.reminder;
+      default:
+        return NotificationType.newPatient; // Default fallback
+    }
+  }
+
+  void _navigateToNotifications() {
+    if (_realNotifications.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => NotificationScreen(
+            // CORRECCIÓN: Usar la clase NotificationItem correcta del notification_screen.dart
+            notifications: _realNotifications.map((notification) => NotificationItem(
+              id: notification['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              type: _mapStringToNotificationType(notification['type']),
+              title: notification['title'] ?? 'Notificación',
+              message: notification['message'] ?? notification['body'] ?? '',
+              timestamp: DateTime.tryParse(notification['createdAt'] ?? notification['timestamp'] ?? '') ?? DateTime.now(),
+              isRead: notification['isRead'] ?? notification['read'] ?? false,
+              patientName: notification['patientName'],
+              patientAvatar: notification['patientAvatar'],
+              extraData: notification['data'] ?? {},
+            )).toList(),
+          ),
+        ),
+      ).then((_) {
+        // Recargar notificaciones al volver
+        _loadRealNotifications();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay notificaciones disponibles'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _precacheUserAvatar() {
@@ -67,7 +258,6 @@ class _HomeScreenState extends State<HomeScreen> {
           userData['imageUrl'] ??
           userData['image_url'];
 
-      // Usar el método estático del AuthService para construir la URL
       if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
         profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
       }
@@ -86,7 +276,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     patientService.dispose();
     appointmentService.dispose();
-
     super.dispose();
   }
 
@@ -97,16 +286,15 @@ class _HomeScreenState extends State<HomeScreen> {
         error = null;
       });
 
-      // Cargar perfil del usuario si no está cargado
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       if (authProvider.user == null && authProvider.token != null) {
         await authProvider.loadUserProfile();
       }
 
-      // Cargar datos de forma secuencial para mejor debugging
       await loadActivePatients();
-      //await loadTodayAppointments();
-      //await loadUrgentPatients();
+      // Comentado temporalmente
+      // await loadTodayAppointments();
+      // await loadUrgentPatients();
 
       setState(() {
         isLoading = false;
@@ -135,41 +323,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Error inesperado: ${error.toString()}';
   }
 
-  // Modifica estos métodos en tu HomeScreen para manejar endpoints faltantes
-
   Future<void> loadTodayAppointments() async {
     try {
-      // Temporalmente desactivado - no cargar citas
-      // Solo inicializar lista vacía
       todayAppointments = [];
-
       Logger.info('Appointments service temporarily disabled - showing empty list');
-
-      /* CÓDIGO COMENTADO - Descomenta cuando quieras volver a usar el servicio
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-
-    // Intenta obtener citas, pero maneja el caso donde el endpoint no existe
-    try {
-      final appointments = await appointmentService.getAppointmentsByDate(startOfDay);
-
-      todayAppointments = appointments
-          .where((apt) =>
-      apt.status == AppointmentStatus.confirmada ||
-          apt.status == AppointmentStatus.programada)
-          .toList()
-        ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
-
-      Logger.info('Loaded ${todayAppointments.length} appointments for today');
-    } catch (e) {
-      // Si el endpoint no existe, usa datos mock o lista vacía
-      Logger.warning('Appointments endpoint not available, using empty list');
-      todayAppointments = [];
-
-      // Opcional: usar datos de prueba
-      // todayAppointments = _getMockAppointments();
-    }
-    */
     } catch (e) {
       Logger.error('Error loading today appointments', e);
       todayAppointments = [];
@@ -193,7 +350,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
         Logger.info('Loaded ${urgentPatients.length} urgent patients');
       } catch (e) {
-        // Si el endpoint no existe, usa pacientes activos y simula lógica urgente
         Logger.warning('Urgent patients endpoint not available, using fallback logic');
 
         final allPatients = await patientService.getAllPatients();
@@ -223,7 +379,6 @@ class _HomeScreenState extends State<HomeScreen> {
         throw Exception('Token de autenticación no disponible');
       }
 
-      // Usar NutritionistService en lugar del servicio anterior
       final nutritionistService = NutritionistService();
       final patients = await nutritionistService.getAllPatients(
         token: authProvider.token!,
@@ -231,11 +386,8 @@ class _HomeScreenState extends State<HomeScreen> {
         order: 'asc',
       );
 
-      // Filtrar pacientes activos (puedes ajustar la lógica según tus necesidades)
       final activePatientsList = patients.where((patient) {
-        // Considera activos a todos los pacientes por ahora
-        // Puedes agregar lógica adicional aquí, como verificar fechas de última visita
-        return true;
+        return true; // Considera activos a todos los pacientes por ahora
       }).toList();
 
       activePatientCount = activePatientsList.length;
@@ -245,7 +397,6 @@ class _HomeScreenState extends State<HomeScreen> {
       Logger.error('Error loading active patients', e);
       activePatientCount = 0;
 
-      // Opcional: mostrar mensaje de error discreto
       if (mounted) {
         SnackBarManager.showError(
           context,
@@ -284,92 +435,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
-          // Contenido principal
           SafeArea(
             child: buildContent(),
           ),
         ],
       ),
     );
-  }
-  static final List<NotificationItem> _staticNotifications = [
-    NotificationItem(
-      id: '1',
-      type: NotificationType.newPatient,
-      title: 'Nuevo paciente registrado',
-      message: 'María González se ha registrado como nueva paciente',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      patientName: 'María González',
-      patientAvatar: 'https://example.com/avatar1.jpg',
-    ),
-    NotificationItem(
-      id: '2',
-      type: NotificationType.newAppointment,
-      title: 'Nueva cita programada',
-      message: 'Carlos Pérez ha programado una cita para mañana a las 10:00 AM',
-      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-      patientName: 'Carlos Pérez',
-    ),
-    NotificationItem(
-      id: '3',
-      type: NotificationType.chatMessage,
-      title: 'Mensaje de Ana López',
-      message: 'Tengo una pregunta sobre mi plan nutricional',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      patientName: 'Ana López',
-      patientAvatar: 'https://example.com/avatar2.jpg',
-    ),
-    NotificationItem(
-      id: '4',
-      type: NotificationType.planUpdate,
-      title: 'Plan nutricional actualizado',
-      message: 'Se ha actualizado el plan de Pedro Martínez',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      patientName: 'Pedro Martínez',
-    ),
-    NotificationItem(
-      id: '5',
-      type: NotificationType.reminder,
-      title: 'Recordatorio de cita',
-      message: 'Tienes una cita con Laura García en 30 minutos',
-      timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      patientName: 'Laura García',
-    ),
-    NotificationItem(
-      id: '6',
-      type: NotificationType.appUpdate,
-      title: 'Actualización disponible',
-      message: 'Nueva versión de la aplicación disponible con mejoras',
-      timestamp: DateTime.now().subtract(const Duration(days: 3)),
-      isRead: true,
-    ),
-  ];
-
-  // Getter que devuelve las notificaciones estáticas
-  List<NotificationItem> get notifications => _staticNotifications;
-
-  // Función mejorada para manejar el tap de notificaciones
-  void onNotificationTap() {
-    // Validar que tenemos notificaciones antes de navegar
-    if (notifications.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => NotificationScreen(
-            notifications: notifications,
-          ),
-        ),
-      );
-    } else {
-      // Mostrar mensaje si no hay notificaciones
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay notificaciones disponibles'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
   }
 
   Widget buildContent() {
@@ -415,7 +486,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: loadHomeData,
+      onRefresh: () async {
+        await loadHomeData();
+        await _loadRealNotifications(); // También recargar notificaciones
+      },
       color: AppColors.primary,
       backgroundColor: Colors.white,
       child: SingleChildScrollView(
@@ -424,8 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Pasar las notificaciones y la función de callback
-            _buildHeader(notifications, onNotificationTap),
+            _buildHeader(),
             const SizedBox(height: 15),
             _buildName(),
             const SizedBox(height: 10),
@@ -446,7 +519,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(List<NotificationItem> notifications, VoidCallback onNotificationTap) {
+  Widget _buildHeader() {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return Column(
@@ -454,13 +527,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Icono de menú con efecto hover
+                // Icono de menú
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SubscriptionPlansPage(),
+                        builder: (context) => SubscriptionModal(),
                       ),
                     );
                   },
@@ -478,13 +551,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Avatar con datos reales o placeholder
+                // Avatar
                 Container(
                   width: 73.406,
                   height: 55.14,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(30),
-                    //border: Border.all(width: 2, color: Colors.white.withOpacity(0.3)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
@@ -499,11 +571,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Icono de notificación animado
-                AnimatedNotificationIcon(
-                  notifications: notifications,
-                  onTap: onNotificationTap,
-                ),
+                // Icono de notificación real
+                _buildNotificationIcon(),
               ],
             ),
           ],
@@ -520,7 +589,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final userData = authProvider.user!;
       userId = userData['id'] ?? userData['userId'];
 
-      // Buscar URL directa de imagen
       profileImageUrl = userData['profileImageUrl'] ??
           userData['profileImage'] ??
           userData['profile_image'] ??
@@ -529,13 +597,11 @@ class _HomeScreenState extends State<HomeScreen> {
           userData['imageUrl'] ??
           userData['image_url'];
 
-      // Usar el método del servicio para construir la URL si no hay una directa
       if ((profileImageUrl == null || profileImageUrl.isEmpty) && userId != null) {
         profileImageUrl = AuthService.buildProfileImageUrl(userId.toString());
       }
     }
 
-    // Mostrar la imagen con caché del servicio
     if (profileImageUrl != null && profileImageUrl.isNotEmpty && userId != null) {
       return FutureBuilder<File?>(
         future: AuthService.getLocalAvatarImage(userId.toString()),
@@ -590,7 +656,6 @@ class _HomeScreenState extends State<HomeScreen> {
         if (authProvider.user != null) {
           final userData = authProvider.user!;
 
-          // Intenta extraer los campos individuales o usar el nombre completo
           String? firstName = userData['firstName'] ?? userData['first_name'];
           String? lastName = userData['lastName'] ?? userData['last_name'];
           String? fullName = userData['name'] ?? userData['fullName'] ?? userData['full_name'];
@@ -601,12 +666,11 @@ class _HomeScreenState extends State<HomeScreen> {
               displayName = '$firstName $lastName';
             }
           } else if (fullName != null && fullName.isNotEmpty) {
-            // Dividir y tomar solo el primer nombre y primer apellido
             List<String> parts = fullName.trim().split(' ');
             if (parts.length >= 2) {
               displayName = '${parts[0]} ${parts[1]}';
             } else if (parts.isNotEmpty) {
-              displayName = parts[0]; // solo el primer nombre si no hay más
+              displayName = parts[0];
             }
           }
         }
@@ -637,7 +701,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
 
   Widget _buildCalendar() {
     final now = DateTime.now();
@@ -820,7 +883,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _navigateToWeeklyAgenda() async {
     try {
-      // Mostrar indicador de carga
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -832,18 +894,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      // Temporalmente usar lista vacía en lugar de cargar del servicio
       final weeklyAppointments = <AppointmentEnhanced>[];
 
-      /* CÓDIGO COMENTADO - Descomenta cuando quieras volver a usar el servicio
-    // Obtener citas de la semana
-    final weeklyAppointments = await appointmentService.getWeeklyAppointments();
-    */
-
-      // Cerrar indicador de carga
       Navigator.pop(context);
 
-      // Navegar a la pantalla de agenda semanal con lista vacía
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -854,12 +908,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } catch (e) {
-      // Cerrar indicador de carga si está abierto
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
 
-      // Mostrar error
       SnackBarManager.showWithAction(
           context,
           message: 'Error al cargar la agenda semanal: ${_getErrorMessage(e)}',
@@ -875,19 +927,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNoAppointments() {
     return Container(
       height: 120,
-
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-
           Icon(
             Icons.calendar_today_outlined,
             size: 40,
             color: AppColors.primary.withOpacity(0.4),
           ),
           const SizedBox(height: 6),
-          // Mensaje principal
           Text(
             'No hay citas pendiente',
             style: TextStyle(
@@ -897,7 +946,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-
         ],
       ),
     );
@@ -1004,7 +1052,6 @@ class _HomeScreenState extends State<HomeScreen> {
               Color.lerp(const Color.fromRGBO(182, 181, 181, 0.7019607843137254), AppColors.primary, 0.30)!,
             ],
           ),
-          // Agregar sombra para indicar que es clickeable
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withOpacity(0.2),
@@ -1039,7 +1086,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                // Mostrar número real o mensaje si no hay datos
                 if (activePatientCount > 0) ...[
                   Text(
                     '$activePatientCount',
@@ -1081,7 +1127,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ],
             ),
-            // Indicador visual de que es clickeable
             Positioned(
               top: 8,
               right: 8,
@@ -1097,18 +1142,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-// Método para navegar a la lista de pacientes activos
   Future<void> _navigateToActivePatients() async {
     if (activePatientCount == 0) {
       SnackBarManager.showError(
         context,
-         'No hay pacientes activos para mostrar',
+        'No hay pacientes activos para mostrar',
       );
       return;
     }
 
     try {
-      // Mostrar indicador de carga
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1121,13 +1164,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      // Navegar a la pantalla de pacientes activos
       final nutritionistService = NutritionistService();
 
-      // Cerrar indicador de carga
       Navigator.pop(context);
 
-      // Navegar a la pantalla
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -1136,12 +1176,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ).then((_) {
-
         loadHomeData();
       });
 
     } catch (e) {
-      // Cerrar indicador de carga si está abierto
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
@@ -1186,7 +1224,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       letterSpacing: 0.4,
                     ),
                   ),
-
                   Expanded(
                     child: urgentPatients.isEmpty
                         ? Center(
@@ -1250,7 +1287,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   Widget _buildUrgenteItem(String title, String subtitle) {
     return Container(
       height: 20,
@@ -1296,3 +1332,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
