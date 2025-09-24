@@ -39,6 +39,11 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
   late Animation<double> _shakeAnimation;
 
   int _attempts = 0;
+
+  // NUEVA VARIABLE: Contador de reenvíos automáticos
+  int _autoResendCount = 0;
+  static const int _maxAutoResends = 2; // Máximo 2 reenvíos automáticos
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +69,9 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
     _canResend = false;
     _resendCountdown = 60;
 
+    // Cancelar timer existente
+    _resendTimer?.cancel();
+
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -72,10 +80,85 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
           } else {
             _canResend = true;
             timer.cancel();
+
+            // Solo hacer reenvío automático si no estamos en estado de error
+            if (!_isLoading && !_isResending) {
+              _handleCountdownExpired();
+            }
           }
         });
+      } else {
+        timer.cancel();
       }
     });
+  }
+
+  // NUEVO MÉTODO: Manejar cuando el contador llega a 0
+  void _handleCountdownExpired() {
+    // Si no hemos excedido el máximo de reenvíos automáticos
+    if (_autoResendCount < _maxAutoResends) {
+      _autoResendCount++;
+
+      // Mostrar notificación al usuario
+      SnackBarManager.showInfo(
+          context,
+          'Código expirado. Enviando uno nuevo automáticamente... (${_autoResendCount}/${_maxAutoResends})'
+      );
+
+      // Reenviar automáticamente después de 2 segundos
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _resendCodeAutomatically();
+        }
+      });
+    } else {
+      // Ya se alcanzó el máximo de reenvíos automáticos
+      SnackBarManager.showWarning(
+          context,
+          'Código expirado. Usa el botón "Reenviar" para solicitar uno nuevo'
+      );
+    }
+  }
+
+  // NUEVO MÉTODO: Reenvío automático
+  // Reemplaza el método _resendCodeAutomatically con esta versión mejorada
+  Future<void> _resendCodeAutomatically() async {
+    if (_isResending) return;
+
+    setState(() => _isResending = true);
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      debugPrint('🔄 Reenvío automático iniciado. Método: ${widget.verificationMethod}');
+
+      final success = await authProvider.sendVerificationCode(
+        method: widget.verificationMethod,
+        phoneNumber: widget.verificationMethod != VerificationMethod.email ? widget.phone : null,
+      );
+
+      if (success) {
+        SnackBarManager.showSuccess(context, 'Nuevo código enviado automáticamente');
+        _clearCode();
+        _startResendTimer();
+
+        debugPrint('✅ Reenvío automático exitoso');
+      } else {
+        String errorMsg = authProvider.errorMessage ?? 'No pudimos enviar el código automáticamente';
+        SnackBarManager.showError(context, errorMsg);
+        _canResend = true;
+
+        debugPrint('❌ Error en reenvío automático: $errorMsg');
+      }
+    } catch (e) {
+      debugPrint('💥 Excepción en reenvío automático: $e');
+      SnackBarManager.showError(context, 'Error en el reenvío automático. Usa el botón "Reenviar"');
+      _canResend = true;
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
   }
 
   @override
@@ -148,11 +231,11 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
           );
         }
       } else {
-        _attempts++; // incremento de intentos
+        _attempts++;
         if (_attempts >= 3) {
           SnackBarManager.showError(context, 'Has excedido 3 intentos. La pantalla se cerrará.');
           Future.delayed(const Duration(milliseconds: 1500), () {
-            if (mounted) Navigator.of(context).pop(); // cierra la pantalla
+            if (mounted) Navigator.of(context).pop();
           });
         } else {
           String errorMessage = _getErrorMessage(message);
@@ -210,6 +293,7 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
     });
   }
 
+  // MÉTODO MODIFICADO: Reenvío manual (ahora resetea el contador de auto-reenvíos)
   Future<void> _resendCode() async {
     if (!_canResend || _isResending) return;
 
@@ -226,6 +310,9 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
       if (success) {
         SnackBarManager.showSuccess(context, 'Nuevo código enviado correctamente');
         _clearCode();
+
+        // MODIFICACIÓN: Resetear contador de auto-reenvíos en reenvío manual
+        _autoResendCount = 0;
         _startResendTimer();
       } else {
         String errorMsg = authProvider.errorMessage ?? 'No pudimos enviar el código';
@@ -253,7 +340,6 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -280,7 +366,6 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
-
                       ),
                       child: Icon(
                         _getVerificationIcon(),
@@ -352,13 +437,13 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
                             maxLength: 1,
                             style: const TextStyle(
                               fontSize: 24,
-                              fontWeight: FontWeight.w500, // Cambiado de bold a w500
+                              fontWeight: FontWeight.w500,
                               color: Colors.black87,
                             ),
                             decoration: InputDecoration(
                               counterText: '',
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), // Padding interno
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                             ),
                             onChanged: (value) {
                               if (value.isNotEmpty) {
@@ -421,7 +506,7 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
 
               const SizedBox(height: 32),
 
-              // Contador y botón reenviar
+              // SECCIÓN MODIFICADA: Contador y botón reenviar con información de auto-reenvío
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -445,19 +530,32 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
                       ),
                     )
                   else
-                    Text(
-                      'Reenviar en ${_resendCountdown}s',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 14,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          'Reenviar en ${_resendCountdown}s',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 14,
+                          ),
+                        ),
+                        // NUEVO: Mostrar información sobre auto-reenvío
+                        if (_autoResendCount > 0)
+                          Text(
+                            'Auto-reenvíos: $_autoResendCount/$_maxAutoResends',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
                     ),
                 ],
               ),
 
               const SizedBox(height: 40),
 
-              // Consejos
+              // Consejos - ACTUALIZADO con información sobre auto-reenvío
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -487,7 +585,7 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _getHelpMessage(),
+                      '${_getHelpMessage()}\n• Los primeros $_maxAutoResends códigos se reenvían automáticamente\n• Después puedes usar el botón "Reenviar"',
                       style: TextStyle(
                         color: AppColors.primary.withOpacity(0.8),
                         fontSize: 12,
@@ -565,5 +663,4 @@ class _CodeVerificationScreenState extends State<CodeVerificationScreen>
     String domain = email.substring(atIndex);
     return masked + domain;
   }
-
 }

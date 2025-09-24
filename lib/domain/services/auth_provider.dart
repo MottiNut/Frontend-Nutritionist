@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 import 'dart:typed_data';
@@ -12,6 +15,7 @@ import 'package:path/path.dart' as path;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../patient/new/rutadirectaaa/firebase_notification_handler.dart';
 import 'firebase_auth_service.dart';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -381,32 +385,87 @@ class CacheService {
 }
 class AuthService {
   // URLs base
-  //static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
-  //static const String profileBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile';
-  //static const String notificationsBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/notifications';
+  static const String baseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth';
+  static const String profileBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/auth/profile';
+  static const String notificationsBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/notifications';
+  static const String userSettingsBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/users';
 
-  static const String baseUrl = 'http://localhost:8080/api/bff/auth';
-  static const String profileBaseUrl = 'http://localhost:8080/api/bff/auth/profile';
-  static const String notificationsBaseUrl = 'http://localhost:8080/api/bff/notifications';
+  //static const String baseUrl = 'http://192.168.0.8:5000/api/bff/auth';
+  //static const String profileBaseUrl = 'http://192.168.0.8:5000/api/bff/auth/profile';
+  //static const String notificationsBaseUrl = 'http://192.168.0.8:5000/api/notifications';
+  //static const String userSettingsBaseUrl = 'http://192.168.0.8:5000/api/users';
 
+
+  // Endpoints específicos
+  static const String loginEndpoint = '$baseUrl/login';
+  static const String registerEndpoint = '$baseUrl/register/nutritionist';
+
+  static const String verificationSendEmailEndpoint = '$baseUrl/verification/send/email';
+  static const String verificationSendSmsEndpoint = '$baseUrl/verification/send/sms';
+  static const String verificationSendWhatsappEndpoint = '$baseUrl/verification/send/whatsapp';
+  static const String verificationResendEndpoint = '$baseUrl/verification/resend';
+  static const String verificationVerifyEndpoint = '$baseUrl/verification/verify';
+
+  static const String verificationSendEndpoint = '$baseUrl/verification/send';
+
+  static const String passwordResetRequestEndpoint = '$baseUrl/password/reset-request';
+  static const String passwordResetEndpoint = '$baseUrl/password/reset';
+  static const String passwordUpdateEndpoint = '$baseUrl/password/update';
+  static const String validateEndpoint = '$baseUrl/validate';
+  static const String logoutEndpoint = '$baseUrl/logout';
+  static const String nutritionistProfileEndpoint = '$profileBaseUrl/nutritionist';
+  static const String nutritionistImageEndpoint = '$profileBaseUrl/nutritionist';
+  static const String meEndpoint = '$baseUrl/me';
+
+  // Profile sharing endpoints
+  static const String shareGenerateLinkEndpoint = '$baseUrl/share/generate-link';
+  static const String shareResolveEndpoint = '$baseUrl/share/resolve';
+  static const String shareNutritionistEndpoint = '$baseUrl/share/nutritionist';
+
+
+  final http.Client _client = http.Client();
+
+  final CacheService _cacheService = CacheService();
+
+  // Headers comunes
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  Map<String, String> _headersWithAuth(String token) => {
+    ..._headers,
+    'Authorization': 'Bearer $token',
+  };
+
+  // ========== MÉTODOS DE AUTENTICACIÓN ==========
   Future<bool> registerDeviceToken({
     required String token,
     required String deviceToken,
     required String platform,
   }) async {
     try {
+      final url = '$notificationsBaseUrl/device-token';
+      final headers = _headersWithAuth(token);
+      final body = json.encode({
+        'deviceToken': deviceToken,
+        'platform': platform,
+      });
+
       final response = await _client.post(
-        Uri.parse('$notificationsBaseUrl/device-token'),
-        headers: _headersWithAuth(token),
-        body: json.encode({
-          'deviceToken': deviceToken,
-          'platform': platform,
-        }),
+        Uri.parse(url),
+        headers: headers,
+        body: body,
       );
 
-      return response.statusCode == 201;
+      if (response.statusCode == 201) {
+        return true;
+      } else {
+
+        return false;
+      }
     } catch (e) {
-      debugPrint('Error registering device token: $e');
+
       return false;
     }
   }
@@ -427,7 +486,7 @@ class AuthService {
       }
       return [];
     } catch (e) {
-      debugPrint('Error getting notification history: $e');
+
       return [];
     }
   }
@@ -458,7 +517,7 @@ class AuthService {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error sending patient action notification: $e');
+
       return false;
     }
   }
@@ -477,42 +536,167 @@ class AuthService {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error notifying new patient: $e');
+
       return false;
     }
   }
 
-  // Endpoints específicos
-  static const String loginEndpoint = '$baseUrl/login';
-  static const String registerEndpoint = '$baseUrl/register/nutritionist';
-  static const String verificationSendEndpoint = '$baseUrl/verification/send';
-  static const String verificationVerifyEndpoint = '$baseUrl/verification/verify';
-  static const String verificationResendEndpoint = '$baseUrl/verification/resend';
-  static const String passwordResetRequestEndpoint = '$baseUrl/password/reset-request';
-  static const String passwordResetEndpoint = '$baseUrl/password/reset';
-  static const String passwordUpdateEndpoint = '$baseUrl/password/update';
-  static const String validateEndpoint = '$baseUrl/validate';
-  static const String logoutEndpoint = '$baseUrl/logout';
-  static const String nutritionistProfileEndpoint = '$profileBaseUrl/nutritionist';
-  static const String nutritionistImageEndpoint = '$profileBaseUrl/nutritionist';
-  static const String meEndpoint = '$baseUrl/me';
+  Future<Map<String, String>> generateShareLink(String token) async {
+    try {
+      final response = await _client.post(
+        Uri.parse(shareGenerateLinkEndpoint),
+        headers: _headersWithAuth(token),
+      );
 
-  final http.Client _client = http.Client();
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return Map<String, String>.from(responseData);
+      } else {
+        throw Exception('Error generating share link');
+      }
+    } catch (e) {
+      debugPrint('Error generating share link: $e');
+      throw Exception('Error de conexión: ${e.toString()}');
+    }
+  }
 
-  final CacheService _cacheService = CacheService();
+  Future<Map<String, dynamic>> getPublicNutritionistProfile(String userId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$shareNutritionistEndpoint/$userId'),
+        headers: _headers,
+      );
 
-  // Headers comunes
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return Map<String, dynamic>.from(responseData);
+      } else {
+        throw Exception('Profile not found or private');
+      }
+    } catch (e) {
+      debugPrint('Error getting public profile: $e');
+      throw Exception('Error obteniendo perfil: ${e.toString()}');
+    }
+  }
 
-  Map<String, String> _headersWithAuth(String token) => {
-    ..._headers,
-    'Authorization': 'Bearer $token',
-  };
+  /// Resolve short code to get profile information
+  Future<Map<String, dynamic>> resolveShareCode(String shortCode) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$shareResolveEndpoint/$shortCode'),
+        headers: _headers,
+      );
 
-  // ========== MÉTODOS DE AUTENTICACIÓN ==========
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return Map<String, dynamic>.from(responseData);
+      } else {
+        throw Exception('Invalid or expired code');
+      }
+    } catch (e) {
+      debugPrint('Error resolving share code: $e');
+      throw Exception('Código inválido o expirado');
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserSettings(String token, String userId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/onboarding'),
+        headers: _headersWithAuth(token),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'onboardingSeen': false};
+    } catch (e) {
+      return {'onboardingSeen': false};
+    }
+  }
+
+  Future<bool> markOnboardingSeen(String token, String userId) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/onboarding'),
+        headers: _headersWithAuth(token),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+
+      return false;
+    }
+  }
+
+  Future<bool> markToolTipsSeen(String token, String userId) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/tooltips'),
+        headers: _headersWithAuth(token),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserTooltipSettings(String token, String userId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/tooltips'),
+        headers: _headersWithAuth(token),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {
+        'tooltipsSeen': false,
+        'homeGuideShown': false,
+        'patientsGuideShown': false,
+        'patientDetailGuideShown': false
+      };
+    } catch (e) {
+
+      return {
+        'tooltipsSeen': false,
+        'homeGuideShown': false,
+        'patientsGuideShown': false,
+        'patientDetailGuideShown': false
+      };
+    }
+  }
+
+  Future<bool> markTooltipAsSeen(String token, String userId, String tooltipKey) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/tooltips/$tooltipKey'),
+        headers: _headersWithAuth(token),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+
+      return false;
+    }
+  }
+
+  Future<bool> markAllTooltipsSeen(String token, String userId) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$userSettingsBaseUrl/$userId/settings/tooltips'),
+        headers: _headersWithAuth(token),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+
+      return false;
+    }
+  }
 
   Future<AuthResponse> login({
     required String email,
@@ -528,9 +712,6 @@ class AuthService {
         }),
       );
 
-      debugPrint('Login Response Status: ${response.statusCode}');
-      debugPrint('Login Response Body: ${response.body}');
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200) {
@@ -542,7 +723,7 @@ class AuthService {
         );
       }
     } catch (e) {
-      debugPrint('Login Error: $e');
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -568,8 +749,6 @@ class AuthService {
     required bool acceptTerms,
   }) async {
     try {
-      debugPrint('=== AUTHSERVICE: Preparando request multipart ===');
-
       // Crear multipart request para archivos
       var request = http.MultipartRequest(
         'POST',
@@ -674,9 +853,6 @@ class AuthService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      debugPrint('Register Response Status: ${response.statusCode}');
-      debugPrint('Register Response Body: ${response.body}');
-
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -688,7 +864,7 @@ class AuthService {
         );
       }
     } catch (e) {
-      debugPrint('Register Error: $e');
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -704,14 +880,32 @@ class AuthService {
     String? phoneNumber,
   }) async {
     try {
+      String endpoint;
+      Map<String, dynamic> requestBody = {
+        'email': email,
+      };
+
+      // Seleccionar el endpoint correcto según el método
+      switch (method) {
+        case VerificationMethod.email:
+          endpoint = verificationSendEmailEndpoint;
+          break;
+        case VerificationMethod.sms:
+          endpoint = verificationSendSmsEndpoint;
+          requestBody['phoneNumber'] = phoneNumber;
+          break;
+        case VerificationMethod.whatsapp:
+          endpoint = verificationSendWhatsappEndpoint;
+          requestBody['phoneNumber'] = phoneNumber;
+          break;
+      }
+
+      if (phoneNumber != null) debugPrint('📤 Teléfono: $phoneNumber');
+
       final response = await _client.post(
-        Uri.parse(verificationSendEndpoint),
+        Uri.parse(endpoint),
         headers: _headers,
-        body: json.encode({
-          'email': email,
-          'method': method.name,
-          if (phoneNumber != null) 'phoneNumber': phoneNumber,
-        }),
+        body: json.encode(requestBody),
       );
 
       final responseData = json.decode(response.body);
@@ -725,6 +919,7 @@ class AuthService {
         );
       }
     } catch (e) {
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -742,7 +937,7 @@ class AuthService {
         headers: _headers,
         body: json.encode({
           'code': code,
-          'type': 'email',
+          'type': 'email', // O el tipo correspondiente
           'email': email,
         }),
       );
@@ -750,7 +945,6 @@ class AuthService {
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        // Crear AuthResponse con la información de verificación
         return AuthResponse.fromJson(responseData);
       } else {
         return AuthResponse(
@@ -759,6 +953,7 @@ class AuthService {
         );
       }
     } catch (e) {
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -775,6 +970,7 @@ class AuthService {
         headers: _headers,
         body: json.encode({
           'email': email,
+          'type': 'email', // Ajusta según necesites
         }),
       );
 
@@ -959,7 +1155,7 @@ class AuthService {
         token: token,
       );
     } catch (e) {
-      debugPrint('Error getting current user: $e');
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -982,12 +1178,9 @@ class AuthService {
       final FileInfo? cachedFile = await avatarCacheManager.getFileFromCache(imageUrl);
 
       if (cachedFile != null) {
-        debugPrint('✅ Imagen encontrada en caché: $imageUrl');
         return cachedFile.file;
       }
 
-      // Si no está en caché, descargarla
-      debugPrint('⬇️ Descargando imagen: $imageUrl');
       final File file = await avatarCacheManager.getSingleFile(
         imageUrl,
         headers: headers,
@@ -998,7 +1191,7 @@ class AuthService {
 
       return file;
     } catch (e) {
-      debugPrint('❌ Error obteniendo imagen en caché: $e');
+
       throw Exception('No se pudo cargar la imagen: $e');
     }
   }
@@ -1011,7 +1204,7 @@ class AuthService {
         final localPath = '${directory.path}/nutritionist_avatar_$userId.jpg';
 
         await imageFile.copy(localPath);
-        debugPrint('💾 Imagen guardada localmente: $localPath');
+
       }
     } catch (e) {
       debugPrint('⚠️ Error guardando imagen localmente: $e');
@@ -1035,8 +1228,6 @@ class AuthService {
         authHeaders: headers,
       );
 
-      debugPrint('🚀 Imagen precargada: $imageUrl');
-
       // También guardar localmente
       final File file = await avatarCacheManager.getSingleFile(imageUrl, headers: headers);
       await _saveImageToLocalStorage(file, userId);
@@ -1050,9 +1241,8 @@ class AuthService {
   static Future<void> clearAvatarCache() async {
     try {
       await avatarCacheManager.emptyCache();
-      debugPrint('🧹 Caché de avatares limpiado');
     } catch (e) {
-      debugPrint('❌ Error limpiando caché: $e');
+
     }
   }
 
@@ -1064,12 +1254,12 @@ class AuthService {
       final File localFile = File(localPath);
 
       if (await localFile.exists()) {
-        debugPrint('📁 Imagen encontrada localmente para userId: $userId');
+
         return localFile;
       }
       return null;
     } catch (e) {
-      debugPrint('❌ Error obteniendo imagen local: $e');
+
       return null;
     }
   }
@@ -1100,7 +1290,7 @@ class AuthService {
         token: token,
       );
     } catch (e) {
-      debugPrint('Error getting profile: $e');
+
       return AuthResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
@@ -1171,6 +1361,8 @@ class AuthProvider with ChangeNotifier {
   final CacheService _cacheService = CacheService();
   //final FirebaseAuthService _authServiceGogle = FirebaseAuthService();
 
+  final FirebaseNotificationService _firebaseNotificationService = FirebaseNotificationService();
+
   // Estado de autenticación
   bool _isAuthenticated = false;
   bool _isLoading = false;
@@ -1205,9 +1397,30 @@ class AuthProvider with ChangeNotifier {
   List<dynamic> get notifications => _notifications;
   String? get fcmToken => _fcmToken;
 
+  Map<String, String>? _shareLinks;
+  bool _isGeneratingShareLink = false;
+
+  bool _onboardingSeen = false;
+  bool _toolTipsSeen = false;
+  bool _isCheckingOnboarding = false;
+
+  Map<String, bool> _tooltipStatus = {};
+  bool _isCheckingTooltips = false;
+
+  bool get onboardingSeen => _onboardingSeen;
+  bool get toolTipsSeen => _toolTipsSeen;
+  bool get isCheckingOnboarding => _isCheckingOnboarding;
+
+  Map<String, bool> get tooltipStatus => _tooltipStatus;
+  bool get isCheckingTooltips => _isCheckingTooltips;
+
+  Map<String, String>? get shareLinks => _shareLinks;
+  bool get isGeneratingShareLink => _isGeneratingShareLink;
+
   AuthProvider() {
     _loadStoredAuth();
   }
+
 
   // ========== GESTIÓN DE SESIÓN ==========
 
@@ -1220,20 +1433,24 @@ class AuthProvider with ChangeNotifier {
   Future<void> _registerDeviceTokenIfPossible() async {
     if (_token != null && _fcmToken != null) {
       try {
+
         final success = await _authService.registerDeviceToken(
           token: _token!,
           deviceToken: _fcmToken!,
-          platform: Platform.isAndroid ? 'ANDROID' : 'IOS',
+          platform: Platform.isAndroid ? 'android' : 'ios',
         );
 
         if (success) {
           debugPrint('✅ Device token registrado exitosamente');
         } else {
-          debugPrint('❌ Error registrando device token');
+          debugPrint('❌ Error registrando device token - success: false');
         }
       } catch (e) {
-        debugPrint('Error registering device token: $e');
+        debugPrint('❌ Exception registrando device token: $e');
+        debugPrint('❌ Stack trace: ${StackTrace.current}');
       }
+    } else {
+      debugPrint('No se puede registrar token - token auth: ${_token != null}, fcm token: ${_fcmToken != null}');
     }
   }
 
@@ -1257,6 +1474,117 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<void> checkOnboardingStatus() async {
+    if (_token == null || _userId == null) {
+      _onboardingSeen = false;
+      return;
+    }
+
+    _isCheckingOnboarding = true;
+    notifyListeners();
+
+    try {
+      final settings = await _authService.getUserSettings(_token!, _userId!);
+      _onboardingSeen = settings['onboardingSeen'] ?? false;
+      _toolTipsSeen = settings['toolTipsSeen'] ?? false;
+
+    } catch (e) {
+
+      _onboardingSeen = false;
+      _toolTipsSeen = false;
+    } finally {
+      _isCheckingOnboarding = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> markOnboardingSeen() async {
+    if (_token == null || _userId == null) {
+      return false;
+    }
+
+    try {
+      final success = await _authService.markOnboardingSeen(_token!, _userId!);
+      if (success) {
+        _onboardingSeen = true;
+        notifyListeners();
+
+      }
+      return success;
+    } catch (e) {
+
+      return false;
+    }
+  }
+
+  Future<bool> markToolTipsSeen() async {
+    if (_token == null || _userId == null) {
+      return false;
+    }
+
+    try {
+      final success = await _authService.markToolTipsSeen(_token!, _userId!);
+      if (success) {
+        _toolTipsSeen = true;
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('❌ Error marking tooltips as seen: $e');
+      return false;
+    }
+  }
+
+  Future<void> checkTooltipStatus() async {
+    if (_token == null || _userId == null) {
+      _tooltipStatus = {};
+      return;
+    }
+
+    _isCheckingTooltips = true;
+    notifyListeners();
+
+    try {
+      final settings = await _authService.getUserTooltipSettings(_token!, _userId!);
+
+      _tooltipStatus = {
+        'home_guide_shown': settings['homeGuideShown'] ?? false,
+        'patients_guide_shown': settings['patientsGuideShown'] ?? false,
+        'patient_detail_guide_shown': settings['patientDetailGuideShown'] ?? false,
+      };
+
+    } catch (e) {
+
+      _tooltipStatus = {
+        'home_guide_shown': false,
+        'patients_guide_shown': false,
+        'patient_detail_guide_shown': false,
+      };
+    } finally {
+      _isCheckingTooltips = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> markTooltipAsSeen(String tooltipKey) async {
+    if (_token == null || _userId == null) {
+      return false;
+    }
+
+    try {
+      final success = await _authService.markTooltipAsSeen(_token!, _userId!, tooltipKey);
+      if (success) {
+        _tooltipStatus[tooltipKey] = true;
+        notifyListeners();
+
+      }
+      return success;
+    } catch (e) {
+
+      return false;
+    }
+  }
+
   Future<void> _handleAuthSuccess(AuthResponse response) async {
     _token = response.token;
     _userId = response.userId;
@@ -1272,15 +1600,60 @@ class AuthProvider with ChangeNotifier {
         userData: _user,
       );
 
-      // Registrar device token después del login exitoso
-      await _registerDeviceTokenIfPossible();
+      // Verificar estado del onboarding después del login
+      await checkOnboardingStatus();
 
+      // Registrar device token después del login exitoso
+      await _initializeFirebaseNotifications();
+      await _registerDeviceTokenIfPossible();
       await loadNotificationHistory();
     }
 
     notifyListeners();
   }
 
+  Future<void> _initializeFirebaseNotifications() async {
+    try {
+      // 1. Solicitar permisos
+      NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        // 2. Obtener token FCM
+        String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+        if (fcmToken != null) {
+
+          // 3. Configurar el token en el provider
+          setFcmToken(fcmToken);
+
+          // 4. Configurar handlers de notificaciones
+          _setupNotificationHandlers();
+        }
+      } else {
+        debugPrint('Permisos de notificación denegados');
+      }
+    } catch (e) {
+      debugPrint('Error inicializando Firebase Notifications: $e');
+    }
+  }
+
+  void _setupNotificationHandlers() {
+    // Manejar notificaciones cuando la app está en foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Notificación recibida en foreground: ${message.notification?.title}');
+      // Mostrar notificación local o actualizar UI
+    });
+
+    // Manejar notificaciones cuando la app se abre desde una notificación
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('App abierta desde notificación: ${message.notification?.title}');
+      // Navegar a pantalla específica
+    });
+  }
 
   // Método para enviar notificación de acción del paciente
   Future<bool> sendPatientAction({
@@ -1327,7 +1700,6 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
   }
-
 
   Future<void> _loadStoredAuth() async {
     try {
@@ -1419,7 +1791,7 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Error de conexión: ${e.toString()}');
+      _setError(_getConnectionErrorMessage(e));
       return false;
     } finally {
       _setLoading(false);
@@ -1447,15 +1819,6 @@ class AuthProvider with ChangeNotifier {
      clearError();
 
     try {
-      debugPrint('=== INICIANDO REGISTRO NUTRICIONISTA ===');
-      debugPrint('Email: $email');
-      debugPrint('CNP Code: $cnpCode');
-      debugPrint('Specialty: $specialty');
-      debugPrint('Location: $location');
-      debugPrint('Address: $address');
-      debugPrint('Profile Image exists: ${profileImage.existsSync()}');
-      debugPrint('License Front exists: ${licenseFrontImage.existsSync()}');
-      debugPrint('License Back exists: ${licenseBackImage.existsSync()}');
 
       // Verificar que los archivos existan
       if (!profileImage.existsSync()) {
@@ -1486,15 +1849,7 @@ class AuthProvider with ChangeNotifier {
         acceptTerms: acceptTerms,
       );
 
-      debugPrint('=== RESPUESTA DEL AUTHSERVICE ===');
-      debugPrint('Success: ${response.success}');
-      debugPrint('Token: ${response.token != null ? "SÍ" : "NO"}');
-      debugPrint('UserId: ${response.userId}');
-      debugPrint('Email: ${response.email}');
-      debugPrint('Message: ${response.message}');
-
       if (response.success) {
-        debugPrint('=== PROCESANDO RESPUESTA EXITOSA ===');
 
         // Verificar si el response tiene información de verificación requerida
         if (response.user != null) {
@@ -1503,10 +1858,6 @@ class AuthProvider with ChangeNotifier {
           final emailVerified = userData['emailVerified'] ?? false;
           final fullyVerified = userData['fullyVerified'] ?? false;
 
-          debugPrint('=== ESTADO DE VERIFICACIÓN ===');
-          debugPrint('RequiresVerification: $requiresVerification');
-          debugPrint('EmailVerified: $emailVerified');
-          debugPrint('FullyVerified: $fullyVerified');
 
           if (requiresVerification || !emailVerified || !fullyVerified) {
             // Usuario registrado pero necesita verificación
@@ -1524,21 +1875,18 @@ class AuthProvider with ChangeNotifier {
               _isAuthenticated = false;
             }
 
-            debugPrint('✅ Verificación pendiente configurada para: $_pendingVerificationEmail');
             notifyListeners();
             return true;
           } else {
-            // Usuario completamente verificado
-            debugPrint('=== USUARIO COMPLETAMENTE VERIFICADO ===');
+
             await _handleAuthSuccess(response);
             return true;
           }
         } else {
-          // Si no hay user data pero hay token y success, necesita verificación
-          debugPrint('=== NO HAY USER DATA, VERIFICANDO TOKEN ===');
+
 
           if (response.token != null) {
-            debugPrint('=== HAY TOKEN, CONFIGURANDO VERIFICACIÓN PENDIENTE ===');
+
             _isVerificationPending = true;
             _pendingVerificationEmail = email;
             _token = response.token;
@@ -1546,11 +1894,10 @@ class AuthProvider with ChangeNotifier {
             _email = response.email ?? email;
             _isAuthenticated = false;
 
-            debugPrint('✅ Verificación pendiente configurada (sin user data)');
             notifyListeners();
             return true;
           } else {
-            debugPrint('=== NO HAY TOKEN, REGISTRO BÁSICO EXITOSO ===');
+
             _isVerificationPending = true;
             _pendingVerificationEmail = email;
             notifyListeners();
@@ -1558,14 +1905,11 @@ class AuthProvider with ChangeNotifier {
           }
         }
       } else {
-        debugPrint('=== REGISTRO FALLÓ ===');
         _setError(response.message ?? 'Error en el registro');
         return false;
       }
     } catch (e) {
-      debugPrint('=== ERROR EN REGISTRO ===');
-      debugPrint('Error: $e');
-      _setError('Error de conexión: ${e.toString()}');
+      _setError(_getConnectionErrorMessage(e));
       return false;
     } finally {
       _setLoading(false);
@@ -1622,7 +1966,6 @@ class AuthProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      debugPrint('Error loading current user: $e');
       return false;
     } finally {
       _setLoading(false);
@@ -1683,11 +2026,6 @@ class AuthProvider with ChangeNotifier {
         code: code,
       );
 
-      debugPrint('🔍 Raw response from service:');
-      debugPrint('  - success: ${response.success}');
-      debugPrint('  - message: ${response.message}');
-      debugPrint('  - verificationStatus: ${response.verificationStatus}');
-
       // CORRECCIÓN PRINCIPAL: Verificar también el mensaje para casos de éxito
       bool isActualSuccess = response.success;
 
@@ -1699,30 +2037,23 @@ class AuthProvider with ChangeNotifier {
             message.contains('verificado correctamente') ||
             message.contains('verification successful')) {
           isActualSuccess = true;
-          debugPrint('🔧 CORRECCIÓN: Detectado éxito por mensaje a pesar de success=false');
         }
       }
 
       if (isActualSuccess) {
-        debugPrint('✅ Verificación exitosa detectada');
-
         // Limpiar estado de verificación
         _isVerificationPending = false;
         _verificationMethod = null;
         _pendingVerificationEmail = null;
 
-        // NO autenticar automáticamente - usuario debe hacer login
-        debugPrint('✅ Verificación exitosa - Usuario debe hacer login');
-
         return {
           'success': true,
           'message': response.message ?? 'Verificación exitosa',
           'verificationStatus': response.verificationStatus,
-          'isAuthenticated': false, // Siempre false después de verificación
-          'requiresLogin': true     // Indicar que necesita login
+          'isAuthenticated': false,
+          'requiresLogin': true
         };
       } else {
-        debugPrint('❌ Verificación falló');
         _setError(response.message ?? 'Código inválido');
         return {
           'success': false,
@@ -1730,7 +2061,6 @@ class AuthProvider with ChangeNotifier {
         };
       }
     } catch (e) {
-      debugPrint('💥 Error en verificación: $e');
       _setError('Error de conexión: ${e.toString()}');
       return {
         'success': false,
@@ -1854,9 +2184,171 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+
+  /// Share nutritionist profile using native share functionality
+  Future<Map<String, String>?> generateShareLinks() async {
+    if (_token == null || _user == null) {
+      _setError('Usuario no autenticado');
+      return null;
+    }
+
+    _isGeneratingShareLink = true;
+    notifyListeners();
+
+    try {
+      final shareLinks = await _authService.generateShareLink(_token!);
+      _shareLinks = shareLinks;
+
+      debugPrint('Share links generated: $shareLinks');
+      notifyListeners();
+      return shareLinks;
+    } catch (e) {
+      _setError('Error generando enlace de compartir: ${e.toString()}');
+      return null;
+    } finally {
+      _isGeneratingShareLink = false;
+      notifyListeners();
+    }
+  }
+
+  /// Share nutritionist profile using native share functionality
+  Future<void> shareProfile() async {
+    if (_user == null) {
+      _setError('No hay información de perfil disponible');
+      return;
+    }
+
+    try {
+      // First generate the share links if not available
+      Map<String, String>? links = _shareLinks;
+      if (links == null) {
+        links = await generateShareLinks();
+        if (links == null) {
+          throw Exception('No se pudo generar el enlace de compartir');
+        }
+      }
+
+      // Get the appropriate share URL
+      String shareUrl = links['shortUrl'] ?? links['fullUrl'] ?? '';
+
+      if (shareUrl.isEmpty) {
+        throw Exception('No se encontró URL válida para compartir');
+      }
+
+      // Prepare share content
+      final String firstName = _user!['firstName'] ?? _user!['first_name'] ?? '';
+      final String lastName = _user!['lastName'] ?? _user!['last_name'] ?? '';
+      final String fullName = '$firstName $lastName'.trim();
+
+      final String shareText = fullName.isNotEmpty
+          ? '¡Mira mi perfil de nutricionista en Mottinut! $shareUrl'
+          : '¡Mira mi perfil de nutricionista en Mottinut! $shareUrl';
+
+      final String subject = fullName.isNotEmpty
+          ? 'Perfil de $fullName'
+          : 'Perfil de Nutricionista';
+
+      // Use Share.share (you'll need to add share_plus package to pubspec.yaml)
+      await Share.share(
+        shareText,
+        subject: subject,
+      );
+
+      debugPrint('Profile shared successfully');
+
+    } catch (e) {
+      debugPrint('Error sharing profile: $e');
+      _setError('Error compartiendo perfil: ${e.toString()}');
+    }
+  }
+
+  /// Copy share link to clipboard - CORRECTED VERSION
+  Future<void> copyShareLinkToClipboard() async {
+    if (_shareLinks == null) {
+      // Generate links if not available
+      await generateShareLinks();
+    }
+
+    if (_shareLinks != null) {
+      final String shareUrl = _shareLinks!['shortUrl'] ?? _shareLinks!['fullUrl'] ?? '';
+
+      if (shareUrl.isNotEmpty) {
+        await Clipboard.setData(ClipboardData(text: shareUrl));
+
+        // You can show a snackbar or toast here to confirm the action
+        debugPrint('Share link copied to clipboard: $shareUrl');
+      } else {
+        _setError('No hay enlace disponible para copiar');
+      }
+    } else {
+      _setError('Error generando enlace para copiar');
+    }
+  }
+
+  /// Get public nutritionist profile (for viewing shared profiles)
+  Future<Map<String, dynamic>?> getPublicNutritionistProfile(String userId) async {
+    try {
+      final profile = await _authService.getPublicNutritionistProfile(userId);
+      return profile;
+    } catch (e) {
+      debugPrint('Error getting public profile: $e');
+      _setError('Error obteniendo perfil público: ${e.toString()}');
+      return null;
+    }
+  }
+
+  /// Resolve share code to get profile information
+  Future<Map<String, dynamic>?> resolveShareCode(String shortCode) async {
+    _setLoading(true);
+    clearError();
+
+    try {
+      final resolveData = await _authService.resolveShareCode(shortCode);
+      return resolveData;
+    } catch (e) {
+      debugPrint('Error resolving share code: $e');
+      _setError('Error resolviendo código: ${e.toString()}');
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Get formatted profile share text
+  String getProfileShareText({String? customUrl}) {
+    if (_user == null) return 'Mottinut - Encuentra tu nutricionista ideal';
+
+    final String firstName = _user!['firstName'] ?? _user!['first_name'] ?? '';
+    final String lastName = _user!['lastName'] ?? _user!['last_name'] ?? '';
+    final String fullName = '$firstName $lastName'.trim();
+
+    final String url = customUrl ?? _shareLinks?['shortUrl'] ?? _shareLinks?['fullUrl'] ?? '';
+
+    if (fullName.isNotEmpty && url.isNotEmpty) {
+      return '¡Mira mi perfil de nutricionista en Mottinut! $url';
+    } else if (url.isNotEmpty) {
+      return '¡Mira mi perfil de nutricionista en Mottinut! $url';
+    } else {
+      return 'Mottinut - Encuentra tu nutricionista ideal';
+    }
+  }
+
+  /// Clear share links cache
+  void clearShareLinks() {
+    _shareLinks = null;
+    notifyListeners();
+  }
+
+
   // ========== LOGOUT ==========
 
+  @override
   Future<void> logout() async {
+    // Clear sharing data
+    _shareLinks = null;
+    _isGeneratingShareLink = false;
+
+    // Call parent logout
     if (_token != null) {
       await _authService.logout(_token!);
     }
@@ -1874,6 +2366,32 @@ class AuthProvider with ChangeNotifier {
 
     await _clearAuth();
     notifyListeners();
+  }
+
+  String _getConnectionErrorMessage(dynamic error) {
+    String errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('connection refused') ||
+        errorString.contains('errno = 111')) {
+      return 'No se pudo conectar al servidor. Verifica tu conexión a internet e intenta nuevamente.';
+    }
+
+    if (errorString.contains('timeout')) {
+      return 'La conexión tardó demasiado. Por favor, intenta nuevamente.';
+    }
+
+    if (errorString.contains('no internet') ||
+        errorString.contains('network unreachable')) {
+      return 'Sin conexión a internet. Verifica tu conexión e intenta de nuevo.';
+    }
+
+    if (errorString.contains('socketexception') ||
+        errorString.contains('clientexception')) {
+      return 'Problema de conexión. Verifica tu internet e intenta nuevamente.';
+    }
+
+    // Error genérico para cualquier otro caso
+    return 'Ocurrió un error inesperado. Por favor, intenta nuevamente.';
   }
 
   // ========== MÉTODOS PRIVADOS ==========

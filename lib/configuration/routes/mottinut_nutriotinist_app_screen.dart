@@ -23,8 +23,8 @@ class MottiNutNutriotinistApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer6<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider, NotificationProvider>(
-      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, notificationProvider, child) {
+    return Consumer5<DarkModeProvider, FontSizeProvider, NetworkProvider, AppThemeProvider, LanguageProvider>(
+      builder: (context, darkModeProvider, fontSizeProvider, networkProvider, appThemeProvider, languageProvider, child) {
         final isDarkMode = darkModeProvider.isDarkMode;
         final typography = AppTypography();
 
@@ -85,9 +85,9 @@ class MottiNutNutriotinistApp extends StatelessWidget {
             builder: (context) => _buildErrorScreen(),
           ),
 
-          navigatorObservers: [
+          /*navigatorObservers: [
             _AppNavigatorObserver(notificationProvider),
-          ],
+          ],*/
         );
       },
     );

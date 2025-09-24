@@ -144,6 +144,232 @@ class NutritionistService {
     }
   }
 
+  // Agregar estos métodos al NutritionistService existente
+
+// ================ NOTIFICACIONES ================
+
+  /// Obtiene el historial de notificaciones del nutricionista
+  Future<List<Map<String, dynamic>>> getNotificationHistory({
+    required String token,
+    int limit = 50,
+    String? type,
+    bool? isRead,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+      };
+
+      if (type != null) queryParams['type'] = type;
+      if (isRead != null) queryParams['isRead'] = isRead.toString();
+
+      final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.notifications}')
+          .replace(queryParameters: queryParams);
+
+      print('🔔 Cargando historial de notificaciones...');
+
+      final response = await http.get(
+        uri,
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        // Transformar las notificaciones del backend al formato esperado
+        final notifications = data.map((notification) {
+          return {
+            'id': notification['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            'type': notification['type'] ?? 'general',
+            'title': _generateNotificationTitle(notification),
+            'message': notification['message'] ?? notification['description'] ?? '',
+            'body': notification['message'] ?? notification['description'] ?? '',
+            'createdAt': notification['createdAt'] ?? notification['timestamp'] ?? DateTime.now().toIso8601String(),
+            'timestamp': notification['createdAt'] ?? notification['timestamp'] ?? DateTime.now().toIso8601String(),
+            'isRead': notification['isRead'] ?? notification['read'] ?? false,
+            'read': notification['isRead'] ?? notification['read'] ?? false,
+            'patientName': notification['patientName'],
+            'patientAvatar': notification['patientAvatar'],
+            'data': notification['data'] ?? {},
+          };
+        }).toList();
+
+        // Ordenar por fecha más reciente primero
+        notifications.sort((a, b) {
+          final dateA = DateTime.tryParse(a['createdAt'] ?? '') ?? DateTime.now();
+          final dateB = DateTime.tryParse(b['createdAt'] ?? '') ?? DateTime.now();
+          return dateB.compareTo(dateA);
+        });
+
+        print('📋 ${notifications.length} notificaciones cargadas');
+        return notifications;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al cargar notificaciones: $e');
+      throw Exception('Error al obtener notificaciones: $e');
+    }
+  }
+
+  /// Marca una notificación como leída
+  Future<void> markNotificationAsRead(String notificationId, String token) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.markNotificationRead(notificationId)}'),
+        headers: ApiConstants.getHeaders(token),
+        body: json.encode({'isRead': true}),
+      );
+
+      if (response.statusCode != 200) {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al marcar notificación como leída: $e');
+      throw Exception('Error al marcar notificación como leída: $e');
+    }
+  }
+
+  /// Marca todas las notificaciones como leídas
+  Future<void> markAllNotificationsAsRead(String token) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.markAllNotificationsRead}'),
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode != 200) {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al marcar todas las notificaciones como leídas: $e');
+      throw Exception('Error al marcar todas las notificaciones como leídas: $e');
+    }
+  }
+
+  /// Elimina una notificación
+  Future<void> deleteNotification(String notificationId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.deleteNotification(notificationId)}'),
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al eliminar notificación: $e');
+      throw Exception('Error al eliminar notificación: $e');
+    }
+  }
+
+  /// Registra el token de dispositivo para notificaciones push
+  Future<void> registerDeviceToken(String token, String deviceToken, String platform) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.registerDeviceToken}'),
+        headers: ApiConstants.getHeaders(token),
+        body: json.encode({
+          'deviceToken': deviceToken,
+          'platform': platform, // 'android' o 'ios'
+        }),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+
+      print('✅ Token de dispositivo registrado correctamente');
+    } catch (e) {
+      print('❌ Error al registrar token de dispositivo: $e');
+      throw Exception('Error al registrar token de dispositivo: $e');
+    }
+  }
+
+  /// Obtiene el conteo de notificaciones no leídas
+  Future<int> getUnreadNotificationsCount(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.unreadNotificationsCount}'),
+        headers: ApiConstants.getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['count'] ?? 0;
+      } else {
+        throw _handleHttpError(response.statusCode, response.body);
+      }
+    } catch (e) {
+      print('❌ Error al obtener conteo de notificaciones: $e');
+      return 0; // Retornar 0 en caso de error para no romper la UI
+    }
+  }
+
+  /// Genera el título apropiado basado en el tipo de notificación
+  String _generateNotificationTitle(Map<String, dynamic> notification) {
+    final type = notification['type']?.toString().toLowerCase();
+    final patientName = notification['patientName']?.toString();
+
+    switch (type) {
+      case 'new_patient':
+      case 'patient_assigned':
+      case 'nuevo_paciente':
+        return patientName != null
+            ? 'Nuevo paciente: $patientName'
+            : 'Nuevo paciente asignado';
+
+      case 'plan_accepted':
+      case 'plan_accepted_by_patient':
+      case 'plan_aceptado':
+        return patientName != null
+            ? '$patientName aceptó su plan nutricional'
+            : 'Plan nutricional aceptado';
+
+      case 'plan_rejected':
+      case 'plan_rejected_by_patient':
+      case 'plan_rechazado':
+        return patientName != null
+            ? '$patientName rechazó su plan nutricional'
+            : 'Plan nutricional rechazado';
+
+      case 'new_appointment':
+      case 'nueva_cita':
+        return patientName != null
+            ? 'Nueva cita con $patientName'
+            : 'Nueva cita programada';
+
+      case 'appointment_cancelled':
+      case 'cita_cancelada':
+        return patientName != null
+            ? '$patientName canceló su cita'
+            : 'Cita cancelada';
+
+      case 'message':
+      case 'chat_message':
+      case 'nuevo_mensaje':
+        return patientName != null
+            ? 'Mensaje de $patientName'
+            : 'Nuevo mensaje';
+
+      case 'plan_update':
+      case 'actualizacion_plan':
+        return 'Plan nutricional actualizado';
+
+      case 'reminder':
+      case 'recordatorio':
+        return 'Recordatorio';
+
+      case 'system':
+      case 'sistema':
+        return 'Notificación del sistema';
+
+      default:
+        return notification['title']?.toString() ?? 'Nueva notificación';
+    }
+  }
+
   /// Obtiene un paciente específico por ID
   Future<PatientProfile> getPatientById(int patientId, String token) async {
     try {

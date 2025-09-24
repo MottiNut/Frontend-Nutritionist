@@ -919,7 +919,6 @@ class _SignInScreenState extends State<SignInScreen>
         if (_isPasswordEmpty) _showPasswordError = true;
       });
 
-      // USANDO SNACKBARMANAGER
       if (_isEmailEmpty && _isPasswordEmpty) {
         SnackBarManager.showWarning(
             context, 'Por favor completa todos los campos');
@@ -962,30 +961,26 @@ class _SignInScreenState extends State<SignInScreen>
         // USANDO SNACKBARMANAGER
         SnackBarManager.showSuccess(context, 'Inicio de sesión exitoso');
 
-        // Navegar al home después de un pequeño delay para mostrar el snackbar
         Future.delayed(Duration(milliseconds: 1500), () {
           Navigator.of(context).pushNamedAndRemoveUntil(
-            '/home',
-            (Route<dynamic> route) => false,
-            arguments: {'initialIndex': 0},
+            '/button_navigation',
+                (Route<dynamic> route) => false,
           );
         });
+
       } else {
         final errorMessage = authProvider.errorMessage ?? 'Error desconocido';
-        print('🔍 Error del AuthProvider: $errorMessage');
         _handleLoginErrorFromProvider(errorMessage);
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      print('💥 Exception en _handleLogin: $e');
       _handleLoginError(e, isDarkMode);
     }
   }
 
   void _handleLoginErrorFromProvider(String errorMessage) {
-    print('🔍 Error del AuthProvider: $errorMessage');
 
     // Normalizar mensaje para comparación
     final normalizedError = errorMessage.toLowerCase();

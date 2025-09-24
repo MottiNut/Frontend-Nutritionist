@@ -19,6 +19,7 @@ class PatientScreen extends StatefulWidget {
 }
 
 class _PatientScreenState extends State<PatientScreen> {
+
   // Lista de categorías profesionales
   final List<CategoryItem> categories = [
     CategoryItem(

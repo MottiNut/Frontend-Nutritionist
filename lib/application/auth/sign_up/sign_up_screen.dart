@@ -269,6 +269,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<bool> _onWillPop() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+
+    if (authProvider.isLoading) {
+      return false;
+    }
+
     if (_currentStep == 0) {
       Navigator.of(context).pushReplacementNamed('/login');
       return false;
@@ -423,7 +430,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Future<void> _handleRegistration() async {
+  /*Future<void> _handleRegistration() async {
     if (_profilePhoto == null) {
       _showValidationError('Por favor, selecciona una foto de perfil');
       return;
@@ -487,9 +494,72 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     _showVerificationMethodModal();
+  }*/
+
+  Future<void> _handleRegistration() async {
+    // Validaciones básicas
+    if (_profilePhoto == null) {
+      _showValidationError('Por favor, selecciona una foto de perfil');
+      return;
+    }
+
+    if (_licenseFrontImage == null || _licenseBackImage == null) {
+      _showValidationError('Por favor, adjunta ambas fotos del CNP');
+      return;
+    }
+
+    if (!_isLocationValid) {
+      _showValidationError(_getLocationValidationMessage());
+      return;
+    }
+
+    // Validaciones adicionales
+    if (_firstName.trim().isEmpty || _lastName.trim().isEmpty) {
+      _showValidationError('Por favor, completa tu nombre completo');
+      return;
+    }
+
+    if (_email.trim().isEmpty || !_email.contains('@')) {
+      _showValidationError('Por favor, ingresa un email válido');
+      return;
+    }
+
+    if (_password.length < 6) {
+      _showValidationError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    if (_cnpCode.trim().isEmpty) {
+      _showValidationError('Por favor, ingresa tu código CNP');
+      return;
+    }
+
+    if (_specialty.trim().isEmpty) {
+      _showValidationError('Por favor, selecciona una especialidad');
+      return;
+    }
+
+    if (_location.trim().isEmpty) {
+      _showValidationError('Por favor, selecciona tu ubicación');
+      return;
+    }
+
+    if (_address.trim().isEmpty) {
+      _showValidationError('Por favor, ingresa tu dirección');
+      return;
+    }
+
+    await _proceedWithRegistrationDirectly();
   }
 
   void _showVerificationMethodModal() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // No mostrar modal si está cargando
+    if (authProvider.isLoading) {
+      return;
+    }
+
     _selectedVerificationMethod = _verificationMethodSelected
         ? _verificationMethod
         : VerificationMethod.email;
@@ -796,7 +866,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     debugPrint('Contacto: $contact');
   }
 
-  Future<void> _proceedWithRegistration() async {
+  /*Future<void> _proceedWithRegistration() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     try {
@@ -956,9 +1026,127 @@ class _SignUpScreenState extends State<SignUpScreen> {
       debugPrint('Stack trace: $stackTrace');
       _showValidationError('Error durante el registro: ${e.toString()}');
     }
+  }*/
+
+  Future<void> _proceedWithRegistrationDirectly() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      // Validación de tamaño de archivos
+      if (_profilePhoto != null) {
+        final profileSize = await _profilePhoto!.length();
+        if (profileSize > 10 * 1024 * 1024) {
+          _showValidationError('La foto de perfil es muy grande. Máximo 10MB.');
+          return;
+        }
+      }
+
+      if (_licenseFrontImage != null) {
+        final frontSize = await _licenseFrontImage!.length();
+        if (frontSize > 10 * 1024 * 1024) {
+          _showValidationError('La foto frontal del CNP es muy grande. Máximo 10MB.');
+          return;
+        }
+      }
+
+      if (_licenseBackImage != null) {
+        final backSize = await _licenseBackImage!.length();
+        if (backSize > 10 * 1024 * 1024) {
+          _showValidationError('La foto trasera del CNP es muy grande. Máximo 10MB.');
+          return;
+        }
+      }
+
+      debugPrint('=== INICIANDO REGISTRO AUTOMÁTICO CON EMAIL ===');
+      debugPrint('Email: ${_email.trim().toLowerCase()}');
+      debugPrint('Teléfono: $_phone');
+
+      // Obtener términos aceptados
+      bool termsAccepted = _locationKey.currentState?.termsAccepted ?? false;
+      debugPrint('Términos aceptados: $termsAccepted');
+
+      if (!termsAccepted) {
+        _showValidationError('Debes aceptar los términos y condiciones');
+        return;
+      }
+
+      // Registrar usuario
+      final success = await authProvider.register(
+        firstName: _firstName.trim(),
+        lastName: _lastName.trim(),
+        profileImage: _profilePhoto!,
+        email: _email.trim().toLowerCase(),
+        password: _password,
+        phone: _phone,
+        cnpCode: _cnpCode.trim(),
+        licenseFrontImage: _licenseFrontImage!,
+        licenseBackImage: _licenseBackImage!,
+        specialty: _specialty.trim(),
+        masterDegree: _masterDegree.trim().isNotEmpty ? _masterDegree.trim() : null,
+        otherSpecialty: _otherSpecialty.trim().isNotEmpty ? _otherSpecialty.trim() : null,
+        location: _location.trim(),
+        address: _address.trim(),
+        acceptTerms: termsAccepted,
+      );
+
+      debugPrint('=== RESULTADO DEL REGISTRO ===');
+      debugPrint('Registro exitoso: $success');
+
+      if (!success) {
+        String errorMsg = authProvider.errorMessage ?? 'Error durante el registro. Por favor, intenta nuevamente.';
+        debugPrint('❌ ERROR EN REGISTRO: $errorMsg');
+        _showValidationError(errorMsg);
+        return;
+      }
+
+      // Registro exitoso
+      debugPrint('✅ REGISTRO EXITOSO - Navegando a verificación por email');
+
+      // Si el usuario ya está completamente autenticado
+      if (authProvider.isAuthenticated && !authProvider.isVerificationPending) {
+        debugPrint('🎉 USUARIO COMPLETAMENTE AUTENTICADO');
+        _showSuccessMessage('¡Registro completado exitosamente!');
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
+        return;
+      }
+
+      // Si necesita verificación (caso más común)
+      if (authProvider.isVerificationPending) {
+        debugPrint('📧 ENVIANDO CÓDIGO DE VERIFICACIÓN POR EMAIL');
+
+        _showSuccessMessage('¡Registro exitoso! Te hemos enviado un código de verificación a tu email: ${_email.trim().toLowerCase()}');
+
+        // Navegar a pantalla de verificación con método email
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => CodeVerificationScreen(
+                email: _email.trim().toLowerCase(),
+                phone: _phone,
+                verificationMethod: VerificationMethod.email, // Siempre email
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Estado inesperado
+      debugPrint('⚠️ ESTADO INESPERADO DESPUÉS DEL REGISTRO');
+      _showValidationError('Estado inesperado después del registro. Por favor, contacta soporte.');
+
+    } catch (e, stackTrace) {
+      debugPrint('=== EXCEPCIÓN DURANTE EL REGISTRO ===');
+      debugPrint('Error: $e');
+      debugPrint('Stack trace: $stackTrace');
+      _showValidationError('Error durante el registro: ${e.toString()}');
+    }
   }
 
-  Widget _buildLastStepNavigationBar() {
+
+  /*Widget _buildLastStepNavigationBar() {
     final authProvider = Provider.of<AuthProvider>(context);
     final isLoading = authProvider.isLoading;
 
@@ -1108,6 +1296,150 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           : (_verificationMethodSelected
                               ? 'Crear mi cuenta'
                               : 'Seleccionar verificación'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }*/
+
+  Widget _buildLastStepNavigationBar() {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isLoading = authProvider.isLoading;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Información de verificación por email (siempre visible)
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.email_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Verificación por Email',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          _email.isNotEmpty ? _email : 'Tu email registrado',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Botón crear cuenta
+            GestureDetector(
+              onTap: (_canProceedToNext && !isLoading) ? _handleRegistration : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: (_canProceedToNext && !isLoading)
+                      ? LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                      : LinearGradient(
+                    colors: [
+                      Colors.grey[400]!,
+                      Colors.grey[300]!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLoading) ...[
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.person_add_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Text(
+                      isLoading ? 'Creando tu cuenta...' : 'Crear mi cuenta',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,

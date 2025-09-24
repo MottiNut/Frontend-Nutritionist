@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _unreadNotifications = 0;
   List<dynamic> _realNotifications = [];
 
+
   @override
   void initState() {
     super.initState();
@@ -59,26 +60,26 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (authProvider.token != null) {
-      // Inicializar servicio real de notificaciones
-      _notificationService = NutritionistNotificationService(authProvider.token!);
-
-      // Inicializar PatientServiceEnhanced con el servicio de notificaciones
-      patientService = PatientServiceEnhanced(
-        authToken: authProvider.token!,
-        notificationService: _notificationService,
-      );
-
       // Inicializar FirebaseNotificationService con callback
       _notificationHandler = FirebaseNotificationService(
         onNotificationReceived: _handleNotification,
       );
       await _notificationHandler.initialize();
 
-      // Registrar device token en backend
+      // Registrar device token en backend usando NutritionistService
       String? fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken != null) {
-        await _notificationService.registerDeviceToken(
-            fcmToken, Platform.isAndroid ? 'android' : 'ios');
+        try {
+          final nutritionistService = NutritionistService();
+          await nutritionistService.registerDeviceToken(
+            authProvider.token!,
+            fcmToken,
+            Platform.isAndroid ? 'android' : 'ios',
+          );
+          print('✅ Token de dispositivo registrado');
+        } catch (e) {
+          print('❌ Error registrando token de dispositivo: $e');
+        }
       }
 
       // Cargar historial real de notificaciones
@@ -86,22 +87,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   // Cargar notificaciones reales del backend
   Future<void> _loadRealNotifications() async {
     try {
-      _realNotifications = await _notificationService.getNotificationHistory(limit: 50);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.token == null) return;
+
+      final nutritionistService = NutritionistService();
+
+      // Usar el nuevo método del servicio
+      _realNotifications = await nutritionistService.getNotificationHistory(
+        token: authProvider.token!,
+        limit: 50,
+      );
 
       // Contar notificaciones no leídas reales
       _unreadNotifications = _realNotifications
           .where((notification) => notification['isRead'] == false || notification['read'] == false)
           .length;
 
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
+
+      print('✅ Notificaciones cargadas: ${_realNotifications.length}, No leídas: $_unreadNotifications');
     } catch (e) {
-      print('Error cargando notificaciones reales: $e');
+      print('❌ Error cargando notificaciones reales: $e');
       _realNotifications = [];
       _unreadNotifications = 0;
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -205,37 +221,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToNotifications() {
-    if (_realNotifications.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => NotificationScreen(
-            // CORRECCIÓN: Usar la clase NotificationItem correcta del notification_screen.dart
-            notifications: _realNotifications.map((notification) => NotificationItem(
-              id: notification['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-              type: _mapStringToNotificationType(notification['type']),
-              title: notification['title'] ?? 'Notificación',
-              message: notification['message'] ?? notification['body'] ?? '',
-              timestamp: DateTime.tryParse(notification['createdAt'] ?? notification['timestamp'] ?? '') ?? DateTime.now(),
-              isRead: notification['isRead'] ?? notification['read'] ?? false,
-              patientName: notification['patientName'],
-              patientAvatar: notification['patientAvatar'],
-              extraData: notification['data'] ?? {},
-            )).toList(),
-          ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationScreen(
+          // Pasar la lista de notificaciones transformadas al formato NotificationItem
+          notifications: _realNotifications.map((notification) => NotificationItem(
+            id: notification['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            type: _mapStringToNotificationType(notification['type']),
+            title: notification['title'] ?? 'Notificación',
+            message: notification['message'] ?? notification['body'] ?? '',
+            timestamp: DateTime.tryParse(notification['createdAt'] ?? notification['timestamp'] ?? '') ?? DateTime.now(),
+            isRead: notification['isRead'] ?? notification['read'] ?? false,
+            patientName: notification['patientName'],
+            patientAvatar: notification['patientAvatar'],
+            extraData: notification['data'] ?? {},
+          )).toList(),
+          // Agregar callbacks para las acciones
+          onMarkAsRead: (notificationId) async {
+            try {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              if (authProvider.token != null) {
+                final nutritionistService = NutritionistService();
+                await nutritionistService.markNotificationAsRead(notificationId, authProvider.token!);
+                await _loadRealNotifications(); // Recargar para actualizar el contador
+              }
+            } catch (e) {
+              print('❌ Error marcando como leída: $e');
+            }
+          },
+          onDelete: (notificationId) async {
+            try {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              if (authProvider.token != null) {
+                final nutritionistService = NutritionistService();
+                await nutritionistService.deleteNotification(notificationId, authProvider.token!);
+                await _loadRealNotifications(); // Recargar para actualizar la lista
+              }
+            } catch (e) {
+              print('❌ Error eliminando notificación: $e');
+            }
+          },
+          onMarkAllAsRead: () async {
+            try {
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              if (authProvider.token != null) {
+                final nutritionistService = NutritionistService();
+                await nutritionistService.markAllNotificationsAsRead(authProvider.token!);
+                await _loadRealNotifications(); // Recargar para actualizar todo
+              }
+            } catch (e) {
+              print('❌ Error marcando todas como leídas: $e');
+            }
+          },
         ),
-      ).then((_) {
-        // Recargar notificaciones al volver
-        _loadRealNotifications();
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay notificaciones disponibles'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+      ),
+    ).then((_) {
+      // Recargar notificaciones al volver
+      _loadRealNotifications();
+    });
   }
 
   void _precacheUserAvatar() {

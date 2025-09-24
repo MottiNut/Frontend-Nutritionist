@@ -559,7 +559,7 @@ class EmailPasswordScreenState extends State<EmailPasswordScreen> {
                         _buildPasswordRequirement('Al menos 6 caracteres', hasMinLength),
                         _buildPasswordRequirement('Al menos una letra mayúscula', hasUppercase),
                         _buildPasswordRequirement('Al menos un número', hasNumber),
-                        _buildPasswordRequirement('Al menos un carácter especial (!@#%^&*)', hasSpecialChar),
+                        _buildPasswordRequirement('Al menos un carácter \nespecial (!@#%^&*)', hasSpecialChar),
                       ],
                     ),
                   ),

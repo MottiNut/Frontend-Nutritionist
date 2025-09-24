@@ -70,6 +70,10 @@ class _ValidationScreenState extends State<ValidationScreen>
   // Datos de análisis
   Map<String, dynamic> _analysisData = {};
 
+  bool _isExitDialogOpen = false;
+  Timer? _autoCloseTimer;
+  bool _isDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -260,11 +264,16 @@ class _ValidationScreenState extends State<ValidationScreen>
   }
 
   Future<bool> _onWillPop() async {
+
     if (_canPop) {
-      return true; // Permitir retroceso
+      return true;
     }
 
-    // Mostrar diálogo de confirmación si la validación está en progreso
+    if (_isExitDialogOpen) {
+      return false;
+    }
+
+
     if (_currentState == ValidationState.processing) {
       return await _showExitConfirmationDialog();
     }
@@ -273,73 +282,98 @@ class _ValidationScreenState extends State<ValidationScreen>
   }
 
   Future<bool> _showExitConfirmationDialog() async {
-    return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.backgroundPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
-                size: 24,
+    if (_isDialogOpen) return false; // Evitar diálogos múltiples
+
+    _isDialogOpen = true;
+
+    // Timer para auto-cerrar el diálogo si la validación termina
+    Timer? dialogTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && _isDialogOpen) {
+        Navigator.of(context, rootNavigator: true).pop(false);
+        _isDialogOpen = false;
+      }
+    });
+
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: AppColors.backgroundPrimary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Validación en Progreso',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              '¿Estás seguro de que deseas cancelar la validación? Se perderá el progreso actual.',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontSize: 14,
+                height: 1.4,
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Validación en Progreso',
-                style: TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+                child: const Text(
+                  'Continuar Validación',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.errorIcon.withOpacity(0.1),
+                ),
+                child: const Text(
+                  'Cancelar Validación',
+                  style: TextStyle(
+                    color: AppColors.errorText,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
-          ),
-          content: const Text(
-            '¿Estás seguro de que deseas cancelar la validación? Se perderá el progreso actual.',
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Continuar Validación',
-                style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              style: TextButton.styleFrom(
-                backgroundColor: AppColors.errorIcon.withOpacity(0.1),
-              ),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(
-                  color: AppColors.errorText,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+          );
+        },
+      );
+
+      dialogTimer?.cancel();
+      _isDialogOpen = false;
+      return result ?? false;
+
+    } catch (e) {
+      dialogTimer?.cancel();
+      _isDialogOpen = false;
+      return false;
+    }
   }
 
   Future<bool> _executeValidationStep(ValidationStep step) async {
@@ -887,6 +921,15 @@ class _ValidationScreenState extends State<ValidationScreen>
   void _finalizeValidation(bool isValid, String? errorMessage) {
     if (!mounted) return;
 
+    // Cancelar cualquier timer de auto-cierre previo
+    _autoCloseTimer?.cancel();
+
+    // Cerrar diálogo si está abierto
+    if (_isDialogOpen) {
+      Navigator.of(context, rootNavigator: true).pop(false);
+      _isDialogOpen = false;
+    }
+
     // Verificar si es lado duplicado
     if (!isValid && _analysisData['duplicate_side'] == true) {
       String detectedSide = _analysisData['detected_side'] ?? 'unknown';
@@ -900,17 +943,23 @@ class _ValidationScreenState extends State<ValidationScreen>
         missingSide = 'reverso';
       }
 
-      widget.onValidationComplete(false, {
-        'detected_side': detectedSide,
-        'duplicate_side': true,
-        'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
+      // Salir inmediatamente con error de duplicado
+      _autoCloseTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          widget.onValidationComplete(false, {
+            'detected_side': detectedSide,
+            'duplicate_side': true,
+            'error_message': 'Ya subiste el $sideText del carnet. Necesitas el $missingSide.',
+          });
+        }
       });
       return;
     }
 
-    // Lógica normal de finalización
+    // Actualizar estado
     setState(() {
       _currentState = isValid ? ValidationState.success : ValidationState.failed;
+      _canPop = true; // Permitir salida inmediata después de la validación
       _finalResult = ValidationResult(
         isValid: isValid,
         errorMessage: errorMessage,
@@ -919,7 +968,7 @@ class _ValidationScreenState extends State<ValidationScreen>
     });
 
     // Auto-cerrar después de mostrar resultado
-    Timer(const Duration(seconds: 3), () {
+    _autoCloseTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Map<String, dynamic> result = _mergeAnalysisData();
         widget.onValidationComplete(isValid, result);
@@ -951,9 +1000,10 @@ class _ValidationScreenState extends State<ValidationScreen>
           elevation: 0,
           leading: IconButton(
             onPressed: () async {
-
               bool canExit = await _onWillPop();
               if (canExit && mounted) {
+
+                _autoCloseTimer?.cancel();
                 widget.onValidationComplete(false, null);
               }
             },
@@ -1738,6 +1788,7 @@ class _ValidationScreenState extends State<ValidationScreen>
 
   @override
   void dispose() {
+    _autoCloseTimer?.cancel();
     _progressController.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
@@ -1747,4 +1798,5 @@ class _ValidationScreenState extends State<ValidationScreen>
     _barcodeScanner.close();
     super.dispose();
   }
+
 }

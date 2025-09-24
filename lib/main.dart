@@ -20,12 +20,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // Supongamos que obtienes el token desde algún lugar, p.ej. SharedPreferences o inicialización
-  final String token = 'TU_TOKEN_AQUI';
-
-  // Inicializa tu servicio de notificaciones con token
-  final notificationService = NutritionistNotificationService(token);
-
   runApp(
     MultiProvider(
       providers: [
@@ -36,13 +30,11 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(
-          create: (_) => NotificationProvider(notificationService),
-        ),
+        // REMOVER ESTA LÍNEA - se inicializará después del login
+        // ChangeNotifierProvider(create: (_) => NotificationProvider(notificationService)),
       ],
       child: MottiNutNutriotinistApp(),
     ),
   );
 }
-
 

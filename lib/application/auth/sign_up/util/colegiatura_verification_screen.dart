@@ -630,9 +630,9 @@ class ColegiaturaVerificationScreenState
             isUploading = false;
           });
 
-          String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
+          String sideText = detectedSide == 'front' ? 'anverso' : 'reverso';
           String missingSide =
-              _getMissingSide() == 'front' ? 'frente' : 'reverso';
+              _getMissingSide() == 'front' ? 'anverso' : 'reverso';
 
           SnackBarManager.showError(context,
               'Ya subiste el $sideText del carnet. Necesitas subir el $missingSide.');
@@ -649,7 +649,7 @@ class ColegiaturaVerificationScreenState
         await _saveData();
 
         // NUEVO: Mensaje más específico
-        String sideText = detectedSide == 'front' ? 'frente' : 'reverso';
+        String sideText = detectedSide == 'front' ? 'anverso' : 'reverso';
         SnackBarManager.showSuccess(context,
             'Carnet válido ($sideText) agregado (${carneImages.length}/2)');
 
@@ -661,7 +661,7 @@ class ColegiaturaVerificationScreenState
         });
 
         String missingSide =
-            _getMissingSide() == 'front' ? 'frente' : 'reverso';
+            _getMissingSide() == 'front' ? 'anverso' : 'reverso';
         SnackBarManager.showInfo(context,
             'Ahora captura el $missingSide del carnet para completar la validación.');
       } else {
@@ -1582,7 +1582,7 @@ class ColegiaturaVerificationScreenState
     if (index < imageSides.length) {
       String side = imageSides[index];
       if (side == 'front') {
-        sideText = 'FRENTE';
+        sideText = 'ANVERSO';
         backgroundColor = AppColors.backgroundHipertencion;
       } else if (side == 'back') {
         sideText = 'REVERSO';

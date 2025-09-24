@@ -11,16 +11,34 @@ class NutritionPlanGenerator {
   final PatientProfile patient;
   final PatientWithHistory? patientWithHistory;
   final String? authToken;
+  final String? lastPlanId;
 
   NutritionPlanGenerator({
     required this.context,
     required this.patient,
     required this.patientWithHistory,
     required this.authToken,
+    this.lastPlanId,
   });
 
-  /// Muestra el selector de tipo de plan (3, 4 o 5 comidas)
+
   void showPlanTypeSelector() {
+    print('🔄 Mostrando selector de plan...');
+
+    final historyToUse = _getLatestHistory();
+
+    if (patientWithHistory?.medicalHistories != null) {
+      final totalHistories = patientWithHistory!.medicalHistories.length;
+      print('📊 Total de historiales disponibles en Generator: $totalHistories');
+
+      if (totalHistories > 0) {
+        final allIds = patientWithHistory!.medicalHistories
+            .map((h) => h.historyId?.toString() ?? 'N/A')
+            .toList();
+        print('🔢 IDs de todos los historiales: ${allIds.join(', ')}');
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -297,7 +315,7 @@ class NutritionPlanGenerator {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        backgroundColor: Colors.white, // fondo blanco limpio
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -376,7 +394,7 @@ class NutritionPlanGenerator {
 
               const SizedBox(height: 20),
 
-              // Botones al final, mismos tamaños
+              // Botones
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -401,6 +419,15 @@ class NutritionPlanGenerator {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
+
+                        // 🔥 Aquí enganchamos el historial más reciente
+                        final latest = _getLatestHistory();
+                        print("✅ Usando historial más reciente: ${latest?.historyId ?? 'N/A'}");
+
+                        // Construir el request con el historial ya tomado
+                        final request = _buildPlanRequest(mealCount);
+
+                        // Llamar al diálogo de confirmación con el request listo
                         _showGeneratePlanDialog(mealCount);
                       },
                       style: ElevatedButton.styleFrom(
@@ -725,6 +752,17 @@ class NutritionPlanGenerator {
   }
 
   GeneratePlanRequest _buildPlanRequest(int mealCount) {
+
+    final recentHistory = _getLatestHistory();
+
+    print('🎯 NutritionPlanGenerator usando historial ID: ${recentHistory?.historyId ?? 'N/A'}');
+    print('📅 Fecha del historial: ${recentHistory?.consultationDate}');
+
+    // Validar que tenemos un historial
+    if (recentHistory == null) {
+      print('⚠️ No se encontró historial médico reciente');
+    }
+
     // Usar datos disponibles o valores por defecto usando el helper
     final energyRequirement = PatientValidationHelper.calculateEnergyRequirement(patient);
     final goal = PatientValidationHelper.prepareGoalDescription(patient, patientWithHistory);
@@ -737,7 +775,44 @@ class NutritionPlanGenerator {
       goal: goal,
       specialRequirements: specialRequirements,
       mealsPerDay: mealCount,
+
     );
+  }
+
+  MedicalHistory? _getLatestHistory() {
+
+    print('🔍 Buscando historial más reciente en Generator...');
+
+    if (patientWithHistory?.medicalHistories == null ||
+        patientWithHistory!.medicalHistories.isEmpty) {
+      print('❌ No hay historiales disponibles en Generator');
+      return null;
+    }
+
+    final sortedHistories = List<MedicalHistory>.from(patientWithHistory!.medicalHistories)
+      ..sort((a, b) {
+
+        final dateComparison = b.consultationDate.compareTo(a.consultationDate);
+        if (dateComparison != 0) return dateComparison;
+
+        final idA = a.historyId ?? 0;
+        final idB = b.historyId ?? 0;
+        return idB.compareTo(idA);
+      });
+
+    final latest = sortedHistories.first;
+
+    // 📊 LOGS DETALLADOS PARA DEBUGGEAR
+    print('📋 Generator - Total historiales disponibles: ${sortedHistories.length}');
+    print('📋 Generator - Historiales ordenados:');
+    for (int i = 0; i < sortedHistories.length && i < 5; i++) { // Mostrar solo los primeros 5
+      final history = sortedHistories[i];
+      print('  ${i}: ${history.consultationDate} - ID: ${history.historyId ?? 'N/A'}');
+    }
+
+    print('🎯 Generator - Historial seleccionado: ID ${latest.historyId}, Fecha: ${latest.consultationDate}');
+
+    return latest;
   }
 
   Color _getButtonColor(NutritionPlanResponse? plan, String? error) {
@@ -789,54 +864,71 @@ class NutritionPlanGenerator {
       _showErrorDialog('Error', 'No se pudo acceder a los detalles del plan');
     }
   }
+
   void _showQuickLoadingOverlay() {
     showDialog(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withOpacity(0.3),
       builder: (context) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 280, // 🔑 Máximo ancho para evitar overflow
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(
-                color: Colors.orange,
-                strokeWidth: 3,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Cargando detalles...',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: IntrinsicWidth( // 🔑 Ajusta ancho al contenido
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    color: Colors.orange,
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Cargando detalles...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Flexible( // 🔑 Se adapta si el nombre es largo
+                    child: Text(
+                      'Plan para ${patient.fullName}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'Plan para ${patient.fullName}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
 
   /// Construye una fila de detalles
   Widget _buildDetailRow(String label, String value) {

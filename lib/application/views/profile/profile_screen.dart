@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:mottinutnutriotinist/application/views/profile/setting/setting_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../configuration/themes/app_colors.dart';
 import '../../../domain/auth/entities/user_profile.dart';
 import '../../../domain/auth/enums/specialty_type.dart';
@@ -90,7 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     });
 
     try {
-
       final success = await authProvider.loadUserProfile();
 
       if (success && authProvider.user != null && mounted) {
@@ -108,7 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       }
     } catch (e) {
       debugPrint('Profile background refresh error: $e');
-
     }
   }
 
@@ -939,14 +940,286 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     );
   }
 
-  Future<void> _shareProfile() async {
-    final profileLink = 'https://mottinut.com/u/${profile!.firstName}';
-    final shareText = '¡Mira mi perfil de nutricionista en Mottinut! $profileLink';
+  // Reemplaza el método _shareProfile() en tu ProfileScreen
 
-    await Share.share(
-      shareText,
-      subject: 'Perfil de ${profile!.fullName}',
+  Future<void> _shareProfile() async {
+    final authProvider = context.read<AuthProvider>();
+
+    try {
+      // Generar URL del perfil web
+      final profileUrl = _generateProfileWebUrl(authProvider);
+
+      if (profileUrl == null) {
+        throw Exception('No se pudo generar la URL del perfil');
+      }
+
+      // Intentar compartir usando Share Plus
+      final result = await Share.shareWithResult(
+        'Mira mi perfil profesional: $profileUrl',
+        subject: 'Perfil de ${_getDisplayName()}',
+      );
+
+      // Manejar diferentes resultados del share
+      if (result.status == ShareResultStatus.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Perfil compartido exitosamente'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else if (result.status == ShareResultStatus.dismissed) {
+        // Usuario canceló el share - no mostrar error
+        return;
+      } else {
+        // Error o no hay apps disponibles - abrir en navegador
+        await _openProfileInBrowser(profileUrl);
+      }
+    } catch (e) {
+      // Fallback: intentar abrir en navegador o copiar enlace
+      try {
+        final profileUrl = _generateProfileWebUrl(authProvider);
+        if (profileUrl != null) {
+          await _openProfileInBrowser(profileUrl);
+        } else {
+          throw e;
+        }
+      } catch (fallbackError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error compartiendo perfil: $fallbackError'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  String? _generateProfileWebUrl(AuthProvider authProvider) {
+    try {
+      final userData = authProvider.user;
+      if (userData == null) return null;
+
+      final userId = userData['id'] ?? userData['userId'];
+      if (userId == null) return null;
+
+      // Para desarrollo local
+      if (kDebugMode) {
+        return 'http://192.168.0.8:5000/profile/$userId';
+      }
+
+      // Para producción
+      return 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff/profile/$userId';
+    } catch (e) {
+      debugPrint('Error generando URL del perfil: $e');
+      return null;
+    }
+  }
+
+  Future<void> _openProfileInBrowser(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Perfil abierto en el navegador'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Si no puede abrir, copiar al clipboard
+        await _copyToClipboard(url);
+      }
+    } catch (e) {
+      // Fallback final: copiar al clipboard
+      await _copyToClipboard(url);
+    }
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: text));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Enlace del perfil copiado al portapapeles'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+// También actualiza el método _showShareMenu() para incluir más opciones
+  void _showShareMenu() {
+    final authProvider = context.read<AuthProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Compartir Perfil',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Compartir usando apps
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.share,
+                  color: AppColors.primary,
+                ),
+              ),
+              title: const Text('Compartir enlace'),
+              subtitle: const Text('Usar apps instaladas o abrir en navegador'),
+              onTap: () {
+                Navigator.pop(context);
+                _shareProfile();
+              },
+            ),
+
+            // Abrir en navegador directamente
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.open_in_browser,
+                  color: Colors.blue,
+                ),
+              ),
+              title: const Text('Abrir en navegador'),
+              subtitle: const Text('Ver perfil directamente en el navegador'),
+              onTap: () async {
+                Navigator.pop(context);
+                final profileUrl = _generateProfileWebUrl(authProvider);
+                if (profileUrl != null) {
+                  await _openProfileInBrowser(profileUrl);
+                }
+              },
+            ),
+
+            // Copiar enlace
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.link,
+                  color: Colors.orange,
+                ),
+              ),
+              title: const Text('Copiar enlace'),
+              subtitle: const Text('Copiar enlace al portapapeles'),
+              onTap: () async {
+                Navigator.pop(context);
+                final profileUrl = _generateProfileWebUrl(authProvider);
+                if (profileUrl != null) {
+                  await _copyToClipboard(profileUrl);
+                }
+              },
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
+  }
+
+
+  Future<void> _copyProfileLink(AuthProvider authProvider) async {
+    try {
+      await authProvider.copyShareLinkToClipboard();
+
+      if (authProvider.errorMessage == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Enlace copiado al portapapeles'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.errorMessage!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error copiando enlace: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildProfileImage(AuthProvider authProvider) {

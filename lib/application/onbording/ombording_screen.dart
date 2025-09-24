@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'dart:async';
 import '../../configuration/themes/app_colors.dart';
 import '../../domain/data/onboarding_data.dart';
+import '../../domain/services/auth_provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -401,7 +404,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         width: double.infinity,
         height: 50,
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            // ✅ FLUJO CORREGIDO: SIEMPRE GUARDAR ONBOARDING COMO VISTO
+            // Y LUEGO IR AL LOGIN (no verificar autenticación)
+
+            // 1. Guardar en cache local que el onboarding fue visto
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setBool('onboarding_seen', true);
+            debugPrint('✅ Onboarding marcado como visto localmente');
+
+            // 2. Si el usuario está autenticado, también marcar en el servidor
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            if (authProvider.isAuthenticated) {
+              await authProvider.markOnboardingSeen();
+              debugPrint('✅ Onboarding marcado como visto en el servidor');
+            }
+
+            // 3. SIEMPRE navegar al login después del onboarding
+            // (El usuario debe hacer login independientemente)
+            debugPrint('📱 Onboarding completado, navegando al login...');
             Navigator.pushReplacementNamed(context, '/login');
           },
           style: ElevatedButton.styleFrom(
@@ -411,7 +432,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               borderRadius: BorderRadius.circular(25),
             ),
             elevation: 2,
-            padding: EdgeInsets.zero, // elimina padding innecesario
+            padding: EdgeInsets.zero,
           ),
           child: Center(
             child: Row(
@@ -436,6 +457,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     );
   }
-
 }
-

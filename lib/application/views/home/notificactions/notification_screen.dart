@@ -39,10 +39,16 @@ enum NotificationType {
 
 class NotificationScreen extends StatefulWidget {
   final List<NotificationItem> notifications;
+  final Function(String notificationId)? onMarkAsRead;
+  final Function(String notificationId)? onDelete;
+  final VoidCallback? onMarkAllAsRead;
 
   const NotificationScreen({
     super.key,
     required this.notifications,
+    this.onMarkAsRead,
+    this.onDelete,
+    this.onMarkAllAsRead,
   });
 
   @override
@@ -601,12 +607,17 @@ class _NotificationScreenState extends State<NotificationScreen>
   }
 
   void _markAsRead(NotificationItem notification) {
+    // Ejecutar callback si está disponible
+    widget.onMarkAsRead?.call(notification.id);
+
     SnackBarManager.showInfo(context, 'Notificación marcada como leída');
   }
 
   void _deleteNotification(NotificationItem notification) {
-    SnackBarManager.showError(context, 'Notificación eliminada');
 
+    widget.onDelete?.call(notification.id);
+
+    SnackBarManager.showError(context, 'Notificación eliminada');
   }
 
   void _onNotificationTap(NotificationItem notification) {

@@ -316,71 +316,115 @@ class _CreateMedicalHistoryScreenState extends State<CreateMedicalHistoryScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: AppColors.checkValidation, size: 60),
-            const SizedBox(height: 16),
-            const Text(
-              '¡Historial creado exitosamente!',
+            // Ícono elegante
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.checkValidation.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(12),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.checkValidation,
+                size: 60,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Título
+            Text(
+              '¡Historial creado!',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.checkValidation,
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 12),
 
+            // Mensaje descriptivo
             Text(
-              'El historial médico de ${widget.patient.fullName} ha sido guardado correctamente.',
+              'El historial médico de '
+                  '${widget.patient.fullName} ha sido guardado correctamente.',
               style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+                fontSize: 15,
+                color: Colors.grey[700],
+                height: 1.4,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+
+            // Calorías opcionales
             if (_calculatedCalories > 0)
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color:_diseaseColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: _diseaseColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'Calorías calculadas: ${_calculatedCalories.toStringAsFixed(0)} kcal/día',
+                  'Calorías calculadas: '
+                      '${_calculatedCalories.toStringAsFixed(0)} kcal/día',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: _diseaseColor,
                     fontWeight: FontWeight.w600,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
           ],
         ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-              widget.onHistoryCreated?.call();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.checkValidation,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Cerramos el diálogo
+                Navigator.of(context, rootNavigator: true).pop();
+
+                // Navegamos al detalle
+                Navigator.of(context, rootNavigator: true).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => PatientDetailScreens(patient: widget.patient),
+                  ),
+                );
+              },
+
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.checkValidation,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 2,
+              ),
+              child: const Text(
+                'Continuar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            child: const Text('Continuar',
-                style: TextStyle(color: Colors.white,
-                fontSize: 14
-                )),
           ),
         ],
       ),
     );
   }
+
 
   void _showErrorDialog(String title, String message) {
     showDialog(

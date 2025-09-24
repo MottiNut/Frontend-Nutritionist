@@ -116,7 +116,6 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   late PatientDisease _patientDisease;
   late Color _diseaseColor;
 
-
   @override
   void initState() {
     super.initState();
@@ -131,9 +130,26 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Future<void> _loadPatientDetails() async {
+    print('🔄 Cargando detalles del paciente...');
+
     setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+      _patientWithHistory = _patientWithHistory;
+      _healthSummary = _healthSummary;
+      _isLoading = false;
+
+      // ✅ OBTENER HISTORIAL MÁS RECIENTE CORRECTAMENTE
+      final sortedHistories = _getSortedHistories();
+      final latestHistory = sortedHistories.isNotEmpty ? sortedHistories.first : null;
+
+      print('🎯 Historial más reciente para plan generator: ID ${latestHistory?.historyId ?? "N/A"}');
+
+      _planGenerator = NutritionPlanGenerator(
+        context: context,
+        patient: widget.patient,
+        patientWithHistory: _patientWithHistory,
+        authToken: _authToken,
+
+      );
     });
 
     try {
@@ -145,8 +161,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
       _authToken = token;
       final nutritionistService = NutritionistService();
 
-      final patientWithHistory =
-          await nutritionistService.getPatientWithHistory(
+      final patientWithHistory = await nutritionistService.getPatientWithHistory(
         widget.patient.patientId,
         token,
       );
@@ -155,6 +170,13 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
         widget.patient.patientId,
         token,
       );
+
+      // ✅ AGREGAR ESTOS LOGS PARA DEBUGGEAR
+      print('📊 Total historiales: ${patientWithHistory.medicalHistories.length}');
+      for (int i = 0; i < patientWithHistory.medicalHistories.length; i++) {
+        final history = patientWithHistory.medicalHistories[i];
+        print('Historial $i: ${history.consultationDate} - ID: ${history.historyId ?? 'N/A'}');
+      }
 
       setState(() {
         _patientWithHistory = patientWithHistory;
@@ -166,8 +188,13 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
           patient: widget.patient,
           patientWithHistory: _patientWithHistory,
           authToken: _authToken,
+
         );
+
       });
+
+      print('✅ Datos actualizados. Historiales: ${_patientWithHistory?.medicalHistories.length ?? 0}');
+
     } catch (e) {
       print('❌ Error al cargar detalles del paciente: $e');
       setState(() {
@@ -187,18 +214,26 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     }
   }
 
-  void _navigateToCreateMedicalHistory() {
-    Navigator.push(
+  void _navigateToCreateMedicalHistory() async {
+    print('🔄 Navegando a crear historial médico...');
+
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateMedicalHistoryScreen(
           patient: widget.patient,
-          onHistoryCreated: () {
-            _loadPatientDetails();
+          onHistoryCreated: () async {
+            print('✅ Callback onHistoryCreated ejecutado');
+            // ✅ Forzar recarga inmediata de datos
+            await _loadPatientDetails();
           },
         ),
       ),
     );
+
+    // ✅ Recarga adicional cuando regrese, independientemente del resultado
+    print('🔄 Regresando de CreateMedicalHistory, recargando datos...');
+    await _loadPatientDetails();
   }
 
   @override
@@ -807,7 +842,19 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => _planGenerator?.showPlanTypeSelector(),
+                            // En _buildFixedActionButtons, en la sección del botón "Generar Plan":
+                            onTap: () async {
+                              print('🔄 Generando plan - verificando datos actualizados...');
+
+                              // ✅ Recargar datos antes de generar plan para asegurar último historial
+                              await _loadPatientDetails();
+
+                              // ✅ Pequeña pausa para asegurar que setState se complete
+                              await Future.delayed(Duration(milliseconds: 100));
+
+                              // ✅ Ahora generar el plan with datos frescos
+                              _planGenerator?.showPlanTypeSelector();
+                            },
                             borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -1009,7 +1056,11 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildHistoryTab() {
+    final sortedHistories = _getSortedHistories();
     if (!PatientValidationHelper.hasCompleteHistory(_patientWithHistory)) {
+
+      final sortedHistories = _getSortedHistories();
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1046,9 +1097,9 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
 
     return ListView.builder(
       padding: const EdgeInsets.all(11),
-      itemCount: _patientWithHistory!.medicalHistories.length,
+      itemCount: sortedHistories.length,
       itemBuilder: (context, index) {
-        final history = _patientWithHistory!.medicalHistories[index];
+        final history = sortedHistories[index];
         final isRecent = index == 0;
         return _buildHistoryCard(history, isRecent: isRecent);
       },
@@ -1153,16 +1204,17 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildProgressHeader() {
-    final latestHistory = _patientWithHistory!.medicalHistories.first;
-    final daysSinceLastVisit =
-        DateTime.now().difference(latestHistory.consultationDate).inDays;
+
+    final sortedHistories = _getSortedHistories();
+
+    final latestHistory = sortedHistories.first;
+    final daysSinceLastVisit = DateTime.now().difference(latestHistory.consultationDate).inDays;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 7),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Línea superior: Progreso + última consulta
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1199,11 +1251,9 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
               ),
             ],
           ),
-
           const SizedBox(height: 2),
-          // Total de visitas
           Text(
-            '${_patientWithHistory!.medicalHistories.length} visitas registradas',
+            '${sortedHistories.length} visitas registradas',
             style: TextStyle(
               color: Colors.black54,
               fontSize: 14,
@@ -1216,8 +1266,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
 
 
   Widget _buildWeightProgressChart() {
-    final histories = _patientWithHistory!.medicalHistories;
-    if (histories.length < 2) return const SizedBox.shrink();
+    final sortedHistories = _getSortedHistories(); // ✅ USAR ORDENADO
+    if (sortedHistories.length < 2) return const SizedBox.shrink();
 
     // Obtener datos de peso del paciente y del historial
     List<FlSpot> weightSpots = [];
@@ -1226,8 +1276,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
     // Agregar peso inicial del paciente
     weightSpots.add(FlSpot(0, currentWeight));
 
-    // Agregar pesos del historial (si los hay)
-    for (int i = 0; i < histories.length; i++) {
+    // Agregar pesos del historial ordenado
+    for (int i = 0; i < sortedHistories.length; i++) {
       // Como no veo peso en MedicalHistory, usaremos el peso base del paciente
       // En una implementación real, deberías tener peso en cada consulta
       weightSpots.add(FlSpot(i + 1.0, currentWeight + (i * 0.5))); // Simulado
@@ -1373,7 +1423,10 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildVitalSignsCards() {
-    final latestHistory = _patientWithHistory!.medicalHistories.first;
+    final sortedHistories = _getSortedHistories();
+    if (sortedHistories.isEmpty) return const SizedBox.shrink();
+
+    final latestHistory = sortedHistories.first; // ✅ USAR HISTORIAL ORDENADO
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1525,8 +1578,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildHealthMetricsChart() {
-    final histories = _patientWithHistory!.medicalHistories;
-    if (histories.isEmpty) return const SizedBox.shrink();
+    final sortedHistories = _getSortedHistories();
+    if (sortedHistories.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1599,7 +1652,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
                   ),
                 ),
                 borderData: FlBorderData(show: false),
-                barGroups: _getBarGroups(histories.first),
+                barGroups: _getBarGroups(sortedHistories.first), // ✅ USAR ORDENADO
                 gridData: FlGridData(show: false),
               ),
             ),
@@ -1657,6 +1710,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
   }
 
   Widget _buildRecentAchievements() {
+    final sortedHistories = _getSortedHistories();
+
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 10, 15, 30),
       decoration: BoxDecoration(
@@ -1694,7 +1749,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
           const SizedBox(height: 16),
           _buildAchievementItem(
             'Consulta Completada',
-            'Has registrado ${_patientWithHistory!.medicalHistories.length} consultas',
+            'Has registrado ${sortedHistories.length} consultas',
             Icons.check_circle,
             Colors.green,
           ),
@@ -1713,6 +1768,33 @@ class _PatientDetailScreenState extends State<PatientDetailScreens>
         ],
       ),
     );
+  }
+
+  List<MedicalHistory> _getSortedHistories() {
+    if (_patientWithHistory?.medicalHistories == null) {
+      print('❌ No hay historiales para ordenar');
+      return [];
+    }
+
+    final sorted = List<MedicalHistory>.from(_patientWithHistory!.medicalHistories)
+      ..sort((a, b) {
+        // Si las fechas son iguales, ordenar por ID descendente
+        final dateComparison = b.consultationDate.compareTo(a.consultationDate);
+        if (dateComparison == 0) {
+          // Fechas iguales, ordenar por ID (el más alto primero)
+          final idA = a.historyId ?? 0;
+          final idB = b.historyId ?? 0;
+          return idB.compareTo(idA);
+        }
+        return dateComparison;
+      });
+
+    print('📋 Historiales ordenados por ID:');
+    for (int i = 0; i < sorted.length; i++) {
+      print('  $i: ${sorted[i].consultationDate} - ID: ${sorted[i].historyId ?? 'N/A'}');
+    }
+
+    return sorted;
   }
 
   Widget _buildAchievementItem(String title, String description, IconData icon, Color color) {

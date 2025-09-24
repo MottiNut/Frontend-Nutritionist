@@ -2701,7 +2701,7 @@ class FoodItem {
 }
 
 class ApiConfig {
-  static const String prodBaseUrl = 'https://www.mottinnut.com/api/v1';
+  static const String prodBaseUrl = 'https://mottinut-backend-2025-djf0f5c0hjckhpgp.centralus-01.azurewebsites.net/api/bff';
 
   // URLs de MockAPI para desarrollo
   static const String devBaseUrl = 'https://684685267dbda7ee7aaf4e65.mockapi.io';
